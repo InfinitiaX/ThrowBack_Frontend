@@ -1,0 +1,25 @@
+/* Layout.module.css */
+.layout {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.mainContent {
+  flex: 1;
+  transition: margin-left 0.3s ease;
+  margin-left: 250px; /* Largeur de la sidebar déployée */
+  width: calc(100% - 250px);
+}
+
+.mainContent.expanded {
+  margin-left: 70px; /* Largeur de la sidebar réduite */
+  width: calc(100% - 70px);
+}
+
+@media (max-width: 768px) {
+  .mainContent {
+    margin-left: 70px;
+    width: calc(100% - 70px);
+  }
+}

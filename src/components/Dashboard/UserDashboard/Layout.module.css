@@ -1,0 +1,67 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background-color: #f9f9f9;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left 0.3s ease;
+  width: 100%;
+}
+
+.withSidebar {
+  margin-left: 240px;
+}
+
+.withCollapsedSidebar {
+  margin-left: 64px;
+}
+
+.mainContent {
+  flex: 1;
+  padding: 24px;
+  transition: padding 0.3s ease;
+}
+
+/* Animation de transition pour le contenu */
+.content, .mainContent {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0.8; }
+  to { opacity: 1; }
+}
+
+/* Pour les appareils mobiles */
+@media (max-width: 768px) {
+  .content {
+    margin-left: 0 !important;
+  }
+  
+  .mainContent {
+    padding: 16px;
+  }
+}
+
+/* Pour les tablettes */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .mainContent {
+    padding: 20px;
+  }
+}
+
+/* Pour les grands écrans */
+@media (min-width: 1600px) {
+  .mainContent {
+    padding: 32px;
+    max-width: 1600px;
+    margin: 0 auto;
+    width: 100%;
+  }
+}
+

@@ -1,0 +1,401 @@
+/* ProfileTabs.module.css - Version responsive et harmonisée */
+
+.tabsContainer {
+  max-width: 1000px;
+  width: 90%;
+  margin: 40px auto;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 2.5px solid #eee;
+  margin-bottom: 40px;
+  padding-bottom: 10px;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none; /* Pour Firefox */
+}
+
+.tabs::-webkit-scrollbar {
+  display: none; /* Pour Chrome/Safari/Edge */
+}
+
+.tab {
+  padding: 12px 24px;
+  border: none;
+  background: none;
+  font-size: 18px;
+  font-weight: 700;
+  color: #666;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: #b31217;
+  transform: translateY(-2px);
+}
+
+.tab.active {
+  color: #b31217;
+  font-weight: 800;
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #b31217;
+  border-radius: 2px;
+}
+
+.tabContent {
+  width: 100%;
+  padding: 20px 0;
+  animation: fadeIn 0.3s ease;
+}
+
+.tabPanel {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.tabHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #eee;
+}
+
+.tabHeader h2 {
+  margin: 0;
+  color: #333;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.form {
+  width: 100%;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.formGroup label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+.input, .textarea, select {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  background-color: #fff;
+}
+
+.textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.input:focus, .textarea:focus, select:focus {
+  outline: none;
+  border-color: #b31217;
+  box-shadow: 0 0 0 2px rgba(179, 18, 23, 0.1);
+}
+
+.input:disabled, .textarea:disabled, select:disabled {
+  background-color: #f8f8f8;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+/* Photo upload styles */
+.photoUpload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.photoPreview {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #fff;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+}
+
+.photoPreview:hover {
+  transform: scale(1.05);
+}
+
+.photoInput {
+  display: none;
+}
+
+.photoActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.uploadButton {
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.uploadButton:hover {
+  background: #eee;
+  color: #b31217;
+}
+
+/* Checkbox styles */
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 15px;
+  color: #444;
+}
+
+.checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #b31217;
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  outline: none;
+}
+
+.checkbox:checked {
+  background: #b31217;
+}
+
+.checkbox:checked:after {
+  content: '✓';
+  position: absolute;
+  color: white;
+  font-size: 14px;
+  left: 5px;
+  top: 0px;
+}
+
+.checkbox:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: #aaa;
+}
+
+.checkboxGroup {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 8px;
+}
+
+/* Form actions */
+.formActions {
+  margin-top: 30px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+}
+
+.editButton, .saveButton {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.editButton {
+  background: transparent;
+  border: 1px solid #b31217;
+  color: #b31217;
+}
+
+.editButton:hover {
+  background: rgba(179, 18, 23, 0.05);
+  transform: translateY(-2px);
+}
+
+.saveButton {
+  background: #b31217;
+  border: none;
+  color: white;
+}
+
+.saveButton:hover {
+  background: #9e0f13;
+  transform: translateY(-2px);
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-top: 32px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.helperText {
+  display: block;
+  color: #777;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.backButton {
+  border: 2px solid #b31217;
+  background: #fff;
+  color: #b31217;
+  font-weight: 600;
+  font-size: 16px;
+  padding: 8px 22px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+  margin-bottom: 24px;
+  display: inline-block;
+  align-self: flex-start;
+}
+
+.backButton:hover {
+  background: #b31217;
+  color: #fff;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive styles */
+@media (max-width: 900px) {
+  .tabsContainer {
+    width: 95%;
+    padding: 24px;
+  }
+  
+  .tabs {
+    gap: 10px;
+  }
+  
+  .tab {
+    padding: 10px 16px;
+    font-size: 16px;
+  }
+  
+  .formGrid {
+    gap: 20px;
+  }
+  
+  .checkboxGroup {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .tabHeader {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .formActions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .saveButton, .editButton {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .tabsContainer {
+    padding: 16px;
+  }
+  
+  .tabs {
+    padding-bottom: 6px;
+  }
+  
+  .tab {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  .checkboxGroup {
+    grid-template-columns: 1fr;
+  }
+  
+  .input, .textarea, select {
+    padding: 12px;
+    font-size: 14px;
+  }
+}

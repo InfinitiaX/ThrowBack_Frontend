@@ -1,0 +1,68 @@
+/* src/components/common/ErrorMessage.module.css */
+.errorMessage {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  border-left: 4px solid;
+}
+
+.errorMessage.error {
+  background-color: #ffebee;
+  border-left-color: #f44336;
+  color: #c62828;
+}
+
+.errorMessage.warning {
+  background-color: #fff8e1;
+  border-left-color: #ff9800;
+  color: #ef6c00;
+}
+
+.errorMessage.info {
+  background-color: #e3f2fd;
+  border-left-color: #2196f3;
+  color: #1565c0;
+}
+
+.errorMessage.success {
+  background-color: #e8f5e8;
+  border-left-color: #4caf50;
+  color: #2e7d32;
+}
+
+.icon {
+  font-size: 1.2rem;
+  margin-top: 0.1rem;
+  flex-shrink: 0;
+}
+
+.content {
+  flex: 1;
+}
+
+.message {
+  margin: 0 0 0.75rem 0;
+  line-height: 1.5;
+}
+
+.retryButton {
+  background: none;
+  border: 1px solid currentColor;
+  color: inherit;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.retryButton:hover {
+  background: currentColor;
+  color: white;
+}

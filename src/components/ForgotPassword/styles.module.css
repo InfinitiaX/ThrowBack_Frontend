@@ -1,0 +1,299 @@
+/* src/components/ForgotPassword/styles.module.css */
+.auth_container {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+  }
+  
+  .auth_left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 40px 120px;
+    justify-content: center;
+    background-color: #fff;
+  }
+  
+  .auth_right {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background-color: #e32929;
+  }
+  
+  .music_collage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .logo_container {
+    margin-bottom: 50px;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .logo {
+    width: 20%;
+    height: auto;
+  }
+  
+  .auth_title {
+    font-size: 32px;
+    font-weight: 600;
+    color: #e32929;
+    margin-bottom: 10px;
+  }
+  
+  .auth_subtitle {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 30px;
+    line-height: 1.5;
+  }
+  
+  .auth_form {
+    width: 100%;
+  }
+  
+  .form_group {
+    margin-bottom: 20px;
+  }
+  
+  .form_group label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: #333;
+  }
+  
+  .form_input {
+    width: 100%;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+  }
+  
+  .form_input:focus {
+    border-color: #e32929;
+    outline: none;
+  }
+  
+  .recaptcha_container {
+    margin-bottom: 20px;
+  }
+  
+  .recaptcha_box {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    background-color: #f9f9f9;
+  }
+  
+  .checkbox {
+    width: 20px;
+    height: 20px;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    margin-right: 10px;
+    cursor: pointer;
+  }
+  
+  .recaptcha_logo {
+    width: 30px;
+    height: auto;
+    margin-left: auto;
+  }
+  
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+    text-decoration: none;
+  }
+  
+  .btn_primary {
+    background-color: #e32929;
+    color: white;
+    border: none;
+  }
+  
+  .btn_primary:hover {
+    background-color: #c71f1f;
+  }
+  
+  .btn_primary:disabled {
+    background-color: #e98989;
+    cursor: not-allowed;
+  }
+  
+  .error_message {
+    color: #e32929;
+    font-size: 14px;
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: rgba(227, 41, 41, 0.1);
+    border-radius: 4px;
+  }
+  
+  .success_message {
+    color: #28a745;
+    font-size: 14px;
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: rgba(40, 167, 69, 0.1);
+    border-radius: 4px;
+  }
+  
+  /* Media queries pour une vraie responsivité */
+  @media (max-width: 1400px) {
+    .auth_left {
+      padding: 40px 80px;
+    }
+  }
+  
+  @media (max-width: 1200px) {
+    .auth_left {
+      padding: 30px 60px;
+    }
+  }
+  
+  /* Sur tablette, réduire les marges */
+  @media (max-width: 992px) {
+    .auth_left {
+      padding: 30px 40px;
+    }
+  }
+  
+  /* Point de rupture principal pour le mobile */
+  @media (max-width: 768px) {
+    .auth_container {
+      flex-direction: column;
+    }
+    
+    .auth_left {
+      flex: none;
+      width: 100%;
+      padding: 30px 20px;
+      min-height: 100vh; /* Prendre toute la hauteur */
+    }
+    
+    .auth_right {
+      display: none; /* Cacher complètement la partie droite sur mobile */
+    }
+    
+    .logo_container {
+      justify-content: center; /* Centrer le logo sur mobile */
+      margin-bottom: 30px;
+    }
+    
+    .auth_title {
+      text-align: center;
+      font-size: 28px;
+    }
+    
+    .auth_subtitle {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+  }
+  
+  /* Ajustements pour petits écrans */
+  @media (max-width: 480px) {
+    .auth_left {
+      padding: 20px 15px;
+    }
+    
+    .form_input {
+      padding: 12px;
+    }
+    
+    .btn {
+      padding: 12px;
+    }
+    
+    .logo {
+      width: 100px; /* Logo légèrement plus petit sur les très petits écrans */
+    }
+    
+    .auth_title {
+      font-size: 24px;
+    }
+    
+    .auth_subtitle {
+      font-size: 14px;
+    }
+    
+    .recaptcha_box {
+      padding: 10px;
+      font-size: 14px;
+    }
+  }
+  
+  /* Pour les écrans extrêmement petits */
+  @media (max-width: 320px) {
+    .auth_left {
+      padding: 15px 10px;
+    }
+    
+    .form_input {
+      padding: 10px;
+      font-size: 14px;
+    }
+    
+    .btn {
+      padding: 10px;
+      font-size: 14px;
+    }
+    
+    .form_group label {
+      font-size: 13px;
+    }
+  }
+  
+  /* Orientation paysage sur mobile */
+  @media (max-height: 600px) and (max-width: 850px) {
+    .auth_left {
+      padding: 15px;
+    }
+    
+    .logo_container {
+      margin-bottom: 15px;
+    }
+    
+    .auth_title {
+      font-size: 22px;
+      margin-bottom: 5px;
+    }
+    
+    .auth_subtitle {
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    
+    .form_group {
+      margin-bottom: 10px;
+    }
+    
+    .form_input {
+      padding: 8px;
+    }
+    
+    .recaptcha_container {
+      margin-bottom: 10px;
+    }
+    
+    .btn {
+      padding: 10px;
+    }
+  }

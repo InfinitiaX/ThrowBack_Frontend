@@ -1,0 +1,215 @@
+/* src/components/EmailVerify/styles.module.css */
+.auth_container {
+	display: flex;
+	height: 100vh;
+	width: 100%;
+  }
+  
+  .auth_left {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	padding: 40px 120px;
+	justify-content: center;
+	background-color: #fff;
+	text-align: center;
+  }
+  
+  .auth_right {
+	flex: 1;
+	position: relative;
+	overflow: hidden;
+	background-color: #e32929;
+  }
+  
+  .music_collage {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+  }
+  
+  .logo_container {
+	margin-bottom: 50px;
+	display: flex;
+	justify-content: center; /* Centré pour cette page de vérification */
+  }
+  
+  .logo {
+	width: 120px;
+	height: auto;
+  }
+  
+  .verify_content {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+  }
+  
+  .auth_title {
+	font-size: 28px;
+	font-weight: 600;
+	color: #e32929; /* Modifié pour correspondre à notre palette de couleurs */
+	margin-bottom: 15px;
+  }
+  
+  .auth_message {
+	font-size: 16px;
+	color: #555;
+	margin-bottom: 10px;
+	line-height: 1.5;
+  }
+  
+  .auth_instruction {
+	font-size: 16px;
+	font-weight: 500;
+	color: #333;
+	margin-bottom: 30px;
+  }
+  
+  .resend_container {
+	margin-bottom: 20px;
+  }
+  
+  .resend_link {
+	background: none;
+	border: none;
+	color: #e32929;
+	font-size: 16px;
+	cursor: pointer;
+	padding: 0;
+	text-decoration: underline;
+  }
+  
+  .resend_counter {
+	color: #999;
+	font-size: 16px;
+  }
+  
+  .signin_link_container {
+	margin-top: 20px;
+  }
+  
+  .signin_link {
+	background: none;
+	border: none;
+	color: #333;
+	font-size: 16px;
+	cursor: pointer;
+	padding: 0;
+	text-decoration: underline;
+	font-weight: 500;
+  }
+  
+  .signin_link:hover,
+  .resend_link:hover {
+	color: #c71f1f;
+  }
+  
+  /* Media queries pour une vraie responsivité */
+  @media (max-width: 1400px) {
+	.auth_left {
+	  padding: 40px 80px;
+	}
+  }
+  
+  @media (max-width: 1200px) {
+	.auth_left {
+	  padding: 30px 60px;
+	}
+  }
+  
+  /* Sur tablette */
+  @media (max-width: 992px) {
+	.auth_left {
+	  padding: 30px 40px;
+	}
+  }
+  
+  /* Point de rupture principal pour le mobile */
+  @media (max-width: 768px) {
+	.auth_container {
+	  flex-direction: column;
+	}
+	
+	.auth_left {
+	  flex: none;
+	  width: 100%;
+	  padding: 30px 20px;
+	  min-height: 100vh; /* Prendre toute la hauteur */
+	}
+	
+	.auth_right {
+	  display: none; /* Cacher complètement la partie droite sur mobile */
+	}
+	
+	.logo_container {
+	  margin-bottom: 30px;
+	}
+  }
+  
+  /* Ajustements pour petits écrans */
+  @media (max-width: 480px) {
+	.auth_left {
+	  padding: 20px 15px;
+	}
+	
+	.logo {
+	  width: 100px; /* Logo légèrement plus petit sur les très petits écrans */
+	}
+	
+	.auth_title {
+	  font-size: 24px;
+	}
+	
+	.auth_message,
+	.auth_instruction {
+	  font-size: 14px;
+	}
+	
+	.resend_link,
+	.resend_counter,
+	.signin_link {
+	  font-size: 14px;
+	}
+  }
+  
+  /* Pour les écrans extrêmement petits */
+  @media (max-width: 320px) {
+	.auth_left {
+	  padding: 15px 10px;
+	}
+	
+	.auth_title {
+	  font-size: 22px;
+	}
+  }
+  
+  /* Orientation paysage sur mobile */
+  @media (max-height: 600px) and (max-width: 850px) {
+	.auth_left {
+	  padding: 15px;
+	}
+	
+	.logo_container {
+	  margin-bottom: 15px;
+	}
+	
+	.auth_title {
+	  font-size: 22px;
+	  margin-bottom: 10px;
+	}
+	
+	.auth_message,
+	.auth_instruction {
+	  margin-bottom: 10px;
+	}
+	
+	.resend_container {
+	  margin-bottom: 10px;
+	}
+	
+	.signin_link_container {
+	  margin-top: 10px;
+	}
+  }

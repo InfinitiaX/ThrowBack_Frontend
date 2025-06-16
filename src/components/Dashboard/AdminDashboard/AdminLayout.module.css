@@ -1,0 +1,121 @@
+/* ==============================================
+   VARIABLES CSS GLOBALES
+   ============================================== */
+:root {
+  --header-height: 60px;
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 60px;
+  --primary-color: #b31217;
+  --text-primary: #333;
+  --text-secondary: #666;
+  --bg-white: #ffffff;
+  --bg-light: #f5f6fa;
+  --border-color: #eee;
+  --transition: all 0.3s ease;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* ==============================================
+   LAYOUT PRINCIPAL
+   ============================================== */
+.adminLayout {
+  position: relative;
+  min-height: 100vh;
+  background-color: var(--bg-light);
+  overflow-x: hidden;
+}
+
+/* ==============================================
+   CONTENU PRINCIPAL
+   ============================================== */
+.mainContent {
+  transition: var(--transition);
+  min-height: 100vh;
+  position: relative;
+}
+
+.contentWrapper {
+  min-height: calc(100vh - var(--header-height));
+  background-color: var(--bg-light);
+  /* Pas de padding ici - laissé aux composants enfants */
+}
+
+/* ==============================================
+   RESPONSIVE DESIGN
+   ============================================== */
+
+/* Tablettes */
+@media (max-width: 1024px) {
+  .mainContent {
+    /* Les styles sont gérés par les props inline React */
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .mainContent {
+    margin-left: 0 !important;
+    margin-top: var(--header-height);
+  }
+  
+  .contentWrapper {
+    /* Assurer que le contenu n'est pas caché derrière l'header */
+  }
+}
+
+/* ==============================================
+   SCROLL SMOOTH
+   ============================================== */
+.mainContent {
+  scroll-behavior: smooth;
+}
+
+/* ==============================================
+   PRINT STYLES
+   ============================================== */
+@media print {
+  .mainContent {
+    margin: 0 !important;
+  }
+  
+  .contentWrapper {
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+}
+
+/* ==============================================
+   FOCUS MANAGEMENT
+   ============================================== */
+.contentWrapper:focus {
+  outline: none;
+}
+
+/* ==============================================
+   LOADING STATE (OPTIONNEL)
+   ============================================== */
+.adminLayout.loading .contentWrapper {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.adminLayout.loading .contentWrapper::after {
+  content: '';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--bg-light);
+  border-top: 3px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  z-index: 9999;
+}
+
+@keyframes spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}

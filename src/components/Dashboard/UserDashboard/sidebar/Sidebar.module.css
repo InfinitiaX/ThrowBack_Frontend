@@ -1,0 +1,240 @@
+.sidebar {
+  width: 240px;
+  height: 100vh;
+  background: #8b0000;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 110;
+  transition: all 0.3s ease;
+  overflow-y: auto;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Collapsed state */
+.collapsed {
+  width: 64px;
+}
+
+.collapsed .label,
+.collapsed .sectionTitle span,
+.collapsed .copyright {
+  display: none;
+}
+
+.collapsed .navItem {
+  justify-content: center;
+}
+
+.collapsed .icon {
+  margin-right: 0;
+}
+
+.collapsed .sectionTitle {
+  height: 16px;
+}
+
+.collapsed .toggleBtn {
+  left: 16px;
+}
+
+/* Header section */
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logoWrap {
+  text-align: center;
+  flex: 1;
+}
+
+.logo {
+  height: 40%;
+  width: 40%;
+  transition: all 0.3s ease;
+}
+
+.closeBtn {
+  display: none;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px;
+}
+
+/* Navigation section */
+.nav {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0;
+}
+
+.sectionTitle {
+  padding: 0 20px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  height: 32px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  margin: 2px 8px;
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 14px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.navItem:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.icon {
+  margin-right: 16px;
+  width: 20px;
+  text-align: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  color: black;
+}
+
+.active {
+  background: white;
+  color: #8b0000;
+  font-weight: 600;
+}
+
+.active:hover {
+  background: white;
+}
+
+/* Library section */
+.librarySection {
+  padding: 16px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.libraryItem {
+  padding: 10px 20px;
+  font-size: 13px;
+}
+
+/* Toggle button */
+.toggleBtn {
+  position: absolute;
+  bottom: 16px;
+  left: 200px;
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.toggleBtn:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* Footer */
+.sidebarFooter {
+  padding: 16px;
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: auto;
+}
+
+.copyright {
+  margin: 0;
+}
+
+/* Mobile overlay */
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 105;
+  backdrop-filter: blur(2px);
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 280px;
+  }
+  
+  .open {
+    transform: translateX(0);
+  }
+  
+  .closeBtn {
+    display: block;
+  }
+  
+  .overlay {
+    display: block;
+  }
+  
+  .toggleBtn {
+    display: none;
+  }
+}
+
+/* Additional mobile styles for a more app-like experience */
+@media (max-width: 480px) {
+  .sidebar {
+    width: 100%;
+    max-width: 320px;
+    border-radius: 0 16px 16px 0;
+  }
+  
+  .sidebarHeader {
+    padding: 20px 16px;
+  }
+  
+  .navItem {
+    padding: 14px 20px;
+    margin: 2px 12px;
+    font-size: 16px;
+  }
+  
+  .sectionTitle {
+    padding: 0 24px;
+    margin-top: 8px;
+  }
+  
+  .icon {
+    font-size: 18px;
+  }
+}

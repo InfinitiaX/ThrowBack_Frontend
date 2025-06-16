@@ -1,0 +1,157 @@
+/* src/components/Common/Captcha.module.css */
+.captcha_container {
+  margin: 16px 0;
+}
+
+.captcha_wrapper {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.captcha_label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.captcha_display {
+  background-color: white;
+  border: 2px solid #e32929;
+  border-radius: 6px;
+  padding: 16px;
+  text-align: center;
+  margin-bottom: 12px;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.math_question {
+  font-family: 'Courier New', monospace;
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+}
+
+.text_captcha {
+  font-family: 'Courier New', monospace;
+  font-size: 28px;
+  font-weight: bold;
+  color: #333;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  background: linear-gradient(45deg, #e32929, #ff6b6b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.captcha_input_wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.captcha_input {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+  font-family: 'Courier New', monospace;
+  text-align: center;
+  font-weight: bold;
+}
+
+.captcha_input:focus {
+  outline: none;
+  border-color: #e32929;
+  box-shadow: 0 0 0 2px rgba(227, 41, 41, 0.2);
+}
+
+.captcha_refresh {
+  background-color: #e32929;
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.captcha_refresh:hover {
+  background-color: #c41e1e;
+}
+
+.captcha_refresh:active {
+  transform: translateY(1px);
+}
+
+.captcha_loading {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-style: italic;
+}
+
+.captcha_error {
+  background-color: #fee;
+  border: 1px solid #fcc;
+  border-radius: 4px;
+  padding: 16px;
+  text-align: center;
+  color: #c33;
+}
+
+.captcha_retry {
+  margin-left: 12px;
+  background-color: #e32929;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.captcha_retry:hover {
+  background-color: #c41e1e;
+}
+
+/* Animations */
+@keyframes captcha_appear {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.captcha_display {
+  animation: captcha_appear 0.3s ease-out;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .captcha_wrapper {
+    padding: 12px;
+  }
+  
+  .math_question,
+  .text_captcha {
+    font-size: 20px;
+  }
+  
+  .captcha_input {
+    font-size: 14px;
+  }
+}

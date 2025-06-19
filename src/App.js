@@ -20,9 +20,9 @@ import DashboardLayout from './components/Dashboard/UserDashboard/DashboardLayou
 import ProfilePage from './components/Profile/Profile';          
 import DashboardHome from './components/Dashboard/UserDashboard/Home'
 import Settings from './components/Dashboard/UserDashboard/Settings/Settings';
-import Shorts from './components/Short/Shorts';
-import ThrowbackVideos from './ThrowbackVideos/ThrowbackVideos';
-import VideoDetail from './ThrowbackVideos/VideoDetail';
+import Shorts from './components/Dashboard/UserDashboard/Short/Shorts';
+import ThrowbackVideos from './components/Dashboard/UserDashboard/ThrowbackVideos/ThrowbackVideos';
+import VideoDetail from './components/Dashboard/UserDashboard/ThrowbackVideos/VideoDetail';
 
 // Admin Dashboard
 import AdminDashboard from './components/Dashboard/AdminDashboard';

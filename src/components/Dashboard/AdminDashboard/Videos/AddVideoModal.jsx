@@ -23,31 +23,76 @@ const AddVideoModal = ({ isOpen, onClose, onVideoCreated }) => {
     annee: '',
     decennie: '',
     duree: '',
-    description: ''
+    description: '',
+    sourceType: 'youtube', // Nouveau champ pour indiquer YouTube ou Vimeo
   });
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
+  const [videoProvider, setVideoProvider] = useState('youtube');
 
   if (!isOpen) return null;
 
-  // Extract YouTube video ID and generate thumbnail
-  const getYouTubeVideoId = (url) => {
+  // Extract video ID and identify provider (YouTube or Vimeo)
+  const getVideoInfo = (url) => {
     try {
       const videoUrl = new URL(url);
       let videoId = '';
+      let provider = '';
       
+      // YouTube URL detection
       if (videoUrl.hostname.includes('youtube.com')) {
         videoId = videoUrl.searchParams.get('v');
+        provider = 'youtube';
       } else if (videoUrl.hostname.includes('youtu.be')) {
         videoId = videoUrl.pathname.substring(1);
+        provider = 'youtube';
+      } 
+      // Vimeo URL detection
+      else if (videoUrl.hostname.includes('vimeo.com')) {
+        // Handle vimeo.com/123456789 format
+        const segments = videoUrl.pathname.split('/').filter(Boolean);
+        videoId = segments[0];
+        // Handle potential channel format: vimeo.com/channels/channelname/123456789
+        if (segments.length > 1 && segments[0] === 'channels' && !isNaN(segments[segments.length - 1])) {
+          videoId = segments[segments.length - 1];
+        }
+        provider = 'vimeo';
+      } else if (videoUrl.hostname.includes('player.vimeo.com')) {
+        // Handle player.vimeo.com/video/123456789 format
+        const segments = videoUrl.pathname.split('/').filter(Boolean);
+        if (segments.length > 1 && segments[0] === 'video') {
+          videoId = segments[1];
+        }
+        provider = 'vimeo';
       }
       
-      return videoId;
+      return { videoId, provider };
     } catch (error) {
-      return null;
+      return { videoId: null, provider: null };
     }
+  };
+
+  // Generate preview URL based on video provider
+  const generatePreviewUrl = (videoInfo) => {
+    const { videoId, provider } = videoInfo;
+    
+    if (!videoId) return '';
+    
+    if (provider === 'youtube') {
+      return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+    } else if (provider === 'vimeo') {
+      // Pour Vimeo, nous affichons simplement un logo Vimeo par défaut
+      // car l'accès aux miniatures nécessite un appel API côté serveur
+      return 'https://i.vimeocdn.com/favicon/main-touch_180';
+      
+      // Note: Une meilleure solution serait d'implémenter un appel au backend
+      // qui utiliserait l'API Vimeo pour récupérer la vraie miniature
+      // return `/api/videos/vimeo-thumbnail/${videoId}`;
+    }
+    
+    return '';
   };
 
   // Handle input changes
@@ -76,11 +121,20 @@ const AddVideoModal = ({ isOpen, onClose, onVideoCreated }) => {
       }));
     }
 
-    // Generate preview URL for YouTube videos
+    // Generate preview URL for videos
     if (name === 'youtubeUrl') {
-      const videoId = getYouTubeVideoId(value);
-      if (videoId) {
-        setPreviewUrl(`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`);
+      const videoInfo = getVideoInfo(value);
+      setVideoProvider(videoInfo.provider || '');
+      
+      if (videoInfo.videoId) {
+        const preview = generatePreviewUrl(videoInfo);
+        setPreviewUrl(preview);
+        
+        // Mettre à jour le type de source dans le formulaire
+        setFormData(prev => ({
+          ...prev,
+          sourceType: videoInfo.provider
+        }));
       } else {
         setPreviewUrl('');
       }
@@ -97,7 +151,7 @@ const AddVideoModal = ({ isOpen, onClose, onVideoCreated }) => {
       return false;
     }
     if (!formData.youtubeUrl.trim()) {
-      setError('YouTube URL is required');
+      setError('Video URL is required');
       return false;
     }
     if (!formData.type) {
@@ -109,10 +163,10 @@ const AddVideoModal = ({ isOpen, onClose, onVideoCreated }) => {
       return false;
     }
     
-    // Validate YouTube URL
-    const videoId = getYouTubeVideoId(formData.youtubeUrl);
-    if (!videoId) {
-      setError('Please enter a valid YouTube URL');
+    // Validate Video URL
+    const videoInfo = getVideoInfo(formData.youtubeUrl);
+    if (!videoInfo.videoId) {
+      setError('Please enter a valid YouTube or Vimeo URL');
       return false;
     }
 
@@ -139,7 +193,9 @@ const AddVideoModal = ({ isOpen, onClose, onVideoCreated }) => {
         body: JSON.stringify({
           ...formData,
           annee: formData.annee ? parseInt(formData.annee) : undefined,
-          duree: formData.duree ? parseInt(formData.duree) : undefined
+          duree: formData.duree ? parseInt(formData.duree) : undefined,
+          // Inclure l'information sur le fournisseur de la vidéo
+          videoProvider: videoProvider
         })
       });
       
@@ -159,9 +215,11 @@ const AddVideoModal = ({ isOpen, onClose, onVideoCreated }) => {
         annee: '',
         decennie: '',
         duree: '',
-        description: ''
+        description: '',
+        sourceType: 'youtube'
       });
       setPreviewUrl('');
+      setVideoProvider('youtube');
       
       // Notify parent component
       onVideoCreated(data.data);
@@ -185,9 +243,11 @@ const AddVideoModal = ({ isOpen, onClose, onVideoCreated }) => {
         annee: '',
         decennie: '',
         duree: '',
-        description: ''
+        description: '',
+        sourceType: 'youtube'
       });
       setPreviewUrl('');
+      setVideoProvider('youtube');
       setError('');
       onClose();
     }
@@ -229,7 +289,7 @@ const AddVideoModal = ({ isOpen, onClose, onVideoCreated }) => {
 
           <div className={styles.formGroup}>
             <label htmlFor="youtubeUrl">
-              YouTube URL <span className={styles.required}>*</span>
+              Video URL <span className={styles.required}>*</span>
             </label>
             <input
               type="url"
@@ -237,10 +297,15 @@ const AddVideoModal = ({ isOpen, onClose, onVideoCreated }) => {
               name="youtubeUrl"
               value={formData.youtubeUrl}
               onChange={handleChange}
-              placeholder="https://www.youtube.com/watch?v=..."
+              placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
               disabled={loading}
               required
             />
+            <small className={styles.formHelp}>
+              {videoProvider ? 
+                `Detected: ${videoProvider.charAt(0).toUpperCase() + videoProvider.slice(1)} video` : 
+                'Supports YouTube and Vimeo links'}
+            </small>
           </div>
 
           {previewUrl && (
@@ -248,6 +313,11 @@ const AddVideoModal = ({ isOpen, onClose, onVideoCreated }) => {
               <label>Preview</label>
               <div className={styles.thumbnailPreview}>
                 <img src={previewUrl} alt="Video thumbnail" />
+                {videoProvider === 'vimeo' && (
+                  <span className={styles.vimeoNote}>
+                    {videoProvider === 'vimeo' ? 'Vimeo Video' : ''}
+                  </span>
+                )}
               </div>
             </div>
           )}

@@ -90,7 +90,7 @@ const Sidebar = ({ collapsed, onToggle, isMobile = false }) => {
         { path: '/admin/users', icon: 'fas fa-users', label: 'Manage Users' },
         { path: '/admin/videos', icon: 'fas fa-video', label: 'Videos' },
         { path: '/admin/shorts', icon: 'fas fa-bolt', label: 'Shorts' },
-        { path: '/admin/PodCasts', icon: 'fas fa-podcast', label: 'PodCasts' },
+        // { path: '/admin/PodCasts', icon: 'fas fa-podcast', label: 'PodCasts' },
         { path: '/admin/playlists', icon: 'fas fa-list', label: 'Playlists' }
       ]
     },

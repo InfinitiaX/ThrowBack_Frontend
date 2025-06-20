@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import React, { useEffect, useRef } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import Logo from '../../../../images/Logo.png';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -22,13 +22,11 @@ import {
 
 // Main navigation items
 const navItems = [
-  // { 
-  //   label: 'Home',
-  //   to: '/dashboard',
-  //   icon: faHome,
-  //   exact: true
-  // },
-
+   { 
+    label: 'Home', 
+    to: '/dashboard/home', 
+    icon: faHome
+  },
   { 
     label: 'LiveThrowBack', 
     to: '/dashboard/live', 
@@ -68,35 +66,83 @@ const navItems = [
     to: '/dashboard/profile', 
     icon: faUser 
   },
-
 ];
 
 // Éléments de la section Bibliothèque
 const libraryItems = [
-  // {
-  //   label: 'Your Playlists',
-  //   to: '/dashboard/playlists',
-  //   icon: faHeart
-  // },
-  // {
-  //   label: 'Discover',
-  //   to: '/dashboard/discover',
-  //   icon: faSearch
-  // },
-  // {
-  //   label: 'Create Playlist',
-  //   to: '/dashboard/playlists/new',
-  //   icon: faPlus
-  // }
+  {
+    label: 'Your Playlists',
+    to: '/dashboard/playlists',
+    icon: faHeart
+  },
+  {
+    label: 'Discover',
+    to: '/dashboard/discover',
+    icon: faSearch
+  },
+  {
+    label: 'Create Playlist',
+    to: '/dashboard/playlists/new',
+    icon: faPlus
+  }
 ];
 
 const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const sidebarRef = useRef(null);
 
-  // Log props for debugging
+  // Détection des gestes de swipe
   useEffect(() => {
-    console.log("Sidebar props:", { isOpen, isCollapsed });
-  }, [isOpen, isCollapsed]);
+    let touchStartX = 0;
+    let touchEndX = 0;
+    
+    const handleTouchStart = (event) => {
+      touchStartX = event.touches[0].clientX;
+    };
+    
+    const handleTouchMove = (event) => {
+      touchEndX = event.touches[0].clientX;
+    };
+    
+    const handleTouchEnd = () => {
+      // Swipe gauche (fermer sidebar si ouverte)
+      if (touchStartX - touchEndX > 50 && isOpen) {
+        toggleSidebar();
+      }
+      // Swipe droit (ouvrir sidebar si fermée) - uniquement près du bord gauche
+      else if (touchEndX - touchStartX > 50 && !isOpen && touchStartX < 30) {
+        toggleSidebar();
+      }
+      
+      // Réinitialiser
+      touchStartX = 0;
+      touchEndX = 0;
+    };
+
+    // Ajouter la détection de swipe sur la sidebar
+    if (sidebarRef.current) {
+      sidebarRef.current.addEventListener('touchstart', handleTouchStart);
+      sidebarRef.current.addEventListener('touchmove', handleTouchMove);
+      sidebarRef.current.addEventListener('touchend', handleTouchEnd);
+    }
+
+    // Ajouter la détection de swipe sur le document pour l'ouverture
+    document.addEventListener('touchstart', handleTouchStart);
+    document.addEventListener('touchmove', handleTouchMove);
+    document.addEventListener('touchend', handleTouchEnd);
+    
+    return () => {
+      if (sidebarRef.current) {
+        sidebarRef.current.removeEventListener('touchstart', handleTouchStart);
+        sidebarRef.current.removeEventListener('touchmove', handleTouchMove);
+        sidebarRef.current.removeEventListener('touchend', handleTouchEnd);
+      }
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isOpen, toggleSidebar]);
 
   const isActive = (path, exact = false) => {
     if (exact) {
@@ -108,14 +154,32 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
   return (
     <>
       {/* Mobile overlay */}
-      {isOpen && <div className={styles.overlay} onClick={toggleSidebar}></div>}
+      {isOpen && (
+        <div 
+          className={styles.overlay} 
+          onClick={toggleSidebar}
+          aria-hidden="true"
+        ></div>
+      )}
       
-      <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''} ${isCollapsed ? styles.collapsed : ''}`}>
+      <aside 
+        ref={sidebarRef}
+        className={`${styles.sidebar} ${isOpen ? styles.open : ''} ${isCollapsed ? styles.collapsed : ''}`}
+      >
         <div className={styles.sidebarHeader}>
           <div className={styles.logoWrap}>
-            <img src={Logo} alt="ThrowBack" className={styles.logo} />
+            <img 
+              src={Logo} 
+              alt="ThrowBack" 
+              className={styles.logo} 
+              onClick={() => navigate('/dashboard')}
+            />
           </div>
-          <button className={styles.closeBtn} onClick={toggleSidebar} aria-label="Close menu">
+          <button 
+            className={styles.closeBtn} 
+            onClick={toggleSidebar} 
+            aria-label="Close menu"
+          >
             <FontAwesomeIcon icon={faTimes} />
           </button>
         </div>
@@ -148,34 +212,36 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
           ))}
         </nav>
         
-        {/* Library Section */}
-        <div className={styles.librarySection}>
-          {/* <div className={styles.sectionTitle}>
-            <span>Library</span>
-          </div> */}
-          
-          {libraryItems.map(({ label, to, icon }) => (
-            <NavLink
-              key={label}
-              to={to}
-              className={({ isActive: navIsActive }) =>
-                `${styles.navItem} ${styles.libraryItem} ${isActive(to) ? styles.active : ''}`
-              }
-              onClick={() => {
-                if (window.innerWidth <= 768) {
-                  toggleSidebar();
+        {/* Library Section - Affichée uniquement si des éléments existent */}
+        {libraryItems.length > 0 && (
+          <div className={styles.librarySection}>
+            <div className={styles.sectionTitle}>
+              <span>Library</span>
+            </div>
+            
+            {libraryItems.map(({ label, to, icon }) => (
+              <NavLink
+                key={label}
+                to={to}
+                className={({ isActive: navIsActive }) =>
+                  `${styles.navItem} ${styles.libraryItem} ${isActive(to) ? styles.active : ''}`
                 }
-              }}
-            >
-              <span className={styles.icon}>
-                <FontAwesomeIcon icon={icon} />
-              </span>
-              <span className={styles.label}>{label}</span>
-            </NavLink>
-          ))}
-        </div>
+                onClick={() => {
+                  if (window.innerWidth <= 768) {
+                    toggleSidebar();
+                  }
+                }}
+              >
+                <span className={styles.icon}>
+                  <FontAwesomeIcon icon={icon} />
+                </span>
+                <span className={styles.label}>{label}</span>
+              </NavLink>
+            ))}
+          </div>
+        )}
         
-        {/* Toggle Button */}
+        {/* Toggle Button - Visible uniquement sur desktop */}
         <button 
           className={styles.toggleBtn}
           onClick={toggleCollapse}

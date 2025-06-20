@@ -9,6 +9,7 @@
   top: 0;
   z-index: 100;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  width: 100%;
 }
 
 /* Header Left Section (Logo & Menu Button) */
@@ -37,28 +38,6 @@
   background-color: rgba(0, 0, 0, 0.05);
 }
 
-/* Active state for menu button */
-.menuButton.active .menuIcon:nth-child(1) {
-  transform: translateY(6px) rotate(45deg);
-}
-
-.menuButton.active .menuIcon:nth-child(2) {
-  opacity: 0;
-}
-
-.menuButton.active .menuIcon:nth-child(3) {
-  transform: translateY(-6px) rotate(-45deg);
-}
-
-.menuIcon {
-  width: 20px;
-  height: 2px;
-  background-color: #333;
-  margin: 2px 0;
-  border-radius: 1px;
-  transition: transform 0.3s, opacity 0.3s;
-}
-
 .logoLink {
   display: flex;
   align-items: center;
@@ -85,6 +64,7 @@
   flex: 1;
   max-width: 640px;
   margin: 0 16px;
+  position: relative;
 }
 
 .searchForm {
@@ -148,22 +128,34 @@
   background-color: #f0f0f0;
 }
 
-.voiceSearchButton {
+.mobileSearchButton {
+  display: none;
   width: 40px;
   height: 40px;
   border-radius: 50%;
   border: none;
-  background-color: #f8f8f8;
-  display: flex;
+  background: transparent;
   align-items: center;
   justify-content: center;
-  margin-left: 10px;
-  cursor: pointer;
+  margin-left: auto;
+  margin-right: 8px;
   color: #606060;
 }
 
-.voiceSearchButton:hover {
-  background-color: #f0f0f0;
+.mobileSearchButton:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.mobileCloseButton {
+  display: none;
+  height: 38px;
+  min-width: 38px;
+  border: none;
+  background: transparent;
+  color: #606060;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Header Right Section */
@@ -353,10 +345,6 @@
   .searchContainer {
     max-width: 400px;
   }
-  
-  .voiceSearchButton {
-    display: none;
-  }
 }
 
 @media (max-width: 640px) {
@@ -373,7 +361,7 @@
   }
   
   .searchContainer {
-    max-width: 200px;
+    max-width: 240px;
   }
   
   .createButton {
@@ -386,6 +374,16 @@
 @media (max-width: 480px) {
   .searchContainer {
     position: static;
+    margin: 0;
+    max-width: initial;
+  }
+  
+  .mobileSearchButton {
+    display: flex;
+  }
+  
+  .mobileCloseButton {
+    display: flex;
   }
   
   .searchForm {
@@ -393,18 +391,49 @@
     top: 0;
     left: 0;
     right: 0;
-    bottom: 0;
+    height: 56px;
     background: white;
     z-index: 101;
     padding: 0 8px;
     display: none;
+    align-items: center;
+    transition: transform 0.3s ease;
+    transform: translateY(-100%);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
   }
   
   .showMobileSearch .searchForm {
     display: flex;
+    transform: translateY(0);
   }
   
   .headerRight {
     margin-left: auto;
+  }
+  
+  /* Améliorer les zones tactiles sur mobile */
+  .notificationButton,
+  .createButton,
+  .profileButton,
+  .menuButton,
+  .mobileSearchButton {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  /* Réduire les marges pour optimiser l'espace */
+  .headerRight {
+    gap: 4px;
+  }
+  
+  .createButton,
+  .notificationButton {
+    margin-right: 4px;
+  }
+  
+  /* Style pour le dropdown sur mobile */
+  .dropdown {
+    right: -10px;
+    width: 280px;
   }
 }

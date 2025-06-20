@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Header from './header/Header';
 import Sidebar from './sidebar/Sidebar';
 import styles from './Layout.module.css';
@@ -7,24 +7,22 @@ import styles from './Layout.module.css';
 const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  
-  // Vérifie si l'écran est en mode mobile ou desktop
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
+  const location = useLocation();
 
   // Gère le redimensionnement de la fenêtre
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth <= 768;
+      const portrait = window.innerHeight > window.innerWidth;
+      
       setIsMobile(mobile);
+      setIsPortrait(portrait);
       
       // Si on passe de mobile à desktop, ouvrir la sidebar
       if (!mobile && !isSidebarOpen) {
         setIsSidebarOpen(true);
-      }
-      
-      // Si on passe de desktop à mobile, fermer la sidebar
-      if (mobile && isSidebarOpen) {
-        setIsSidebarOpen(false);
       }
     };
 
@@ -35,6 +33,13 @@ const DashboardLayout = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [isSidebarOpen]);
 
+  // Fermer la sidebar lors des changements de route sur mobile
+  useEffect(() => {
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  }, [location.pathname, isMobile]);
+
   // Ouvrir la sidebar par défaut sur desktop
   useEffect(() => {
     if (!isMobile) {
@@ -43,7 +48,6 @@ const DashboardLayout = () => {
   }, [isMobile]);
 
   const toggleSidebar = () => {
-    console.log("Toggling sidebar. Current state:", isSidebarOpen);
     setIsSidebarOpen(!isSidebarOpen);
   };
 
@@ -56,7 +60,7 @@ const DashboardLayout = () => {
       <Sidebar 
         isOpen={isSidebarOpen} 
         toggleSidebar={toggleSidebar}
-        isCollapsed={isSidebarCollapsed}
+        isCollapsed={isSidebarCollapsed && !isMobile}
         toggleCollapse={toggleSidebarCollapse}
       />
       
@@ -77,6 +81,19 @@ const DashboardLayout = () => {
         <main className={styles.mainContent}>
           <Outlet />
         </main>
+
+        {/* Bouton flottant pour ouvrir la sidebar sur mobile */}
+        {isMobile && !isSidebarOpen && (
+          <button 
+            className={styles.floatingMenuButton}
+            onClick={toggleSidebar}
+            aria-label="Open menu"
+          >
+            <span className={styles.floatingMenuIcon}></span>
+            <span className={styles.floatingMenuIcon}></span>
+            <span className={styles.floatingMenuIcon}></span>
+          </button>
+        )}
       </div>
     </div>
   );

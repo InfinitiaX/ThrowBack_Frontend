@@ -14,7 +14,8 @@ import {
   faMusic,
   faHistory,
   faPlayCircle,
-  faThumbsUp
+  faThumbsUp,
+  faBars
 } from '@fortawesome/free-solid-svg-icons';
 import Logo from '../../../../images/Logo.png';
 import { useAuth } from '../../../../contexts/AuthContext';
@@ -25,10 +26,27 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showClearButton, setShowClearButton] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(3);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 480);
   
   const searchInputRef = useRef(null);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+
+  // Détecter la taille de l'écran
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 480);
+      if (window.innerWidth > 480) {
+        setShowMobileSearch(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   // Detect clicks outside dropdown
   useEffect(() => {
@@ -43,6 +61,13 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Focus sur l'input quand la recherche mobile est activée
+  useEffect(() => {
+    if (showMobileSearch && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [showMobileSearch]);
 
   // Handle search input change
   const handleSearchChange = (e) => {
@@ -64,6 +89,9 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
     e.preventDefault();
     if (searchTerm.trim()) {
       navigate(`/dashboard/search?q=${encodeURIComponent(searchTerm.trim())}`);
+      if (isMobile) {
+        setShowMobileSearch(false);
+      }
     }
   };
 
@@ -97,19 +125,22 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
     toggleSidebar();
   };
 
+  // Fermer la recherche mobile
+  const handleCloseMobileSearch = () => {
+    setShowMobileSearch(false);
+  };
+
   return (
     <header className={styles.header}>
       <div className={styles.headerLeft}>
-        {/* <button 
+        <button 
           className={`${styles.menuButton} ${isSidebarOpen ? styles.active : ''}`} 
           onClick={handleMenuButtonClick} 
           aria-label={isSidebarOpen ? "Close menu" : "Open menu"}
           title={isSidebarOpen ? "Close menu" : "Open menu"}
         >
-          <span className={styles.menuIcon}></span>
-          <span className={styles.menuIcon}></span>
-          <span className={styles.menuIcon}></span>
-        </button> */}
+          <FontAwesomeIcon icon={faBars} />
+        </button>
         
         <Link to="/dashboard" className={styles.logoLink}>
           <img src={Logo} alt="ThrowBack" className={styles.logo} />
@@ -117,7 +148,7 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
         </Link>
       </div>
 
-      <div className={styles.searchContainer}>
+      <div className={`${styles.searchContainer} ${showMobileSearch ? styles.showMobileSearch : ''}`}>
         <form onSubmit={handleSearchSubmit} className={styles.searchForm}>
           <div className={styles.searchInputWrapper}>
             <input
@@ -144,10 +175,29 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
           <button type="submit" className={styles.searchButton} aria-label="Search">
             <FontAwesomeIcon icon={faSearch} />
           </button>
-        </form>
-        
 
+          {isMobile && (
+            <button 
+              type="button" 
+              className={styles.mobileCloseButton}
+              onClick={handleCloseMobileSearch}
+              aria-label="Close search"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+          )}
+        </form>
       </div>
+
+      {isMobile && (
+        <button 
+          className={styles.mobileSearchButton} 
+          onClick={() => setShowMobileSearch(!showMobileSearch)}
+          aria-label="Search"
+        >
+          <FontAwesomeIcon icon={faSearch} />
+        </button>
+      )}
 
       <div className={styles.headerRight}>
         <button 

@@ -7,8 +7,7 @@ import { ReactComponent as CheckIcon } from '../../assets/icons/check.svg';
 import styles from './profile.module.css';
 import ProfileTabs from '../Dashboard/UserDashboard/Profile/ProfileTabs';
 import UserInfo from './UserInfo';
-import likeIcon from '../../assets/icons/like.png';
-import commentIcon from '../../assets/icons/comment.png';
+
 
 export default function Profile() {
   const { user } = useAuth();
@@ -16,6 +15,18 @@ export default function Profile() {
   const [showProfileTabs, setShowProfileTabs] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [activeBtn, setActiveBtn] = useState(null);
+  
+  // Fonction pour convertir les chemins relatifs en URLs absolues
+  const getImageUrl = (path) => {
+    if (!path) return '/images/default-avatar.png';
+    
+    // Si l'URL est déjà absolue, la retourner telle quelle
+    if (path.startsWith('http')) return path;
+    
+    // Sinon, préfixer avec l'URL du backend
+    const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+    return `${backendUrl}${path}`;
+  };
 
   if (editMode) {
     return <UserInfo onBack={() => setEditMode(false)} />;
@@ -61,7 +72,7 @@ export default function Profile() {
             {/* Profil central modernisé */}
             <div className={styles.profileInfo} style={{ marginBottom: 32 }}>
               <img
-                src={user.photo_profil || '/images/default-avatar.png'}
+                src={getImageUrl(user.photo_profil)}
                 alt={`${user.prenom} ${user.nom}`}
                 className={styles.avatar}
               />
@@ -99,83 +110,10 @@ export default function Profile() {
       <div className={styles.rightStatic}>
         <div className={styles.verticalTicker}>
           <div className={styles.tickerContent}>
-            <div className={styles.memoryCard}>
-              <div className={styles.memoryHeader}><span style={{color:'#d32f2f',fontWeight:600}}>Alice Perry</span> posted a memory on the music video :</div>
-              <img src="/images/image2.png" alt="memory" className={styles.memoryImage} />
-              <div className={styles.memoryBody}>
-                Eric Clapton - Tears in Heaven (1992). Please, like and comment to show some love! <br/>
-                <span style={{color:'#d32f2f'}}>* This song always reminds me of my my late father. He was everything for me and I still miss him.😢</span>
-              </div>
-              <div className={styles.memoryFooter}>
-                <span>
-                  <img src={likeIcon} alt="like" style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 6 }} />
-                  43
-                </span>
-                <span>
-                  <img src={commentIcon} alt="comment" style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 6 }} />
-                  11
-                </span>
-              </div>
-            </div>
-            <div className={styles.memoryCard}>
-              <div className={styles.memoryHeader}><span style={{color:'#d32f2f',fontWeight:600}}>James Taylor</span> just shared a throwback to the iconic music video :</div>
-              <img src="/images/image.png" alt="memory" className={styles.memoryImage} />
-              <div className={styles.memoryBody}>
-                Carole King - You've Got a Friend (1971). Please, like and comment! <br/>
-                <span style={{color:'#d32f2f'}}>* This song always brings a smile to my face. 😊 It reminds me of sunny afternoons with my dad, singing along while driving with the windows down.*</span>
-              </div>
-              <div className={styles.memoryFooter}>
-                <span>
-                  <img src={likeIcon} alt="like" style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 6 }} />
-                  20
-                </span>
-                <span>
-                  <img src={commentIcon} alt="comment" style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 6 }} />
-                  8
-                </span>
-              </div>
-            </div>
-            {/* Duplique les cards pour l'effet infini */}
-            <div className={styles.memoryCard}>
-              <div className={styles.memoryHeader}><span style={{color:'#d32f2f',fontWeight:600}}>Alice Perry</span> posted a memory on the music video :</div>
-              <img src="/images/image.png" alt="memory" className={styles.memoryImage} />
-              <div className={styles.memoryBody}>
-                Eric Clapton - Tears in Heaven (1992). Please, like and comment to show some love! <br/>
-                <span style={{color:'#d32f2f'}}>* This song always reminds me of my my late father. He was everything for me and I still miss him.😢</span>
-              </div>
-              <div className={styles.memoryFooter}>
-                <span>
-                  <img src={likeIcon} alt="like" style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 6 }} />
-                  43
-                </span>
-                <span>
-                  <img src={commentIcon} alt="comment" style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 6 }} />
-                  11
-                </span>
-              </div>
-            </div>
-            <div className={styles.memoryCard}>
-              <div className={styles.memoryHeader}><span style={{color:'#d32f2f',fontWeight:600}}>James Taylor</span> just shared a throwback to the iconic music video :</div>
-              <img src="/images/image.png" alt="memory" className={styles.memoryImage} />
-              <div className={styles.memoryBody}>
-                Carole King - You've Got a Friend (1971). Please, like and comment! <br/>
-                <span style={{color:'#d32f2f'}}>* This song always brings a smile to my face. 😊 It reminds me of sunny afternoons with my dad, singing along while driving with the windows down.*</span>
-              </div>
-              <div className={styles.memoryFooter}>
-                <span>
-                  <img src={likeIcon} alt="like" style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 6 }} />
-                  20
-                </span>
-                <span>
-                  <img src={commentIcon} alt="comment" style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 6 }} />
-                  8
-                </span>
-              </div>
-            </div>
+            {/* Contenu dynamique ici... */}
           </div>
         </div>
       </div>
     </div>
   );
 }
-

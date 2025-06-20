@@ -7,7 +7,7 @@ const BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onr
 // Créer une instance axios avec configuration par défaut
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 30000, // 30 secondes
+  timeout: 60000, // 60 secondes pour éviter les timeouts sur Render
   headers: {
     'Content-Type': 'application/json',
   },
@@ -22,17 +22,17 @@ api.interceptors.request.use(
     }
     
     // Log des requêtes importantes
-    if (config.url.includes('/videos/') || config.url.includes('/memories') || config.url.includes('/like')) {
+    if (config.url.includes('/videos/') || config.url.includes('/memories') || config.url.includes('/like') || config.url.includes('/profile')) {
       console.log(` API Request: ${config.method?.toUpperCase()} ${config.url}`);
-      if (config.data) {
-        console.log('Request data:', config.data);
+      if (config.data && typeof config.data !== 'object') {
+        console.log(' Request data:', config.data);
       }
     }
     
     return config;
   },
   (error) => {
-    console.error('❌ Request error:', error);
+    console.error(' Request error:', error);
     return Promise.reject(error);
   }
 );
@@ -41,7 +41,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => {
     // Log des réponses importantes
-    if (response.config.url.includes('/videos/') || response.config.url.includes('/memories') || response.config.url.includes('/like')) {
+    if (response.config.url.includes('/videos/') || response.config.url.includes('/memories') || response.config.url.includes('/like') || response.config.url.includes('/profile')) {
       console.log(`✅ API Response: ${response.config.method?.toUpperCase()} ${response.config.url}`);
       console.log('📊 Response data:', response.data);
     }
@@ -81,6 +81,7 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
 
 // Méthodes utilitaires spécifiques pour VideoDetail
 const videoAPI = {

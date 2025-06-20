@@ -28,6 +28,18 @@ export default function UserInfo({ onBack }) {
   const [success, setSuccess]         = useState('');
   // … tu peux ajouter upload state, crop, preview, etc.
 
+  // Fonction pour convertir les chemins relatifs en URLs absolues
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    
+    // Si l'URL est déjà absolue, la retourner telle quelle
+    if (path.startsWith('http')) return path;
+    
+    // Sinon, préfixer avec l'URL du backend
+    const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+    return `${backendUrl}${path}`;
+  };
+
   useEffect(() => {
     isMounted.current = true;
     return () => { isMounted.current = false; };
@@ -104,8 +116,10 @@ export default function UserInfo({ onBack }) {
       console.log('==== DEBUG FRONTEND (payload envoyé au backend) ====');
       console.log(payload);
 
+      // Utiliser URL absolue
+      const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
       const res = await retryOperation(() =>
-        api.put('/api/users/profile', payload)
+        api.put(`${backendUrl}/api/users/profile`, payload)
       );
 
       console.log('Réponse du backend:', res.data);
@@ -148,14 +162,43 @@ export default function UserInfo({ onBack }) {
       formData.append('photo', file);
       formData.append('type', type);
 
+      // Utiliser URL absolue
+      const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+      const endpoint = type === VALID_ACTION_TYPES.PHOTO ? 
+        `${backendUrl}/api/users/profile/photo` : 
+        `${backendUrl}/api/users/profile/cover`;
+      
       const res = await retryOperation(() =>
-        api.post('/api/users/upload-photo', formData, {
+        api.post(endpoint, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         })
       );
 
       if (res.data.success) {
-        setUser(res.data.data);
+        // Mettre à jour l'état local
+        if (type === VALID_ACTION_TYPES.PHOTO) {
+          setProfilePhoto(res.data.data.photo_profil);
+        } else {
+          setCoverPhoto(res.data.data.photo_couverture);
+        }
+        
+        // Mettre à jour le contexte utilisateur
+        setUser(prev => ({
+          ...prev,
+          ...(type === VALID_ACTION_TYPES.PHOTO 
+            ? { photo_profil: res.data.data.photo_profil }
+            : { photo_couverture: res.data.data.photo_couverture })
+        }));
+        
+        // Mettre à jour localStorage
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        localStorage.setItem('user', JSON.stringify({
+          ...userData,
+          ...(type === VALID_ACTION_TYPES.PHOTO 
+            ? { photo_profil: res.data.data.photo_profil }
+            : { photo_couverture: res.data.data.photo_couverture })
+        }));
+        
         setSuccess('Photo mise à jour ✔️');
       }
     } catch (err) {
@@ -252,7 +295,7 @@ export default function UserInfo({ onBack }) {
           />
           <label htmlFor="profile-photo" className={styles.upload_button}>
             {profilePhoto
-              ? <img src={profilePhoto} alt="Profil" className={styles.profile_photo} />
+              ? <img src={getImageUrl(profilePhoto)} alt="Profil" className={styles.profile_photo} />
               : <div className={styles.profile_photo_placeholder}>+</div>
             }
           </label>
@@ -268,7 +311,7 @@ export default function UserInfo({ onBack }) {
           />
           <label htmlFor="cover-photo" className={styles.upload_button}>
             {coverPhoto
-              ? <img src={coverPhoto} alt="Cover" className={styles.cover_photo} />
+              ? <img src={getImageUrl(coverPhoto)} alt="Cover" className={styles.cover_photo} />
               : <div className={styles.cover_photo_placeholder}>+</div>
             }
           </label>

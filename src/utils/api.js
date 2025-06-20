@@ -23,9 +23,9 @@ api.interceptors.request.use(
     
     // Log des requêtes importantes
     if (config.url.includes('/videos/') || config.url.includes('/memories') || config.url.includes('/like')) {
-      console.log(`🔗 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+      console.log(` API Request: ${config.method?.toUpperCase()} ${config.url}`);
       if (config.data) {
-        console.log('📋 Request data:', config.data);
+        console.log('Request data:', config.data);
       }
     }
     

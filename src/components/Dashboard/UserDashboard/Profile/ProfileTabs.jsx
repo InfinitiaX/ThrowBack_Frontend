@@ -565,7 +565,274 @@ const ProfileTabs = () => {
                       />
                     </div>
                   </div>
-                  {/* Autres champs... */}
+                  <div className={styles.formGroup}>
+                    <label htmlFor="date_naissance">Birth Date</label>
+                    <input
+                      type="date"
+                      id="date_naissance"
+                      name="date_naissance"
+                      value={formData.date_naissance}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
+                      className={styles.input}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="genre">Gender</label>
+                    <select
+                      id="genre"
+                      name="genre"
+                      value={formData.genre}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
+                      className={styles.input}
+                    >
+                      <option value="">-- Select --</option>
+                      <option value="HOMME">Male</option>
+                      <option value="FEMME">Female</option>
+                      <option value="AUTRE">Other</option>
+                    </select>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="pays">Country</label>
+                    <select
+                      id="pays"
+                      name="pays"
+                      value={formData.pays}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
+                      className={styles.input}
+                    >
+                      <option value="">-- Select Country --</option>
+                      <option value="AF">Afghanistan</option>
+                      <option value="AL">Albania</option>
+                      <option value="DZ">Algeria</option>
+                      <option value="AD">Andorra</option>
+                      <option value="AO">Angola</option>
+                      <option value="AR">Argentina</option>
+                      <option value="AM">Armenia</option>
+                      <option value="AU">Australia</option>
+                      <option value="AT">Austria</option>
+                      <option value="AZ">Azerbaijan</option>
+                      <option value="BS">Bahamas</option>
+                      <option value="BH">Bahrain</option>
+                      <option value="BD">Bangladesh</option>
+                      <option value="BY">Belarus</option>
+                      <option value="BE">Belgium</option>
+                      <option value="BJ">Benin</option>
+                      <option value="BT">Bhutan</option>
+                      <option value="BO">Bolivia</option>
+                      <option value="BA">Bosnia and Herzegovina</option>
+                      <option value="BW">Botswana</option>
+                      <option value="BR">Brazil</option>
+                      <option value="BN">Brunei</option>
+                      <option value="BG">Bulgaria</option>
+                      <option value="BF">Burkina Faso</option>
+                      <option value="BI">Burundi</option>
+                      <option value="KH">Cambodia</option>
+                      <option value="CM">Cameroon</option>
+                      <option value="CA">Canada</option>
+                      <option value="CV">Cape Verde</option>
+                      <option value="CF">Central African Republic</option>
+                      <option value="TD">Chad</option>
+                      <option value="CL">Chile</option>
+                      <option value="CN">China</option>
+                      <option value="CO">Colombia</option>
+                      <option value="KM">Comoros</option>
+                      <option value="CG">Congo</option>
+                      <option value="CD">Congo (DRC)</option>
+                      <option value="CR">Costa Rica</option>
+                      <option value="CI">Côte d'Ivoire</option>
+                      <option value="HR">Croatia</option>
+                      <option value="CU">Cuba</option>
+                      <option value="CY">Cyprus</option>
+                      <option value="CZ">Czech Republic</option>
+                      <option value="DK">Denmark</option>
+                      <option value="DJ">Djibouti</option>
+                      <option value="DM">Dominica</option>
+                      <option value="DO">Dominican Republic</option>
+                      <option value="EC">Ecuador</option>
+                      <option value="EG">Egypt</option>
+                      <option value="SV">El Salvador</option>
+                      <option value="GQ">Equatorial Guinea</option>
+                      <option value="ER">Eritrea</option>
+                      <option value="EE">Estonia</option>
+                      <option value="SZ">Eswatini</option>
+                      <option value="ET">Ethiopia</option>
+                      <option value="FJ">Fiji</option>
+                      <option value="FI">Finland</option>
+                      <option value="FR">France</option>
+                      <option value="GA">Gabon</option>
+                      <option value="GM">Gambia</option>
+                      <option value="GE">Georgia</option>
+                      <option value="DE">Germany</option>
+                      <option value="GH">Ghana</option>
+                      <option value="GR">Greece</option>
+                      <option value="GD">Grenada</option>
+                      <option value="GT">Guatemala</option>
+                      <option value="GN">Guinea</option>
+                      <option value="GW">Guinea-Bissau</option>
+                      <option value="GY">Guyana</option>
+                      <option value="HT">Haiti</option>
+                      <option value="HN">Honduras</option>
+                      <option value="HU">Hungary</option>
+                      <option value="IS">Iceland</option>
+                      <option value="IN">India</option>
+                      <option value="ID">Indonesia</option>
+                      <option value="IR">Iran</option>
+                      <option value="IQ">Iraq</option>
+                      <option value="IE">Ireland</option>
+                      <option value="IL">Israel</option>
+                      <option value="IT">Italy</option>
+                      <option value="JM">Jamaica</option>
+                      <option value="JP">Japan</option>
+                      <option value="JO">Jordan</option>
+                      <option value="KZ">Kazakhstan</option>
+                      <option value="KE">Kenya</option>
+                      <option value="KI">Kiribati</option>
+                      <option value="KW">Kuwait</option>
+                      <option value="KG">Kyrgyzstan</option>
+                      <option value="LA">Laos</option>
+                      <option value="LV">Latvia</option>
+                      <option value="LB">Lebanon</option>
+                      <option value="LS">Lesotho</option>
+                      <option value="LR">Liberia</option>
+                      <option value="LY">Libya</option>
+                      <option value="LI">Liechtenstein</option>
+                      <option value="LT">Lithuania</option>
+                      <option value="LU">Luxembourg</option>
+                      <option value="MG">Madagascar</option>
+                      <option value="MW">Malawi</option>
+                      <option value="MY">Malaysia</option>
+                      <option value="MV">Maldives</option>
+                      <option value="ML">Mali</option>
+                      <option value="MT">Malta</option>
+                      <option value="MH">Marshall Islands</option>
+                      <option value="MR">Mauritania</option>
+                      <option value="MU">Mauritius</option>
+                      <option value="MX">Mexico</option>
+                      <option value="FM">Micronesia</option>
+                      <option value="MD">Moldova</option>
+                      <option value="MC">Monaco</option>
+                      <option value="MN">Mongolia</option>
+                      <option value="ME">Montenegro</option>
+                      <option value="MA">Morocco</option>
+                      <option value="MZ">Mozambique</option>
+                      <option value="MM">Myanmar</option>
+                      <option value="NA">Namibia</option>
+                      <option value="NR">Nauru</option>
+                      <option value="NP">Nepal</option>
+                      <option value="NL">Netherlands</option>
+                      <option value="NZ">New Zealand</option>
+                      <option value="NI">Nicaragua</option>
+                      <option value="NE">Niger</option>
+                      <option value="NG">Nigeria</option>
+                      <option value="NO">Norway</option>
+                      <option value="OM">Oman</option>
+                      <option value="PK">Pakistan</option>
+                      <option value="PW">Palau</option>
+                      <option value="PS">Palestine</option>
+                      <option value="PA">Panama</option>
+                      <option value="PG">Papua New Guinea</option>
+                      <option value="PY">Paraguay</option>
+                      <option value="PE">Peru</option>
+                      <option value="PH">Philippines</option>
+                      <option value="PL">Poland</option>
+                      <option value="PT">Portugal</option>
+                      <option value="QA">Qatar</option>
+                      <option value="RO">Romania</option>
+                      <option value="RU">Russia</option>
+                      <option value="RW">Rwanda</option>
+                      <option value="KN">Saint Kitts and Nevis</option>
+                      <option value="LC">Saint Lucia</option>
+                      <option value="VC">Saint Vincent and the Grenadines</option>
+                      <option value="WS">Samoa</option>
+                      <option value="SM">San Marino</option>
+                      <option value="ST">Sao Tome and Principe</option>
+                      <option value="SA">Saudi Arabia</option>
+                      <option value="SN">Senegal</option>
+                      <option value="RS">Serbia</option>
+                      <option value="SC">Seychelles</option>
+                      <option value="SL">Sierra Leone</option>
+                      <option value="SG">Singapore</option>
+                      <option value="SK">Slovakia</option>
+                      <option value="SI">Slovenia</option>
+                      <option value="SB">Solomon Islands</option>
+                      <option value="SO">Somalia</option>
+                      <option value="ZA">South Africa</option>
+                      <option value="KR">South Korea</option>
+                      <option value="SS">South Sudan</option>
+                      <option value="ES">Spain</option>
+                      <option value="LK">Sri Lanka</option>
+                      <option value="SD">Sudan</option>
+                      <option value="SR">Suriname</option>
+                      <option value="SE">Sweden</option>
+                      <option value="CH">Switzerland</option>
+                      <option value="SY">Syria</option>
+                      <option value="TW">Taiwan</option>
+                      <option value="TJ">Tajikistan</option>
+                      <option value="TZ">Tanzania</option>
+                      <option value="TH">Thailand</option>
+                      <option value="TL">Timor-Leste</option>
+                      <option value="TG">Togo</option>
+                      <option value="TO">Tonga</option>
+                      <option value="TT">Trinidad and Tobago</option>
+                      <option value="TN">Tunisia</option>
+                      <option value="TR">Turkey</option>
+                      <option value="TM">Turkmenistan</option>
+                      <option value="TV">Tuvalu</option>
+                      <option value="UG">Uganda</option>
+                      <option value="UA">Ukraine</option>
+                      <option value="AE">United Arab Emirates</option>
+                      <option value="GB">United Kingdom</option>
+                      <option value="US">United States</option>
+                      <option value="UY">Uruguay</option>
+                      <option value="UZ">Uzbekistan</option>
+                      <option value="VU">Vanuatu</option>
+                      <option value="VA">Vatican City</option>
+                      <option value="VE">Venezuela</option>
+                      <option value="VN">Vietnam</option>
+                      <option value="YE">Yemen</option>
+                      <option value="ZM">Zambia</option>
+                      <option value="ZW">Zimbabwe</option>
+                    </select>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="ville">City</label>
+                    <input
+                      type="text"
+                      id="ville"
+                      name="ville"
+                      value={formData.ville}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
+                      className={styles.input}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="adresse">Address</label>
+                    <input
+                      type="text"
+                      id="adresse"
+                      name="adresse"
+                      value={formData.adresse}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
+                      className={styles.input}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="code_postal">Postal Code</label>
+                    <input
+                      type="text"
+                      id="code_postal"
+                      name="code_postal"
+                      value={formData.code_postal}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
+                      className={styles.input}
+                    />
+                  </div>
                 </div>
                 {isEditing && (
                   <div className={styles.formActions}>
@@ -620,7 +887,47 @@ const ProfileTabs = () => {
                     </div>
                   </div>
 
-                  {/* Autres champs... */}
+                  <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                    <label htmlFor="bio">Short Bio</label>
+                    <textarea
+                      id="bio"
+                      name="bio"
+                      value={bioData.bio}
+                      onChange={handleBioChange}
+                      disabled={!isEditingBio}
+                      className={styles.textarea}
+                      placeholder="A short description about yourself..."
+                      rows="3"
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label htmlFor="profession">Profession</label>
+                    <input
+                      type="text"
+                      id="profession"
+                      name="profession"
+                      value={bioData.profession}
+                      onChange={handleBioChange}
+                      disabled={!isEditingBio}
+                      className={styles.input}
+                      placeholder="Your profession"
+                    />
+                  </div>
+
+                  <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                    <label className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        name="compte_prive"
+                        checked={bioData.compte_prive}
+                        onChange={handleBioChange}
+                        disabled={!isEditingBio}
+                        className={styles.checkbox}
+                      />
+                      Private Account
+                    </label>
+                  </div>
                 </div>
                 {isEditingBio && (
                   <div className={styles.formActions}>
@@ -632,7 +939,295 @@ const ProfileTabs = () => {
               </form>
             </div>
           )}
-          {/* Onglet Preferences... */}
+          {activeTab === 'preferences' && (
+            <div className={styles.tabPanel}>
+              <div className={styles.tabHeader}>
+                <h2>Preferences</h2>
+                <button 
+                  className={styles.editButton}
+                  onClick={() => setIsEditingPreferences(!isEditingPreferences)}
+                >
+                  {isEditingPreferences ? 'Cancel' : 'Edit'}
+                </button>
+              </div>
+              <form onSubmit={handlePreferencesSubmit} className={styles.form}>
+                {/* Music Preferences */}
+                <h3 className={styles.sectionTitle}>Music Preferences</h3>
+                <div className={styles.formGrid}>
+                  <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                    <label>Favorite Genres</label>
+                    <div className={styles.checkboxGroup}>
+                      {['rock', 'pop', 'jazz', 'classical', 'hip-hop', 'rap', 'r&b', 'soul', 'funk', 
+                        'disco', 'electro', 'blues'].map(genre => (
+                        <label key={genre} className={styles.checkboxLabel}>
+                          <input
+                            type="checkbox"
+                            name="genres_preferes"
+                            value={genre}
+                            checked={preferencesData.genres_preferes.includes(genre)}
+                            onChange={handlePreferencesChange}
+                            disabled={!isEditingPreferences}
+                            className={styles.checkbox}
+                          />
+                          {genre.charAt(0).toUpperCase() + genre.slice(1)}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                    <label>Favorite Decades</label>
+                    <div className={styles.checkboxGroup}>
+                      {['60s', '70s', '80s', '90s', '2000s', '2010s', '2020s'].map(decade => (
+                        <label key={decade} className={styles.checkboxLabel}>
+                          <input
+                            type="checkbox"
+                            name="decennies_preferees"
+                            value={decade}
+                            checked={preferencesData.decennies_preferees.includes(decade)}
+                            onChange={handlePreferencesChange}
+                            disabled={!isEditingPreferences}
+                            className={styles.checkbox}
+                          />
+                          {decade}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                    <label htmlFor="artistes_preferes">Favorite Artists</label>
+                    <input
+                      type="text"
+                      id="artistes_preferes"
+                      name="artistes_preferes"
+                      value={preferencesData.artistes_preferes.join(', ')}
+                      onChange={handlePreferencesChange}
+                      disabled={!isEditingPreferences}
+                      className={styles.input}
+                      placeholder="Michael Jackson, Queen, Madonna..."
+                    />
+                    <small className={styles.helperText}>Separate names with commas</small>
+                  </div>
+                </div>
+                
+                {/* Notification Preferences */}
+                <h3 className={styles.sectionTitle}>Notifications</h3>
+                <div className={styles.formGrid}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        name="notif_nouveaux_amis"
+                        checked={preferencesData.notif_nouveaux_amis}
+                        onChange={handlePreferencesChange}
+                        disabled={!isEditingPreferences}
+                        className={styles.checkbox}
+                      />
+                      New friends
+                    </label>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        name="notif_messages"
+                        checked={preferencesData.notif_messages}
+                        onChange={handlePreferencesChange}
+                        disabled={!isEditingPreferences}
+                        className={styles.checkbox}
+                      />
+                      Messages
+                    </label>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        name="notif_commentaires"
+                        checked={preferencesData.notif_commentaires}
+                        onChange={handlePreferencesChange}
+                        disabled={!isEditingPreferences}
+                        className={styles.checkbox}
+                      />
+                      Comments
+                    </label>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        name="notif_mentions"
+                        checked={preferencesData.notif_mentions}
+                        onChange={handlePreferencesChange}
+                        disabled={!isEditingPreferences}
+                        className={styles.checkbox}
+                      />
+                      Mentions
+                    </label>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        name="notif_evenements"
+                        checked={preferencesData.notif_evenements}
+                        onChange={handlePreferencesChange}
+                        disabled={!isEditingPreferences}
+                        className={styles.checkbox}
+                      />
+                      Events
+                    </label>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        name="notif_recommendations"
+                        checked={preferencesData.notif_recommendations}
+                        onChange={handlePreferencesChange}
+                        disabled={!isEditingPreferences}
+                        className={styles.checkbox}
+                      />
+                      Recommendations
+                    </label>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        name="notif_email"
+                        checked={preferencesData.notif_email}
+                        onChange={handlePreferencesChange}
+                        disabled={!isEditingPreferences}
+                        className={styles.checkbox}
+                      />
+                      Email notifications
+                    </label>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        name="notif_push"
+                        checked={preferencesData.notif_push}
+                        onChange={handlePreferencesChange}
+                        disabled={!isEditingPreferences}
+                        className={styles.checkbox}
+                      />
+                      Push notifications
+                    </label>
+                  </div>
+                </div>
+                
+                {/* Privacy Preferences */}
+                <h3 className={styles.sectionTitle}>Privacy</h3>
+                <div className={styles.formGrid}>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="qui_peut_voir_mes_playlists">Who can see my playlists</label>
+                    <select
+                      id="qui_peut_voir_mes_playlists"
+                      name="qui_peut_voir_mes_playlists"
+                      value={preferencesData.qui_peut_voir_mes_playlists}
+                      onChange={handlePreferencesChange}
+                      disabled={!isEditingPreferences}
+                      className={styles.input}
+                    >
+                      <option value="public">Everyone</option>
+                      <option value="amis">Friends only</option>
+                      <option value="prive">Only me</option>
+                    </select>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="qui_peut_voir_mon_activite">Who can see my activity</label>
+                    <select
+                      id="qui_peut_voir_mon_activite"
+                      name="qui_peut_voir_mon_activite"
+                      value={preferencesData.qui_peut_voir_mon_activite}
+                      onChange={handlePreferencesChange}
+                      disabled={!isEditingPreferences}
+                      className={styles.input}
+                    >
+                      <option value="public">Everyone</option>
+                      <option value="amis">Friends only</option>
+                      <option value="prive">Only me</option>
+                    </select>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        name="partage_automatique"
+                        checked={preferencesData.partage_automatique}
+                        onChange={handlePreferencesChange}
+                        disabled={!isEditingPreferences}
+                        className={styles.checkbox}
+                      />
+                      Automatically share my listening activity
+                    </label>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        name="autoriser_suggestions_amis"
+                        checked={preferencesData.autoriser_suggestions_amis}
+                        onChange={handlePreferencesChange}
+                        disabled={!isEditingPreferences}
+                        className={styles.checkbox}
+                      />
+                      Allow friend suggestions
+                    </label>
+                  </div>
+                </div>
+                
+                {/* Display Preferences */}
+                <h3 className={styles.sectionTitle}>Display</h3>
+                <div className={styles.formGrid}>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="langue">Language</label>
+                    <select
+                      id="langue"
+                      name="langue"
+                      value={preferencesData.langue}
+                      onChange={handlePreferencesChange}
+                      disabled={!isEditingPreferences}
+                      className={styles.input}
+                    >
+                      <option value="en">English</option>
+                      <option value="fr">Français</option>
+                      <option value="es">Español</option>
+                      <option value="de">Deutsch</option>
+                      <option value="it">Italiano</option>
+                    </select>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="theme">Theme</label>
+                    <select
+                      id="theme"
+                      name="theme"
+                      value={preferencesData.theme}
+                      onChange={handlePreferencesChange}
+                      disabled={!isEditingPreferences}
+                      className={styles.input}
+                    >
+                      <option value="clair">Light</option>
+                      <option value="sombre">Dark</option>
+                      <option value="auto">Automatic (system setting)</option>
+                    </select>
+                  </div>
+                </div>
+                
+                {isEditingPreferences && (
+                  <div className={styles.formActions}>
+                    <button type="submit" className={styles.saveButton} disabled={isLoading}>
+                      {isLoading ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                )}
+              </form>
+            </div>
+          )}
         </div>
       </div>
     </>

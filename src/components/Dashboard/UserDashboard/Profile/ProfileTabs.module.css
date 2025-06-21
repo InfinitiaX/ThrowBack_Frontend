@@ -317,6 +317,34 @@
   color: #fff;
 }
 
+.errorMessage {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 10px 15px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  border: 1px solid #f5c6cb;
+  font-size: 14px;
+}
+
+.successMessage {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 10px 15px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  border: 1px solid #c3e6cb;
+  font-size: 14px;
+}
+
+.loadingIndicator {
+  text-align: center;
+  padding: 10px;
+  margin: 10px 0;
+  font-weight: bold;
+  color: #666;
+}
+
 /* Animations */
 @keyframes fadeIn {
   from {

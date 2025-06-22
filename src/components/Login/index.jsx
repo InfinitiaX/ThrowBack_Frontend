@@ -1,4 +1,4 @@
-// src/components/Login/index.jsx
+// src/components/Login/index.jsx - VERSION CORRIGÉE
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import styles from './styles.module.css';
@@ -25,177 +25,233 @@ const Login = () => {
   const location = useLocation();
   const { login, user, isAuthenticated } = useAuth();
 
+  // 🔧 CORRECTION: Gestion plus robuste des effets
   useEffect(() => {
-    // Redirect if already logged in
-    if (isAuthenticated && user) {
-      console.log('👤 User data:', user);
-      console.log('👤 User role:', user.role);
-      
-      // Vérification du rôle unique
-      const isAdmin = user.role === 'admin' || user.role === 'superadmin';
-      
-      console.log('🎯 Is admin:', isAdmin);
-      const redirectUrl = isAdmin ? '/admin' : '/dashboard';
-      console.log('🔄 Redirecting to:', redirectUrl);
-      
-      navigate(redirectUrl);
-      return;
-    }
+    const handleRedirectAndMessages = () => {
+      try {
+        console.log('🔍 Login component mounted');
+        console.log('🔍 Location:', location);
+        console.log('🔍 Auth state:', { isAuthenticated, user });
 
-    // Check URL parameters for messages
-    const params = new URLSearchParams(location.search);
-    const success = params.get('verified');
-    const error = params.get('error');
-    const messageParam = params.get('message');
+        // Redirect if already logged in
+        if (isAuthenticated && user) {
+          console.log('👤 User data:', user);
+          console.log('👤 User role:', user.role);
+          
+          const isAdmin = user.role === 'admin' || user.role === 'superadmin';
+          const redirectUrl = isAdmin ? '/admin' : '/dashboard';
+          console.log('🔄 Redirecting to:', redirectUrl);
+          
+          navigate(redirectUrl, { replace: true });
+          return;
+        }
 
-    if (success === 'true') {
-      setSuccessMessage(messageParam || 'Email verified successfully. You can now sign in.');
-      setError(''); // Clear any existing error
-    } else if (error) {
-      setError(messageParam || 'An error occurred');
-      setSuccessMessage(''); // Clear any existing success message
-    } else if (messageParam) {
-      // Check if this is a success message (like password reset)
-      if (messageParam.includes('successfully') || messageParam.includes('verified')) {
-        setSuccessMessage(messageParam);
-        setError('');
-      } else {
-        setError(messageParam);
-        setSuccessMessage('');
+        // 🔧 CORRECTION: Gestion sécurisée des paramètres URL
+        const params = new URLSearchParams(location.search);
+        const success = params.get('verified');
+        const errorParam = params.get('error');
+        const messageParam = params.get('message');
+
+        console.log('🔍 URL Params:', { success, error: errorParam, message: messageParam });
+
+        if (success === 'true') {
+          const decodedMessage = messageParam ? 
+            decodeURIComponent(messageParam) : 
+            'Email verified successfully. You can now sign in.';
+          setSuccessMessage(decodedMessage);
+          setError('');
+          console.log('✅ Success message set:', decodedMessage);
+        } else if (errorParam) {
+          const decodedError = messageParam ? 
+            decodeURIComponent(messageParam) : 
+            'An error occurred';
+          setError(decodedError);
+          setSuccessMessage('');
+          console.log('❌ Error message set:', decodedError);
+        }
+
+        // 🔧 CORRECTION: Gestion sécurisée du localStorage
+        const email = formData.email;
+        if (email) {
+          try {
+            const savedAttempts = localStorage.getItem(`login_attempts_${email}`);
+            if (savedAttempts) {
+              const attempts = parseInt(savedAttempts, 10);
+              if (!isNaN(attempts)) {
+                setAttemptCount(attempts);
+                if (attempts >= 3) {
+                  setShowCaptcha(true);
+                }
+              }
+            }
+          } catch (storageError) {
+            console.warn('⚠️ localStorage access failed:', storageError);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error in useEffect:', error);
+        // Ne pas bloquer le rendu en cas d'erreur
       }
-    }
+    };
 
-    // Récupérer le compteur de tentatives depuis le localStorage
-    const savedAttempts = localStorage.getItem(`login_attempts_${formData.email}`);
-    if (savedAttempts) {
-      const attempts = parseInt(savedAttempts, 10);
-      setAttemptCount(attempts);
-      if (attempts >= 3) {
-        setShowCaptcha(true);
-      }
-    }
+    handleRedirectAndMessages();
   }, [location, isAuthenticated, user, navigate, formData.email]);
 
-  // Gérer les changements du CAPTCHA
+  // 🔧 CORRECTION: Gestion d'erreur pour le CAPTCHA
   const handleCaptchaChange = (id, answer) => {
-    setCaptchaId(id);
-    setCaptchaAnswer(answer);
-    // Effacer l'erreur si elle concerne le CAPTCHA
-    if (error.includes('CAPTCHA')) {
-      setError('');
+    try {
+      setCaptchaId(id);
+      setCaptchaAnswer(answer);
+      if (error.includes('CAPTCHA')) {
+        setError('');
+      }
+    } catch (error) {
+      console.error('❌ Captcha change error:', error);
     }
   };
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    try {
+      const { name, value, type, checked } = e.target;
+      setFormData(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      }));
 
-    // Reset attempt count when email changes
-    if (name === 'email') {
-      const savedAttempts = localStorage.getItem(`login_attempts_${value}`);
-      if (savedAttempts) {
-        const attempts = parseInt(savedAttempts, 10);
-        setAttemptCount(attempts);
-        setShowCaptcha(attempts >= 3);
-      } else {
-        setAttemptCount(0);
-        setShowCaptcha(false);
+      // Reset attempt count when email changes
+      if (name === 'email') {
+        try {
+          const savedAttempts = localStorage.getItem(`login_attempts_${value}`);
+          if (savedAttempts) {
+            const attempts = parseInt(savedAttempts, 10);
+            if (!isNaN(attempts)) {
+              setAttemptCount(attempts);
+              setShowCaptcha(attempts >= 3);
+            }
+          } else {
+            setAttemptCount(0);
+            setShowCaptcha(false);
+          }
+        } catch (storageError) {
+          console.warn('⚠️ localStorage access failed:', storageError);
+        }
       }
+    } catch (error) {
+      console.error('❌ Handle change error:', error);
     }
   };
 
+  // 🔧 CORRECTION: Fonction de soumission plus robuste
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (loading) return; // Éviter les soumissions multiples
+    
     setLoading(true);
     setError('');
     setSuccessMessage('');
 
-    // Vérifier le CAPTCHA si nécessaire
-    if (showCaptcha && (!captchaId || !captchaAnswer)) {
-      setError('Please complete the CAPTCHA verification');
-      setLoading(false);
-      return;
-    }
-
-    // Préparer les données à envoyer
-    const loginData = { ...formData };
-    if (showCaptcha) {
-      loginData.captchaId = captchaId;
-      loginData.captchaAnswer = captchaAnswer;
-    }
-
     try {
+      // Vérification CAPTCHA
+      if (showCaptcha && (!captchaId || !captchaAnswer)) {
+        setError('Please complete the CAPTCHA verification');
+        return;
+      }
+
+      // Préparer les données
+      const loginData = { ...formData };
+      if (showCaptcha) {
+        loginData.captchaId = captchaId;
+        loginData.captchaAnswer = captchaAnswer;
+      }
+
       console.log('🔐 Tentative de connexion...');
-      const response = await api.post('/api/auth/login', loginData);
       
-      console.log('📨 Réponse complète:', response.data);
+      // 🔧 CORRECTION: Appel API avec timeout
+      const response = await Promise.race([
+        api.post('/api/auth/login', loginData),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout')), 10000)
+        )
+      ]);
+      
+      console.log('📨 Réponse reçue:', response.data);
       
       if (response.data.success) {
-        // Réinitialiser le compteur de tentatives en cas de succès
-        localStorage.removeItem(`login_attempts_${formData.email}`);
+        // Réinitialiser les tentatives
+        try {
+          localStorage.removeItem(`login_attempts_${formData.email}`);
+        } catch (storageError) {
+          console.warn('⚠️ localStorage cleanup failed:', storageError);
+        }
+        
         setAttemptCount(0);
         setShowCaptcha(false);
         
-        // Correction : gestion robuste du token et de l'utilisateur
-        let token, user;
-        if (response.data.token && response.data.data) {
-          // Cas 1 : token à la racine, user dans data
-          token = response.data.token;
-          user = response.data.data;
-        } else if (response.data.data && response.data.data.token && response.data.data.user) {
-          // Cas 2 : tout dans data
+        // 🔧 CORRECTION: Extraction plus robuste des données
+        let token, userData;
+        
+        if (response.data.data) {
           token = response.data.data.token;
-          user = response.data.data.user;
+          userData = response.data.data.user;
+        } else {
+          token = response.data.token;
+          userData = response.data.user;
         }
 
-        if (token && user) {
-          login(token, user);
-          console.log('✅ Connexion réussie');
-          console.log('👤 User data complet:', user);
-          console.log('👤 User role:', user.role);
+        if (token && userData) {
+          console.log('✅ Données valides reçues');
           
-          // Vérification du rôle unique
-          const isAdmin = user.role === 'admin' || user.role === 'superadmin';
-          
-          console.log('🎯 Is admin:', isAdmin);
-          const redirectUrl = isAdmin ? '/admin' : '/dashboard';
-          console.log('🔄 Redirecting to:', redirectUrl);
-          
-          navigate(redirectUrl);
+          // 🔧 CORRECTION: Attendre que login soit terminé avant de naviguer
+          try {
+            await login(token, userData);
+            console.log('✅ Login AuthContext terminé');
+            
+            const isAdmin = userData.role === 'admin' || userData.role === 'superadmin';
+            const redirectUrl = isAdmin ? '/admin' : '/dashboard';
+            console.log('🔄 Navigation vers:', redirectUrl);
+            
+            navigate(redirectUrl, { replace: true });
+          } catch (loginError) {
+            console.error('❌ Erreur login AuthContext:', loginError);
+            setError('Erreur lors de la connexion. Veuillez réessayer.');
+          }
         } else {
-          console.error('❌ Token or user data missing');
-          setError('Erreur lors de la récupération du token ou de l\'utilisateur.');
+          console.error('❌ Données manquantes dans la réponse');
+          setError('Erreur lors de la récupération des données de connexion.');
         }
       }
     } catch (error) {
       console.error('❌ Erreur de connexion:', error);
       
-      // Incrémenter le compteur de tentatives
+      // Incrémenter les tentatives
       const newAttemptCount = attemptCount + 1;
       setAttemptCount(newAttemptCount);
-      localStorage.setItem(`login_attempts_${formData.email}`, newAttemptCount.toString());
       
-      // Gérer différents types d'erreurs
-      if (error.response?.data?.captchaError) {
+      try {
+        localStorage.setItem(`login_attempts_${formData.email}`, newAttemptCount.toString());
+      } catch (storageError) {
+        console.warn('⚠️ localStorage write failed:', storageError);
+      }
+      
+      // 🔧 CORRECTION: Gestion d'erreurs plus spécifique
+      if (error.message === 'Request timeout') {
+        setError('Request timeout. Please check your connection and try again.');
+      } else if (error.response?.data?.captchaError) {
         setError('Invalid CAPTCHA. Please try again.');
-        // Régénérer le CAPTCHA
         setCaptchaReset(prev => prev + 1);
         setCaptchaId('');
         setCaptchaAnswer('');
       } else if (error.response?.data?.captchaRequired || newAttemptCount >= 3) {
         setShowCaptcha(true);
-        setError(error.response?.data?.message || `Too many failed attempts. CAPTCHA verification required.`);
+        setError(error.response?.data?.message || 'Too many failed attempts. CAPTCHA verification required.');
       } else if (error.response?.status === 403) {
         setError(error.response.data.message || 'Please verify your email before signing in.');
       } else if (error.response?.status === 401) {
         setError(error.response.data.message || 'Invalid email or password.');
-        // Afficher le nombre de tentatives restantes
         const remainingAttempts = 3 - newAttemptCount;
         if (remainingAttempts > 0) {
-          setError(prev => `${prev} (${remainingAttempts} attempts remaining before CAPTCHA required)`);
+          setError(prev => `${prev} (${remainingAttempts} attempts remaining)`);
         }
       } else {
         setError(error.response?.data?.message || 'An error occurred during login.');
@@ -206,28 +262,42 @@ const Login = () => {
     }
   };
 
-  // Fonction pour réinitialiser les tentatives
   const resetAttempts = () => {
-    localStorage.removeItem(`login_attempts_${formData.email}`);
-    setAttemptCount(0);
-    setShowCaptcha(false);
-    setError('');
-    setCaptchaId('');
-    setCaptchaAnswer('');
+    try {
+      localStorage.removeItem(`login_attempts_${formData.email}`);
+      setAttemptCount(0);
+      setShowCaptcha(false);
+      setError('');
+      setCaptchaId('');
+      setCaptchaAnswer('');
+    } catch (error) {
+      console.error('❌ Reset attempts error:', error);
+    }
+  };
+
+  // 🔧 AJOUT: Gestion d'erreur pour les images
+  const handleImageError = (e, type) => {
+    console.warn(`⚠️ ${type} image failed to load`);
+    e.target.style.display = 'none';
   };
   
   return (
     <div className={styles.auth_container}>
       <div className={styles.auth_left}>
         <div className={styles.logo_container}>
-          <img src="/images/Logo.png" alt="ThrowBack Logo" className={styles.logo} />
+          <img 
+            src="/images/Logo.png" 
+            alt="ThrowBack Logo" 
+            className={styles.logo}
+            onError={(e) => handleImageError(e, 'Logo')}
+          />
         </div>
         
         <h1 className={styles.auth_title}>Welcome back</h1>
         <p className={styles.auth_subtitle}>Sign in and let the music take you back in time!</p>
         
         <form onSubmit={handleSubmit} className={styles.auth_form}>
-          {/* Success message should appear prominently at the top */}
+          {/* Success message */}
           {successMessage && (
             <div className={styles.success_message}>
               {successMessage}
@@ -241,7 +311,7 @@ const Login = () => {
             </div>
           )}
 
-          {/* Show attempt counter */}
+          {/* Attempt counter */}
           {attemptCount > 0 && attemptCount < 3 && (
             <div className={styles.warning_message}>
               Failed attempts: {attemptCount}/3
@@ -277,7 +347,7 @@ const Login = () => {
             />
           </div>
 
-          {/* CAPTCHA conditionnel */}
+          {/* CAPTCHA */}
           {showCaptcha && (
             <div className={styles.form_group}>
               <Captcha 
@@ -303,7 +373,7 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Reset attempts button */}
+          {/* Reset attempts */}
           {attemptCount > 0 && (
             <div className={styles.reset_attempts}>
               <button
@@ -339,10 +409,11 @@ const Login = () => {
           src="/images/banniere_gauche.png"
           alt="ThrowBack Music Experience" 
           className={styles.music_collage}
+          onError={(e) => handleImageError(e, 'Banner')}
         />
       </div>
     </div>   
   );
 };
 
-export default Login;
+export default Login; 

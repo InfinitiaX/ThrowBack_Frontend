@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
-import api from '../../../../utils/api';
 import styles from './ThrowbackVideos.module.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -11,12 +9,17 @@ import {
   faExclamationTriangle,
   faEye
 } from '@fortawesome/free-solid-svg-icons';
+import likeIcon from '../../../../assets/icons/like.png';
+import commentIcon from '../../../../assets/icons/comment.png';
+import MemoryCard from './MemoryCard';
+import VideoCard from './VideoCard';
 
 // Définition des données mockées pour le fallback
 const mockMemories = [
   {
     id: 'mock1',
     username: 'User Demo',
+    type: 'posted',
     videoTitle: 'Sample Video',
     videoArtist: 'Artist',
     videoYear: '2000',
@@ -28,6 +31,7 @@ const mockMemories = [
   {
     id: 'mock2',
     username: 'Another User',
+    type: 'shared',
     videoTitle: 'Another Video',
     videoArtist: 'Another Artist',
     videoYear: '1990',
@@ -38,6 +42,30 @@ const mockMemories = [
   }
 ];
 
+const mockVideos = [
+  {
+    _id: 'mock-video-1',
+    titre: 'Bohemian Rhapsody',
+    artiste: 'Queen',
+    annee: '1975',
+    youtubeUrl: 'https://www.youtube.com/watch?v=fJ9rUzIMcZQ'
+  },
+  {
+    _id: 'mock-video-2',
+    titre: 'Thriller',
+    artiste: 'Michael Jackson',
+    annee: '1982',
+    youtubeUrl: 'https://www.youtube.com/watch?v=sOnqjkJTMaA'
+  },
+  {
+    _id: 'mock-video-3',
+    titre: 'Hotel California',
+    artiste: 'Eagles',
+    annee: '1976',
+    youtubeUrl: 'https://www.youtube.com/watch?v=EqPtz5qN7HM'
+  }
+];
+
 const ThrowbackVideos = () => {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +73,9 @@ const ThrowbackVideos = () => {
   const [memories, setMemories] = useState([]);
   const [memoriesLoading, setMemoriesLoading] = useState(true);
   const [memoriesError, setMemoriesError] = useState(null);
+  
+  // Construire l'URL de base en fonction de l'environnement
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
   useEffect(() => {
     // Récupérer les vidéos
@@ -57,40 +88,75 @@ const ThrowbackVideos = () => {
   const fetchRecentMemories = async () => {
     try {
       setMemoriesLoading(true);
-      // Utiliser le même client HTTP que pour fetchVideos pour la cohérence
-      const response = await axios.get('/api/public/memories/recent');
+      console.log('Chargement des souvenirs récents...');
       
-      if (response.data && response.data.success) {
-        const memoriesData = response.data.data || [];
-        // Formater les données pour l'affichage
-        const formattedMemories = memoriesData.map(memory => ({
-          id: memory._id || 'unknown',
-          username: memory.auteur ? `${memory.auteur.prenom || ''} ${memory.auteur.nom || ''}`.trim() || 'Utilisateur' : 'Utilisateur',
-          videoTitle: memory.video?.titre || 'Vidéo sans titre',
-          videoArtist: memory.video?.artiste || 'Artiste inconnu',
-          videoYear: memory.video?.annee || '----',
-          imageUrl: memory.auteur?.photo_profil || '/images/default-avatar.jpg',
-          content: memory.contenu || 'Pas de contenu',
-          likes: memory.likes || 0,
-          comments: memory.nb_commentaires || 0
-        }));
+      try {
+        // Tentative avec la nouvelle route API
+        const response = await fetch(`${baseUrl}/api/public/memories/recent`);
         
-        setMemories(formattedMemories.length > 0 ? formattedMemories : mockMemories);
-        setMemoriesError(null);
-      } else {
-        console.warn('Réponse API souvenirs non valide:', response);
-        // Utiliser les données mockées en fallback
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            console.log('Souvenirs récupérés avec succès:', result.data);
+            const formattedMemories = formatMemories(result.data);
+            setMemories(formattedMemories);
+            setMemoriesError(null);
+            return;
+          }
+        }
+        
+        throw new Error('Échec avec la route principale');
+      } catch (primaryError) {
+        console.warn('Route principale échouée, tentative avec route de secours:', primaryError);
+        
+        // Fallback: essayer l'ancienne route
+        const fallbackResponse = await fetch(`${baseUrl}/api/memories/recent`);
+        
+        if (fallbackResponse.ok) {
+          const result = await fallbackResponse.json();
+          if (result.success && result.data) {
+            console.log('Souvenirs récupérés avec route de secours:', result.data);
+            const formattedMemories = formatMemories(result.data);
+            setMemories(formattedMemories);
+            setMemoriesError(null);
+            return;
+          }
+        }
+        
+        // Si les deux routes échouent, utiliser les données mockées
+        console.warn('Aucune route ne fonctionne, utilisation des données mockées');
         setMemories(mockMemories);
-        setMemoriesError("Format de réponse invalide");
+        setMemoriesError("Impossible de charger les souvenirs, affichage de données statiques");
       }
     } catch (err) {
       console.error('Erreur lors du chargement des souvenirs:', err);
-      // Utiliser les données mockées en fallback
       setMemories(mockMemories);
-      setMemoriesError(err.message || "Erreur lors du chargement des souvenirs");
+      setMemoriesError("Erreur lors du chargement des souvenirs, affichage de données statiques");
     } finally {
       setMemoriesLoading(false);
     }
+  };
+
+  // Formater les données des souvenirs pour l'affichage
+  const formatMemories = (memoriesData) => {
+    if (!Array.isArray(memoriesData) || memoriesData.length === 0) {
+      return mockMemories;
+    }
+    
+    return memoriesData.map(memory => ({
+      id: memory._id || memory.id || `memory-${Math.random()}`,
+      username: memory.auteur ? 
+        `${memory.auteur.prenom || ''} ${memory.auteur.nom || ''}`.trim() || 'Utilisateur' : 
+        'Utilisateur',
+      type: memory.type || 'posted',
+      videoTitle: memory.video?.titre || memory.videoTitle || 'Vidéo sans titre',
+      videoArtist: memory.video?.artiste || memory.videoArtist || 'Artiste inconnu',
+      videoYear: memory.video?.annee || memory.videoYear || '----',
+      imageUrl: getImageUrl(memory.auteur?.photo_profil || memory.imageUrl),
+      content: memory.contenu || memory.content || 'Pas de contenu',
+      likes: memory.likes || 0,
+      comments: memory.nb_commentaires || memory.comments || 0
+    }));
   };
 
   const fetchVideos = async () => {
@@ -98,137 +164,64 @@ const ThrowbackVideos = () => {
       setLoading(true);
       console.log('Tentative de récupération des vidéos...');
       
-      // Utilisation de la route API correcte avec le type 'music'
-      const response = await axios.get('/api/videos?type=music');
-      console.log('Réponse API reçue:', response);
-      
-      if (response.status === 200) {
-        console.log('Vidéos récupérées avec succès:', response.data);
+      try {
+        // Tentative avec la route API publique
+        const response = await fetch(`${baseUrl}/api/public/videos?type=music`);
         
-        // Vérifier si la réponse contient les vidéos dans data ou directement
-        const videosData = response.data.data || response.data;
-        
-        if (Array.isArray(videosData) && videosData.length > 0) {
-          setVideos(videosData);
-          setError(null);
-        } else {
-          console.warn('Tableau de vidéos vide ou non valide:', videosData);
-          setError('Aucune vidéo disponible pour le moment.');
-          setVideos([]);
+        if (response.ok) {
+          const result = await response.json();
+          const videosData = result.data || result.videos || [];
+          
+          console.log('Vidéos récupérées avec succès:', videosData);
+          
+          if (videosData.length > 0) {
+            setVideos(videosData);
+            setError(null);
+            return;
+          }
         }
-      } else {
-        console.error('Erreur de réponse API:', response);
-        setError('Erreur lors du chargement des vidéos: ' + (response.data?.message || 'Réponse invalide'));
-        setVideos([]);
+        
+        throw new Error('Échec avec la route publique');
+      } catch (primaryError) {
+        console.warn('Route publique échouée, tentative avec route standard:', primaryError);
+        
+        // Fallback: essayer l'ancienne route
+        const fallbackResponse = await fetch(`${baseUrl}/api/videos?type=music`);
+        
+        if (fallbackResponse.ok) {
+          const result = await fallbackResponse.json();
+          const videosData = result.data || result.videos || [];
+          
+          if (videosData.length > 0) {
+            setVideos(videosData);
+            setError(null);
+            return;
+          }
+        }
+        
+        // Si les deux routes échouent, utiliser les données mockées
+        console.warn('Aucune route ne fonctionne, utilisation des données mockées');
+        setVideos(mockVideos);
+        setError('Données temporaires affichées - Connexion au serveur impossible');
       }
     } catch (err) {
       console.error('Exception lors du chargement des vidéos:', err);
-      setError(`Erreur lors du chargement des vidéos: ${err.message || 'Erreur inconnue'}`);
-      setVideos([]);
+      setVideos(mockVideos);
+      setError(`Données temporaires affichées - ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
-
-  // Composant de carte mémoire avec gestion des valeurs manquantes
-  const MemoryCard = ({ memory }) => (
-    <div className={styles.memoryCard}>
-      <div className={styles.memoryHeader}>
-        <span style={{color:'#d32f2f',fontWeight:600}}>{memory.username || 'Utilisateur'}</span> posted a memory on the music video :
-      </div>
-      <img 
-        src={memory.imageUrl || '/images/default-avatar.jpg'} 
-        alt={memory.videoTitle || 'Vidéo'} 
-        className={styles.memoryImage}
-        onError={(e) => {
-          e.target.src = '/images/default-avatar.jpg';
-        }}
-      />
-      <div className={styles.memoryBody}>
-        {memory.videoArtist || 'Artiste'} - {memory.videoTitle || 'Titre'} ({memory.videoYear || '----'}). Please, like and comment to show some love! <br/>
-        <span style={{color:'#d32f2f'}}>{memory.content || 'Aucun contenu'}</span>
-      </div>
-      <div className={styles.memoryFooter}>
-        <span>
-          <FontAwesomeIcon icon={faHeart} style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 6 }} />
-          {memory.likes || 0}
-        </span>
-        <span>
-          <FontAwesomeIcon icon={faComment} style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 6 }} />
-          {memory.comments || 0}
-        </span>
-      </div>
-    </div>
-  );
-
-  // Composant de carte vidéo avec amélioration de la fonction getYouTubeThumbnail
-  const VideoCard = ({ video }) => {
-    // Récupérer l'URL de la vignette YouTube avec gestion améliorée des erreurs
-    const getYouTubeThumbnail = (url) => {
-      if (!url) return '/images/video-placeholder.jpg';
-      
-      // Si l'URL est déjà une image locale
-      if (url.startsWith('/') || url.startsWith('./')) {
-        return url;
-      }
-      
-      // Si c'est une URL YouTube, extraire l'ID de la vidéo
-      let videoId = '';
-      
-      try {
-        // Vérifier si l'URL est valide
-        const urlString = url.toString();
-        
-        if (urlString.includes('youtube.com/watch?v=')) {
-          const urlObj = new URL(urlString);
-          videoId = urlObj.searchParams.get('v');
-        } else if (urlString.includes('youtu.be/')) {
-          const parts = urlString.split('youtu.be/');
-          if (parts.length > 1) {
-            videoId = parts[1];
-          }
-        } else if (urlString.includes('youtube.com/embed/')) {
-          const parts = urlString.split('youtube.com/embed/');
-          if (parts.length > 1) {
-            videoId = parts[1];
-          }
-        }
-        
-        if (videoId) {
-          // Nettoyer l'ID
-          if (videoId.includes('&')) {
-            videoId = videoId.split('&')[0];
-          }
-          
-          // Retourner l'URL de la vignette haute qualité
-          return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-        }
-      } catch (error) {
-        console.error('Erreur de parsing URL YouTube:', error);
-      }
-      
-      // Fallback sur l'image par défaut
-      return '/images/video-placeholder.jpg';
-    };
+  
+  // Fonction pour construire des URLs complètes pour les images
+  const getImageUrl = (path) => {
+    if (!path) return '/images/default-avatar.jpg';
     
-    // Obtenir l'URL de la vignette
-    const thumbnailUrl = getYouTubeThumbnail(video.youtubeUrl);
+    // Si c'est déjà une URL absolue
+    if (path.startsWith('http')) return path;
     
-    return (
-      <Link to={`/dashboard/videos/${video._id}`} className={styles.videoCard}>
-        <img 
-          src={thumbnailUrl} 
-          alt={`${video.artiste || 'Artiste'} - ${video.titre || 'Titre'}`} 
-          className={styles.videoImg} 
-          onError={(e) => {
-            e.target.src = '/images/video-placeholder.jpg';
-          }}
-        />
-        <div className={styles.videoTitle}>
-          <span style={{ fontWeight: 600 }}>{video.artiste || 'Artiste'}</span> : {video.titre || 'Titre'} ({video.annee || '----'})
-        </div>
-      </Link>
-    );
+    // Sinon, construire l'URL complète
+    return `${baseUrl}${path}`;
   };
 
   return (
@@ -251,7 +244,11 @@ const ThrowbackVideos = () => {
             <div className={styles.videosGrid}>
               {videos && videos.length > 0 ? (
                 videos.map((video) => (
-                  <VideoCard key={video._id || `video-${Math.random()}`} video={video} />
+                  <VideoCard 
+                    key={video._id || `video-${Math.random()}`} 
+                    video={video} 
+                    baseUrl={baseUrl}
+                  />
                 ))
               ) : (
                 <div className={styles.noVideosMessage}>
@@ -278,11 +275,23 @@ const ThrowbackVideos = () => {
               ) : (
                 <>
                   {memories.map((memory) => (
-                    <MemoryCard key={memory.id || `memory-${Math.random()}`} memory={memory} />
+                    <MemoryCard 
+                      key={memory.id || `memory-${Math.random()}`} 
+                      memory={memory}
+                      likeIcon={likeIcon}
+                      commentIcon={commentIcon}
+                      baseUrl={baseUrl}
+                    />
                   ))}
                   {/* Duplication pour effet infini */}
                   {memories.slice(0, 2).map((memory) => (
-                    <MemoryCard key={`duplicate-${memory.id || Math.random()}`} memory={memory} />
+                    <MemoryCard 
+                      key={`duplicate-${memory.id || Math.random()}`} 
+                      memory={memory}
+                      likeIcon={likeIcon}
+                      commentIcon={commentIcon}
+                      baseUrl={baseUrl}
+                    />
                   ))}
                 </>
               )}

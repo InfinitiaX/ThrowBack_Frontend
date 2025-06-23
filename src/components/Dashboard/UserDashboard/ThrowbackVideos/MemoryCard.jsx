@@ -1,51 +1,48 @@
-// MemoryCard.jsx - Carte pour afficher un souvenir partagé
 import React from 'react';
 import styles from './ThrowbackVideos.module.css';
 
-const MemoryCard = ({ memory, likeIcon, commentIcon }) => {
+const MemoryCard = ({ memory, likeIcon, commentIcon, baseUrl }) => {
+  // Fonction pour construire des URLs complètes pour les images
+  const getImageUrl = (path) => {
+    if (!path) return '/images/default-avatar.jpg';
+    
+    // Si c'est déjà une URL absolue
+    if (path.startsWith('http')) return path;
+    
+    // Sinon, construire l'URL complète
+    return `${baseUrl}${path}`;
+  };
+
   return (
     <div className={styles.memoryCard}>
       <div className={styles.memoryHeader}>
-        <span style={{ color: '#d32f2f', fontWeight: 600 }}>
-          {memory.username}
-        </span>
+        <span style={{color:'#d32f2f',fontWeight:600}}>{memory.username || 'Utilisateur'}</span>
         {memory.type === 'posted' ? (
-          <span> posted a memory on the music video :</span>
+          <span> posted a memory on the music video:</span>
         ) : (
-          <span> just shared a throwback to the iconic music video :</span>
+          <span> just shared a throwback to the iconic music video:</span>
         )}
       </div>
-      
-      {memory.videoImage && (
-        <img 
-          src={memory.videoImage} 
-          alt={`${memory.videoArtist} - ${memory.videoTitle}`}
-          className={styles.memoryImage} 
-        />
-      )}
-      
+      <img 
+        src={getImageUrl(memory.imageUrl)} 
+        alt={memory.videoTitle || 'Vidéo'} 
+        className={styles.memoryImage}
+        onError={(e) => {
+          e.target.src = '/images/default-avatar.jpg';
+        }}
+      />
       <div className={styles.memoryBody}>
-        {memory.videoArtist} - {memory.videoTitle} ({memory.videoYear}). 
-        Please, like and comment{memory.type === 'posted' ? ' to show some love' : ''}! <br />
-        <span style={{ color: '#d32f2f' }}>{memory.content}</span>
+        {memory.videoArtist || 'Artiste'} - {memory.videoTitle || 'Titre'} ({memory.videoYear || '----'}). Please, like and comment to show some love! <br/>
+        <span style={{color:'#d32f2f'}}>{memory.content || 'Aucun contenu'}</span>
       </div>
-      
       <div className={styles.memoryFooter}>
         <span>
-          <img 
-            src={likeIcon} 
-            alt="like" 
-            style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 6 }} 
-          />
-          {memory.likes}
+          <img src={likeIcon} alt="like" style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 6 }} />
+          {memory.likes || 0}
         </span>
         <span>
-          <img 
-            src={commentIcon} 
-            alt="comment" 
-            style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 6 }} 
-          />
-          {memory.comments}
+          <img src={commentIcon} alt="comment" style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 6 }} />
+          {memory.comments || 0}
         </span>
       </div>
     </div>

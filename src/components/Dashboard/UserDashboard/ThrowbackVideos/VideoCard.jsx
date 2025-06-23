@@ -1,58 +1,74 @@
-// VideoCard.jsx - Carte pour afficher une vidéo dans la grille
 import React from 'react';
 import { Link } from 'react-router-dom';
 import styles from './ThrowbackVideos.module.css';
 
-const VideoCard = ({ video }) => {
-  // Utiliser l'ID de la vidéo pour créer le lien vers la page détaillée
-  const videoId = video._id;
+const VideoCard = ({ video, baseUrl }) => {
+  // Obtenir l'URL de la vignette YouTube avec gestion améliorée des erreurs
+  const getYouTubeThumbnail = (url) => {
+    if (!url) return '/images/video-placeholder.jpg';
+    
+    // Si l'URL est déjà une image locale ou un chemin de backend
+    if (url.startsWith('/')) {
+      return `${baseUrl}${url}`; // Ajouter le baseUrl pour les chemins relatifs
+    }
+    
+    // Si c'est une URL YouTube, extraire l'ID de la vidéo
+    let videoId = '';
+    
+    try {
+      // Vérifier si l'URL est valide
+      const urlString = url.toString();
+      
+      if (urlString.includes('youtube.com/watch?v=')) {
+        const urlObj = new URL(urlString);
+        videoId = urlObj.searchParams.get('v');
+      } else if (urlString.includes('youtu.be/')) {
+        const parts = urlString.split('youtu.be/');
+        if (parts.length > 1) {
+          videoId = parts[1];
+        }
+      } else if (urlString.includes('youtube.com/embed/')) {
+        const parts = urlString.split('youtube.com/embed/');
+        if (parts.length > 1) {
+          videoId = parts[1];
+        }
+      }
+      
+      if (videoId) {
+        // Nettoyer l'ID
+        if (videoId.includes('&')) {
+          videoId = videoId.split('&')[0];
+        }
+        
+        // Retourner l'URL de la vignette haute qualité
+        return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+      }
+    } catch (error) {
+      console.error('Erreur de parsing URL YouTube:', error);
+    }
+    
+    // Fallback sur l'image par défaut
+    return '/images/video-placeholder.jpg';
+  };
   
-  // Construire l'URL de l'image en fonction du type d'URL
-  const thumbnailUrl = video.youtubeUrl.startsWith('http') 
-    ? generateYouTubeThumbnail(video.youtubeUrl) 
-    : video.youtubeUrl; // URL locale ou chemin complet
+  // Obtenir l'URL de la vignette
+  const thumbnailUrl = getYouTubeThumbnail(video.youtubeUrl);
   
   return (
-    <Link to={`/dashboard/videos/${videoId}`} className={styles.videoCard}>
-      <img src={thumbnailUrl} alt={`${video.artiste} - ${video.titre}`} className={styles.videoImg} />
+    <Link to={`/dashboard/videos/${video._id}`} className={styles.videoCard}>
+      <img 
+        src={thumbnailUrl} 
+        alt={`${video.artiste || 'Artiste'} - ${video.titre || 'Titre'}`} 
+        className={styles.videoImg} 
+        onError={(e) => {
+          e.target.src = '/images/video-placeholder.jpg';
+        }}
+      />
       <div className={styles.videoTitle}>
-        {video.artiste} : {video.titre} ({video.annee})
+        <span style={{ fontWeight: 600 }}>{video.artiste || 'Artiste'}</span> : {video.titre || 'Titre'} ({video.annee || '----'})
       </div>
     </Link>
   );
-};
-
-// Fonction pour extraire l'image miniature d'une URL YouTube
-const generateYouTubeThumbnail = (youtubeUrl) => {
-  try {
-    // Extraire l'ID vidéo YouTube
-    let videoId = '';
-    
-    if (youtubeUrl.includes('youtube.com/watch?v=')) {
-      const url = new URL(youtubeUrl);
-      videoId = url.searchParams.get('v');
-    } else if (youtubeUrl.includes('youtu.be/')) {
-      videoId = youtubeUrl.split('youtu.be/')[1];
-    } else if (youtubeUrl.includes('youtube.com/embed/')) {
-      videoId = youtubeUrl.split('youtube.com/embed/')[1];
-    }
-    
-    // Nettoyer l'ID de paramètres supplémentaires
-    if (videoId.includes('&')) {
-      videoId = videoId.split('&')[0];
-    }
-    
-    if (videoId) {
-      // Retourner l'URL de la miniature haute qualité
-      return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-    }
-    
-    // En cas d'échec, renvoyer une image par défaut
-    return '/images/video-placeholder.jpg';
-  } catch (error) {
-    console.error('Erreur lors de la génération de la miniature:', error);
-    return '/images/video-placeholder.jpg';
-  }
 };
 
 export default VideoCard;

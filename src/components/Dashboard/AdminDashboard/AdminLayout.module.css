@@ -13,109 +13,196 @@
   --border-color: #eee;
   --transition: all 0.3s ease;
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --border-radius: 8px;
+  --card-spacing: 1.5rem;
 }
 
 /* ==============================================
-   LAYOUT PRINCIPAL
+   CONTENEUR DE PAGE
    ============================================== */
-.adminLayout {
-  position: relative;
-  min-height: 100vh;
-  background-color: var(--bg-light);
-  overflow-x: hidden;
+.pageContainer {
+  padding: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* ==============================================
-   CONTENU PRINCIPAL
+   CARTE POUR CONTENUS
    ============================================== */
-.mainContent {
+.card {
+  background-color: var(--bg-white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--card-spacing);
+  padding: 1.5rem;
+  overflow: hidden;
   transition: var(--transition);
-  min-height: 100vh;
-  position: relative;
 }
 
-.contentWrapper {
-  min-height: calc(100vh - var(--header-height));
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* ==============================================
+   GRILLE DE CARTES
+   ============================================== */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--card-spacing);
+  margin-bottom: var(--card-spacing);
+}
+
+/* ==============================================
+   CARTES DE STATISTIQUES
+   ============================================== */
+.statsCard {
+  background-color: var(--bg-white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: var(--transition);
+}
+
+.statsCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.statsIcon {
+  width: 48px;
+  height: 48px;
+  background-color: var(--primary-color);
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.25rem;
+}
+
+.statsContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.statsValue {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.statsLabel {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+/* ==============================================
+   BOUTONS ADMIN
+   ============================================== */
+.adminButton {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: var(--transition);
+}
+
+.adminButton:hover {
+  background-color: #9e1010;
+  transform: translateY(-2px);
+}
+
+.adminButtonSecondary {
   background-color: var(--bg-light);
-  /* Pas de padding ici - laissé aux composants enfants */
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.adminButtonSecondary:hover {
+  background-color: #e9eaef;
+  color: var(--text-primary);
 }
 
 /* ==============================================
-   RESPONSIVE DESIGN
+   TABLEAUX ADMIN
    ============================================== */
-
-/* Tablettes */
-@media (max-width: 1024px) {
-  .mainContent {
-    /* Les styles sont gérés par les props inline React */
-  }
+.adminTable {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-/* Mobile */
+.adminTable th, .adminTable td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.adminTable th {
+  font-weight: 600;
+  color: var(--text-secondary);
+  background-color: var(--bg-light);
+}
+
+.adminTable tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* ==============================================
+   PAGINATION ADMIN
+   ============================================== */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 1.5rem;
+}
+
+.paginationButton {
+  background-color: var(--bg-white);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  margin: 0 0.25rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.paginationButton:hover {
+  background-color: var(--bg-light);
+}
+
+.paginationButtonActive {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+/* ==============================================
+   RESPONSIVE
+   ============================================== */
 @media (max-width: 768px) {
-  .mainContent {
-    margin-left: 0 !important;
-    margin-top: var(--header-height);
+  .pageContainer {
+    padding: 1rem;
   }
   
-  .contentWrapper {
-    /* Assurer que le contenu n'est pas caché derrière l'header */
-  }
-}
-
-/* ==============================================
-   SCROLL SMOOTH
-   ============================================== */
-.mainContent {
-  scroll-behavior: smooth;
-}
-
-/* ==============================================
-   PRINT STYLES
-   ============================================== */
-@media print {
-  .mainContent {
-    margin: 0 !important;
+  .card {
+    padding: 1rem;
   }
   
-  .contentWrapper {
-    margin: 0;
-    padding: 0;
-    background: white;
+  .cardGrid {
+    grid-template-columns: 1fr;
   }
-}
-
-/* ==============================================
-   FOCUS MANAGEMENT
-   ============================================== */
-.contentWrapper:focus {
-  outline: none;
-}
-
-/* ==============================================
-   LOADING STATE (OPTIONNEL)
-   ============================================== */
-.adminLayout.loading .contentWrapper {
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-.adminLayout.loading .contentWrapper::after {
-  content: '';
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--bg-light);
-  border-top: 3px solid var(--primary-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  z-index: 9999;
-}
-
-@keyframes spin {
-  0% { transform: translate(-50%, -50%) rotate(0deg); }
-  100% { transform: translate(-50%, -50%) rotate(360deg); }
 }

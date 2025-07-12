@@ -15,22 +15,36 @@ import {
   faHistory,
   faPlayCircle,
   faThumbsUp,
-  faBars
+  faBars,
+  faVideo,
+  faList,
+  faEdit,
+  faUsers,
+  faFilm
 } from '@fortawesome/free-solid-svg-icons';
 import Logo from '../../../../images/Logo.png';
 import { useAuth } from '../../../../contexts/AuthContext';
+// Importer le service de recherche
+import { searchAPI } from '../../../../utils/api';
 
 const Header = ({ toggleSidebar, isSidebarOpen }) => {
   const { user, logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isCreateDropdownOpen, setIsCreateDropdownOpen] = useState(false);
   const [showClearButton, setShowClearButton] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(3);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 480);
+  // Nouveaux états pour l'auto-complétion
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   
   const searchInputRef = useRef(null);
   const dropdownRef = useRef(null);
+  const createDropdownRef = useRef(null);
+  const suggestionsRef = useRef(null);
   const navigate = useNavigate();
 
   // Détecter la taille de l'écran
@@ -48,11 +62,18 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
     };
   }, []);
 
-  // Detect clicks outside dropdown
+  // Detect clicks outside dropdowns
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
+      }
+      if (createDropdownRef.current && !createDropdownRef.current.contains(event.target)) {
+        setIsCreateDropdownOpen(false);
+      }
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target) && 
+          searchInputRef.current && !searchInputRef.current.contains(event.target)) {
+        setShowSuggestions(false);
       }
     };
 
@@ -69,19 +90,67 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
     }
   }, [showMobileSearch]);
 
+  // Fonction pour récupérer les suggestions de recherche
+  const fetchSuggestions = async (value) => {
+    if (!value || value.length < 2) {
+      setSuggestions([]);
+      setIsLoadingSuggestions(false);
+      return;
+    }
+    
+    try {
+      setIsLoadingSuggestions(true);
+      const response = await searchAPI.getSearchSuggestions(value);
+      
+      if (response.success) {
+        setSuggestions(response.data || []);
+      } else {
+        setSuggestions([]);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la récupération des suggestions:', error);
+      setSuggestions([]);
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  };
+  
+  // Debounce pour les suggestions de recherche
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm.trim()) {
+        fetchSuggestions(searchTerm);
+      } else {
+        setSuggestions([]);
+      }
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   // Handle search input change
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
     setShowClearButton(e.target.value.length > 0);
+    setShowSuggestions(e.target.value.length > 0);
   };
 
   // Clear search input
   const clearSearch = () => {
     setSearchTerm('');
     setShowClearButton(false);
+    setSuggestions([]);
+    setShowSuggestions(false);
     if (searchInputRef.current) {
       searchInputRef.current.focus();
     }
+  };
+
+  // Sélectionner une suggestion
+  const handleSelectSuggestion = (suggestion) => {
+    setSearchTerm(suggestion.query || suggestion.text);
+    setShowSuggestions(false);
+    navigate(`/dashboard/search?q=${encodeURIComponent(suggestion.query || suggestion.text)}&type=${suggestion.type !== 'artist' ? suggestion.type : 'videos'}`);
   };
 
   // Handle search submission
@@ -89,6 +158,7 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
     e.preventDefault();
     if (searchTerm.trim()) {
       navigate(`/dashboard/search?q=${encodeURIComponent(searchTerm.trim())}`);
+      setShowSuggestions(false);
       if (isMobile) {
         setShowMobileSearch(false);
       }
@@ -117,7 +187,7 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
   };
 
   const handleCreateClick = () => {
-    navigate('/dashboard/create');
+    setIsCreateDropdownOpen(!isCreateDropdownOpen);
   };
 
   // Handle menu button click to toggle sidebar
@@ -128,6 +198,33 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
   // Fermer la recherche mobile
   const handleCloseMobileSearch = () => {
     setShowMobileSearch(false);
+    setShowSuggestions(false);
+  };
+
+  // Fonctions de navigation pour le menu "Create"
+  const handleUploadShortClick = () => {
+    navigate('/dashboard/upload/short');
+    setIsCreateDropdownOpen(false);
+  };
+
+  const handleUploadVideoClick = () => {
+    navigate('/dashboard/upload/video');
+    setIsCreateDropdownOpen(false);
+  };
+
+  const handleCreatePlaylistClick = () => {
+    navigate('/dashboard/playlists/create');
+    setIsCreateDropdownOpen(false);
+  };
+
+  const handleCreatePostClick = () => {
+    navigate('/dashboard/posts/create');
+    setIsCreateDropdownOpen(false);
+  };
+
+  const handleCreateGroupClick = () => {
+    navigate('/dashboard/groups/create');
+    setIsCreateDropdownOpen(false);
   };
 
   return (
@@ -158,6 +255,7 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
               className={styles.searchInput}
               value={searchTerm}
               onChange={handleSearchChange}
+              onFocus={() => setShowSuggestions(searchTerm.length > 0)}
             />
             
             {showClearButton && (
@@ -169,6 +267,43 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
               >
                 <FontAwesomeIcon icon={faTimes} />
               </button>
+            )}
+            
+            {/* Suggestions de recherche */}
+            {showSuggestions && (
+              <div className={styles.suggestionsList} ref={suggestionsRef}>
+                {isLoadingSuggestions ? (
+                  <div className={styles.suggestionLoading}>
+                    <FontAwesomeIcon icon={faSearch} spin />
+                    <span>Recherche en cours...</span>
+                  </div>
+                ) : suggestions.length > 0 ? (
+                  suggestions.map((suggestion, index) => (
+                    <div 
+                      key={index} 
+                      className={styles.suggestionItem}
+                      onClick={() => handleSelectSuggestion(suggestion)}
+                    >
+                      <FontAwesomeIcon 
+                        icon={
+                          suggestion.type === 'video' ? faVideo :
+                          suggestion.type === 'playlist' ? faList :
+                          suggestion.type === 'podcast' ? faMicrophone :
+                          suggestion.type === 'artist' ? faMusic :
+                          faSearch
+                        } 
+                        className={styles.suggestionIcon} 
+                      />
+                      <span className={styles.suggestionText}>{suggestion.text}</span>
+                      <span className={styles.suggestionType}>{suggestion.type}</span>
+                    </div>
+                  ))
+                ) : searchTerm.length >= 2 ? (
+                  <div className={styles.noSuggestions}>
+                    <span>Aucune suggestion trouvée</span>
+                  </div>
+                ) : null}
+              </div>
             )}
           </div>
           
@@ -200,14 +335,42 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
       )}
 
       <div className={styles.headerRight}>
-        <button 
-          className={styles.createButton} 
-          onClick={handleCreateClick}
-          aria-label="Create"
-        >
-          <FontAwesomeIcon icon={faPlus} />
-          <span className={styles.createText}>Create</span>
-        </button>
+        <div className={styles.createContainer} ref={createDropdownRef}>
+          <button 
+            className={styles.createButton} 
+            onClick={handleCreateClick}
+            aria-label="Create"
+          >
+            <FontAwesomeIcon icon={faPlus} />
+            <span className={styles.createText}>Create</span>
+          </button>
+          
+          {isCreateDropdownOpen && (
+            <div className={styles.dropdown}>
+              <div className={styles.dropdownBody}>
+                <button className={styles.dropdownItem} onClick={handleUploadShortClick}>
+                  <FontAwesomeIcon icon={faFilm} className={styles.dropdownIcon} />
+                  <span>Upload Short</span>
+                </button>
+                
+                <button className={styles.dropdownItem} onClick={handleCreatePlaylistClick}>
+                  <FontAwesomeIcon icon={faList} className={styles.dropdownIcon} />
+                  <span>Create Playlist</span>
+                </button>
+                
+                <button className={styles.dropdownItem} onClick={handleCreatePostClick}>
+                  <FontAwesomeIcon icon={faEdit} className={styles.dropdownIcon} />
+                  <span>Create Post</span>
+                </button>
+                
+                <button className={styles.dropdownItem} onClick={handleCreateGroupClick}>
+                  <FontAwesomeIcon icon={faUsers} className={styles.dropdownIcon} />
+                  <span>Create Group</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         
         <button 
           className={styles.notificationButton} 
@@ -265,11 +428,6 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
                 <button className={styles.dropdownItem} onClick={() => navigate('/dashboard/history')}>
                   <FontAwesomeIcon icon={faHistory} className={styles.dropdownIcon} />
                   <span>History</span>
-                </button>
-                
-                <button className={styles.dropdownItem} onClick={() => navigate('/dashboard/favorites')}>
-                  <FontAwesomeIcon icon={faThumbsUp} className={styles.dropdownIcon} />
-                  <span>Liked Videos</span>
                 </button>
                 
                 <div className={styles.dropdownDivider}></div>

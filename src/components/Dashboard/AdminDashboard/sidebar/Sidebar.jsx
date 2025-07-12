@@ -82,18 +82,24 @@ const Sidebar = ({ collapsed, onToggle, isMobile = false }) => {
     return false;
   };
 
-  const menuItems = [
-    {
-      category: 'GENERAL',
-      items: [
-        { path: '/admin', icon: 'fas fa-tachometer-alt', label: 'Dashboard', exact: true },
-        { path: '/admin/users', icon: 'fas fa-users', label: 'Manage Users' },
-        { path: '/admin/videos', icon: 'fas fa-video', label: 'Videos' },
-        { path: '/admin/shorts', icon: 'fas fa-bolt', label: 'Shorts' },
-        // { path: '/admin/PodCasts', icon: 'fas fa-podcast', label: 'PodCasts' },
-        { path: '/admin/playlists', icon: 'fas fa-list', label: 'Playlists' }
-      ]
-    },
+const menuItems = [
+  {
+    category: 'GENERAL',
+    items: [
+      { path: '/admin', icon: 'fas fa-tachometer-alt', label: 'Dashboard', exact: true },
+      { path: '/admin/users', icon: 'fas fa-users', label: 'Manage Users' }
+    ]
+  },
+   {
+    category: 'Musique videos',
+    items: [
+      { path: '/admin/livestreams', icon: 'fas fa-broadcast-tower', label: 'Livethrowback' },
+      { path: '/admin/videos', icon: 'fas fa-video', label: 'Videos' },
+      { path: '/admin/shorts', icon: 'fas fa-bolt', label: 'Shorts' },
+      { path: '/admin/podcasts', icon: 'fas fa-podcast', label: 'Podcasts' }, 
+      { path: '/admin/playlists', icon: 'fas fa-list', label: 'Playlists' }
+    ]
+  },
     {
       category: 'MODERATION',
       items: [

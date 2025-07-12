@@ -1,0 +1,93 @@
+.searchFilters {
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.filterGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.filterSection {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filterSection h3 {
+  display: flex;
+  align-items: center;
+  font-size: 15px;
+  margin-bottom: 8px;
+  color: #555;
+  font-weight: 500;
+}
+
+.filterSection h3 svg {
+  margin-right: 8px;
+  color: #8b0000;
+}
+
+.filterOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filterOption {
+  padding: 6px 12px;
+  border-radius: 16px;
+  border: 1px solid #ddd;
+  background-color: white;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filterOption:hover {
+  background-color: #f0f0f0;
+}
+
+.filterOption.active {
+  background-color: #8b0000;
+  color: white;
+  border-color: #8b0000;
+}
+
+.filterSelect {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  background-color: white;
+  color: #555;
+  font-size: 14px;
+  outline: none;
+}
+
+.filterSelect:focus {
+  border-color: #8b0000;
+}
+
+.filterInfo {
+  width: 100%;
+  text-align: center;
+  padding: 8px;
+  color: #888;
+  font-style: italic;
+}
+
+/* Media queries pour les appareils mobiles */
+@media (max-width: 768px) {
+  .filterGroup {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .filterSection {
+    width: 100%;
+  }
+}

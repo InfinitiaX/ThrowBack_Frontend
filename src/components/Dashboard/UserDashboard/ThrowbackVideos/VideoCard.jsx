@@ -9,7 +9,7 @@ const VideoCard = ({ video, baseUrl }) => {
     
     // Si l'URL est déjà une image locale ou un chemin de backend
     if (url.startsWith('/')) {
-      return `${baseUrl}${url}`; // Ajouter le baseUrl pour les chemins relatifs
+      return `${baseUrl}${url}`;
     }
     
     // Si c'est une URL YouTube, extraire l'ID de la vidéo

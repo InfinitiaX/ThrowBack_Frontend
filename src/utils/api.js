@@ -1,16 +1,21 @@
 // utils/api.js 
 import axios from 'axios';
+import podcastAPI from './podcastAPI';
+import playlistAPI from './playlistAPI';
+import searchAPI from './searchAPI';
+
 
 // Configuration de base
-const BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
 // Créer une instance axios avec configuration par défaut
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 60000, // 60 secondes pour éviter les timeouts sur Render
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true 
 });
 
 // Intercepteur de requête pour ajouter le token automatiquement
@@ -42,13 +47,13 @@ api.interceptors.response.use(
   (response) => {
     // Log des réponses importantes
     if (response.config.url.includes('/videos/') || response.config.url.includes('/memories') || response.config.url.includes('/like') || response.config.url.includes('/profile')) {
-      console.log(`✅ API Response: ${response.config.method?.toUpperCase()} ${response.config.url}`);
-      console.log('📊 Response data:', response.data);
+      console.log(` API Response: ${response.config.method?.toUpperCase()} ${response.config.url}`);
+      console.log(' Response data:', response.data);
     }
     return response;
   },
   (error) => {
-    console.error('❌ API Error:', error);
+    console.error(' API Error:', error);
     
     // Gestion spécifique des erreurs courantes
     if (error.response) {
@@ -56,26 +61,26 @@ api.interceptors.response.use(
       
       switch (status) {
         case 401:
-          console.warn('🔐 Unauthorized - Token expired or invalid');
+          console.warn(' Unauthorized - Token expired or invalid');
           // Optionnel: rediriger vers login
           // window.location.href = '/login';
           break;
         case 403:
-          console.warn('🚫 Forbidden - Insufficient permissions');
+          console.warn(' Forbidden - Insufficient permissions');
           break;
         case 404:
-          console.warn('🔍 Not Found - Resource does not exist');
+          console.warn(' Not Found - Resource does not exist');
           break;
         case 500:
-          console.error('💥 Server Error - Internal server error');
+          console.error(' Server Error - Internal server error');
           break;
         default:
-          console.error(`❌ HTTP ${status}:`, data?.message || 'Unknown error');
+          console.error(` HTTP ${status}:`, data?.message || 'Unknown error');
       }
     } else if (error.request) {
-      console.error('🌐 Network Error - No response received:', error.request);
+      console.error(' Network Error - No response received:', error.request);
     } else {
-      console.error('⚡ Request Setup Error:', error.message);
+      console.error(' Request Setup Error:', error.message);
     }
     
     return Promise.reject(error);
@@ -94,7 +99,7 @@ const videoAPI = {
         ...params
       }).toString();
       
-      console.log('🎬 Fetching all videos with params:', queryParams);
+      console.log(' Fetching all videos with params:', queryParams);
       
       const response = await api.get(`/api/public/videos?${queryParams}`);
       
@@ -104,21 +109,21 @@ const videoAPI = {
       } else if (Array.isArray(response.data)) {
         return response.data;
       } else {
-        console.warn('⚠️ Unexpected response format:', response.data);
+        console.warn(' Unexpected response format:', response.data);
         return [];
       }
     } catch (error) {
-      console.error('❌ Error fetching all videos:', error);
+      console.error(' Error fetching all videos:', error);
       
       // Fallback vers l'ancienne route si la nouvelle ne fonctionne pas
       try {
-        console.log('🔄 Trying fallback route...');
+        console.log(' Trying fallback route...');
         const fallbackResponse = await api.get('/api/videos?type=music&limit=50');
         if (fallbackResponse.data.success) {
           return fallbackResponse.data.data || [];
         }
       } catch (fallbackError) {
-        console.error('❌ Fallback also failed:', fallbackError);
+        console.error(' Fallback also failed:', fallbackError);
       }
       
       return [];
@@ -128,7 +133,7 @@ const videoAPI = {
   // Récupérer une vidéo par ID
   getVideoById: async (videoId) => {
     try {
-      console.log('🎬 Fetching video by ID:', videoId);
+      console.log(' Fetching video by ID:', videoId);
       
       const response = await api.get(`/api/public/videos/${videoId}`);
       
@@ -138,17 +143,17 @@ const videoAPI = {
         throw new Error(response.data.message || 'Video not found');
       }
     } catch (error) {
-      console.error('❌ Error fetching video by ID:', error);
+      console.error(' Error fetching video by ID:', error);
       
       // Fallback vers l'ancienne route
       try {
-        console.log('🔄 Trying fallback route for video details...');
+        console.log(' Trying fallback route for video details...');
         const fallbackResponse = await api.get(`/api/videos/${videoId}`);
         if (fallbackResponse.data.success) {
           return fallbackResponse.data.data || fallbackResponse.data;
         }
       } catch (fallbackError) {
-        console.error('❌ Fallback for video details also failed:', fallbackError);
+        console.error(' Fallback for video details also failed:', fallbackError);
       }
       
       throw error;
@@ -158,7 +163,7 @@ const videoAPI = {
   // Récupérer les souvenirs d'une vidéo
   getVideoMemories: async (videoId) => {
     try {
-      console.log('💭 Fetching memories for video:', videoId);
+      console.log(' Fetching memories for video:', videoId);
       
       const response = await api.get(`/api/public/videos/${videoId}/memories`);
       
@@ -168,7 +173,7 @@ const videoAPI = {
         return [];
       }
     } catch (error) {
-      console.error('❌ Error fetching video memories:', error);
+      console.error(' Error fetching video memories:', error);
       
       // Fallback vers l'ancienne route
       try {
@@ -177,7 +182,7 @@ const videoAPI = {
           return fallbackResponse.data.data || [];
         }
       } catch (fallbackError) {
-        console.error('❌ Fallback for memories also failed:', fallbackError);
+        console.error(' Fallback for memories also failed:', fallbackError);
       }
       
       return [];
@@ -187,7 +192,7 @@ const videoAPI = {
   // Ajouter un souvenir
   addMemory: async (videoId, content) => {
     try {
-      console.log('💭 Adding memory to video:', videoId);
+      console.log(' Adding memory to video:', videoId);
       
       const response = await api.post(`/api/public/videos/${videoId}/memories`, {
         contenu: content
@@ -195,7 +200,7 @@ const videoAPI = {
       
       return response.data;
     } catch (error) {
-      console.error('❌ Error adding memory:', error);
+      console.error(' Error adding memory:', error);
       
       // Fallback vers l'ancienne route
       try {
@@ -204,7 +209,7 @@ const videoAPI = {
         });
         return fallbackResponse.data;
       } catch (fallbackError) {
-        console.error('❌ Fallback for adding memory also failed:', fallbackError);
+        console.error(' Fallback for adding memory also failed:', fallbackError);
       }
       
       throw error;
@@ -214,20 +219,20 @@ const videoAPI = {
   // Liker une vidéo
   likeVideo: async (videoId) => {
     try {
-      console.log('❤️ Liking video:', videoId);
+      console.log(' Liking video:', videoId);
       
       const response = await api.post(`/api/public/videos/${videoId}/like`, {});
       
       return response.data;
     } catch (error) {
-      console.error('❌ Error liking video:', error);
+      console.error(' Error liking video:', error);
       
       // Fallback vers l'ancienne route
       try {
         const fallbackResponse = await api.post(`/api/videos/${videoId}/like`, {});
         return fallbackResponse.data;
       } catch (fallbackError) {
-        console.error('❌ Fallback for liking also failed:', fallbackError);
+        console.error(' Fallback for liking also failed:', fallbackError);
       }
       
       throw error;
@@ -237,20 +242,20 @@ const videoAPI = {
   // Partager une vidéo
   shareVideo: async (videoId) => {
     try {
-      console.log('🔄 Sharing video:', videoId);
+      console.log(' Sharing video:', videoId);
       
       const response = await api.post(`/api/public/videos/${videoId}/share`, {});
       
       return response.data;
     } catch (error) {
-      console.error('❌ Error sharing video:', error);
+      console.error(' Error sharing video:', error);
       
       // Fallback vers l'ancienne route
       try {
         const fallbackResponse = await api.post(`/api/videos/${videoId}/share`, {});
         return fallbackResponse.data;
       } catch (fallbackError) {
-        console.error('❌ Fallback for sharing also failed:', fallbackError);
+        console.error(' Fallback for sharing also failed:', fallbackError);
       }
       
       // Pour le partage, on peut simuler le succès
@@ -259,6 +264,13 @@ const videoAPI = {
   }
 };
 
-// Export unique pour éviter les conflits
+// Export unique pour éviter les conflits!
 export { videoAPI };
+
+export { podcastAPI };
+
+export {playlistAPI};
+
+export { searchAPI };
+
 export default api;

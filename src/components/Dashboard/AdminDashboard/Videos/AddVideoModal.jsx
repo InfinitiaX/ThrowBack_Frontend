@@ -336,7 +336,7 @@ const AddVideoModal = ({ isOpen, onClose, onVideoCreated }) => {
                 required
               >
                 <option value="music">Music Video</option>
-                <option value="podcast">Podcast</option>
+                {/* <option value="podcast">Podcast</option> */}
                 <option value="short">Short</option>
               </select>
             </div>

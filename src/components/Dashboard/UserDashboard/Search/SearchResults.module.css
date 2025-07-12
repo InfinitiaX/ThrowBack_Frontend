@@ -1,0 +1,128 @@
+.globalResults {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.resultSection {
+  margin-bottom: 16px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.sectionHeader h2 {
+  display: flex;
+  align-items: center;
+  font-size: 18px;
+  color: #333;
+}
+
+.sectionHeader h2 svg {
+  margin-right: 8px;
+  color: #8b0000;
+}
+
+.viewMore {
+  color: #8b0000;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.viewMore:hover {
+  text-decoration: underline;
+}
+
+.videoResults, .videoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.playlistResults, .playlistGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.podcastResults, .podcastGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.livestreamResults, .livestreamGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.resultsHeader {
+  margin-bottom: 20px;
+}
+
+.resultsHeader h2 {
+  font-size: 18px;
+  color: #333;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 0;
+  text-align: center;
+}
+
+.emptyIcon {
+  color: #ddd;
+  margin-bottom: 16px;
+}
+
+.emptyState h2 {
+  font-size: 20px;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.emptyState p {
+  color: #666;
+  max-width: 400px;
+}
+
+/* Media queries pour les appareils mobiles */
+@media (max-width: 768px) {
+  .videoResults, .videoGrid,
+  .playlistResults, .playlistGrid,
+  .podcastResults, .podcastGrid,
+  .livestreamResults, .livestreamGrid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .videoResults, .videoGrid,
+  .playlistResults, .playlistGrid,
+  .podcastResults, .podcastGrid,
+  .livestreamResults, .livestreamGrid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  
+  .resultsHeader h2 {
+    font-size: 16px;
+  }
+}

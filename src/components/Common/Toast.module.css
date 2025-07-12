@@ -1,0 +1,149 @@
+.toastContainer {
+  position: fixed;
+  z-index: 1100;
+  margin: 16px;
+  pointer-events: none;
+}
+
+/* Position styles */
+.topRight {
+  top: 0;
+  right: 0;
+}
+
+.topCenter {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.topLeft {
+  top: 0;
+  left: 0;
+}
+
+.bottomRight {
+  bottom: 0;
+  right: 0;
+}
+
+.bottomCenter {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bottomLeft {
+  bottom: 0;
+  left: 0;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  min-width: 300px;
+  max-width: 450px;
+  animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s;
+  pointer-events: auto;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.toastIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  min-width: 48px;
+  height: 100%;
+  color: white;
+  padding: 16px 0;
+}
+
+.success .toastIcon {
+  background-color: #4caf50;
+}
+
+.error .toastIcon {
+  background-color: #f44336;
+}
+
+.info .toastIcon {
+  background-color: #2196f3;
+}
+
+.warning .toastIcon {
+  background-color: #ff9800;
+}
+
+.toastContent {
+  flex: 1;
+  padding: 16px;
+  min-width: 0;
+}
+
+.toastMessage {
+  margin: 0;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.4;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  margin-right: 8px;
+  align-self: flex-start;
+  margin-top: 8px;
+}
+
+.closeButton:hover {
+  color: #333;
+}
+
+/* Responsive styles */
+@media (max-width: 480px) {
+  .toastContainer {
+    margin: 8px;
+    width: calc(100% - 16px);
+  }
+  
+  .toast {
+    width: 100%;
+    min-width: unset;
+    max-width: 100%;
+  }
+}

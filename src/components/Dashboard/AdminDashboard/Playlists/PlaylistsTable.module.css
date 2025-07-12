@@ -1,0 +1,345 @@
+/* PlaylistsTable.module.css */
+.tableContainer {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.tableHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #eee;
+}
+
+.entriesInfo {
+  font-size: 14px;
+  color: #666;
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.limitSelector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #666;
+}
+
+.limitSelector select {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.playlistsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.playlistsTable th,
+.playlistsTable td {
+  padding: 16px 20px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.playlistsTable th {
+  font-weight: 600;
+  color: #333;
+  background-color: #f9f9f9;
+}
+
+.playlistsTable tr:hover {
+  background-color: #f9f9f9;
+}
+
+.playlistNameCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.playlistThumbnail {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.playlistDefaultThumbnail {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #b31217, #d32f2f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+}
+
+.userCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.userAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.userDefaultAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #666, #999);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.unknownUser {
+  color: #999;
+  font-style: italic;
+}
+
+.videoCountBadge {
+  display: inline-block;
+  padding: 4px 8px;
+  background-color: #f0f0f0;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  text-align: center;
+  min-width: 30px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.badgeSuccess {
+  background-color: #e6f7e6;
+  color: #28a745;
+}
+
+.badgeDanger {
+  background-color: #f8e6e6;
+  color: #dc3545;
+}
+
+.badgeWarning {
+  background-color: #fff8e6;
+  color: #ffc107;
+}
+
+.badgeInfo {
+  background-color: #e6f1ff;
+  color: #0d6efd;
+}
+
+.badgePrimary {
+  background-color: #e6e6ff;
+  color: #6610f2;
+}
+
+.badgeSecondary {
+  background-color: #f0f0f0;
+  color: #666;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.actionButtons button {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.viewButton {
+  background-color: #0d6efd;
+}
+
+.viewButton:hover {
+  background-color: #0a58ca;
+}
+
+.editButton {
+  background-color: #ffc107;
+}
+
+.editButton:hover {
+  background-color: #e0a800;
+}
+
+.deleteButton {
+  background-color: #dc3545;
+}
+
+.deleteButton:hover {
+  background-color: #c82333;
+}
+
+.paginationContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 20px;
+  background-color: #f9f9f9;
+  border-top: 1px solid #eee;
+}
+
+.paginationButton {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  background-color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.paginationButton:hover:not(:disabled) {
+  background-color: #f0f0f0;
+}
+
+.paginationButton:disabled {
+  background-color: #f9f9f9;
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.pageSelector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #666;
+}
+
+.pageSelector select {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+}
+
+.loadingContainer,
+.errorContainer,
+.emptyContainer {
+  padding: 60px 20px;
+  text-align: center;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.loadingContainer .spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 16px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #b31217;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loadingContainer p,
+.errorContainer p,
+.emptyContainer p {
+  font-size: 16px;
+  color: #666;
+  margin: 8px 0 16px;
+}
+
+.errorContainer i,
+.emptyContainer i {
+  font-size: 40px;
+  color: #b31217;
+  margin-bottom: 16px;
+}
+
+.errorContainer button {
+  padding: 8px 16px;
+  background-color: #b31217;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.errorContainer button:hover {
+  background-color: #d32f2f;
+}
+
+@media (max-width: 768px) {
+  .tableHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .paginationControls {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .playlistsTable th,
+  .playlistsTable td {
+    padding: 12px;
+  }
+  
+  .actionButtons {
+    flex-direction: column;
+  }
+}

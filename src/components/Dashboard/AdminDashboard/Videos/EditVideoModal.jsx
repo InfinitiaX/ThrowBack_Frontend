@@ -283,7 +283,7 @@ const EditVideoModal = ({ isOpen, onClose, video, onVideoUpdated }) => {
                 required
               >
                 <option value="music">Music Video</option>
-                <option value="podcast">Podcast</option>
+                {/* <option value="podcast">Podcast</option> */}
                 <option value="short">Short</option>
               </select>
             </div>

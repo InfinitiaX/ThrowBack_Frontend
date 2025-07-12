@@ -40,7 +40,7 @@ const Videos = () => {
   const [stats, setStats] = useState({
     total: 0,
     music: 0,
-    podcast: 0,
+    // podcast: 0,
     short: 0
   });
 
@@ -380,15 +380,15 @@ const Videos = () => {
           </div>
         </div>
         
-        <div className={styles.statCard}>
+        {/* <div className={styles.statCard}>
           <div className={styles.statIcon} style={{backgroundColor: '#40c057'}}>
             <i className="fas fa-podcast"></i>
           </div>
-          <div className={styles.statContent}>
+           <div className={styles.statContent}>
             <div className={styles.statValue}>{stats.podcast || 0}</div>
             <div className={styles.statLabel}>Podcasts</div>
           </div>
-        </div>
+        </div> */}
         
         <div className={styles.statCard}>
           <div className={styles.statIcon} style={{backgroundColor: '#fab005'}}>
@@ -444,7 +444,7 @@ const Videos = () => {
             >
               <option value="">All types</option>
               <option value="music">Music</option>
-              <option value="podcast">Podcast</option>
+              {/* <option value="podcast">Podcast</option> */}
               <option value="short">Short</option>
             </select>
           </div>

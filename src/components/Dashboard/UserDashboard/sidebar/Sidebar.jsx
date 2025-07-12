@@ -16,17 +16,20 @@ import {
   faChevronRight,
   faHome,
   faSearch,
+  faBookmark,
   faHeart,
-  faPlus
+  faPlus,
+  faUserGroup,
+  faUserFriends,
 } from '@fortawesome/free-solid-svg-icons';
 
 // Main navigation items
 const navItems = [
-   { 
-    label: 'Home', 
-    to: '/dashboard/home', 
-    icon: faHome
-  },
+  //  { 
+  //   label: 'Home', 
+  //   to: '/dashboard/home', 
+  //   icon: faHome
+  // },
   { 
     label: 'LiveThrowBack', 
     to: '/dashboard/live', 
@@ -81,10 +84,16 @@ const libraryItems = [
     icon: faSearch
   },
   {
-    label: 'Create Playlist',
-    to: '/dashboard/playlists/new',
-    icon: faPlus
+    label: 'Find friends',
+    to: '/dashboard/search/',
+    icon: faUserFriends
+  }, 
+  {
+    label :'Your favorites',
+    to : '/dashboard/favorites/',
+    icon : faBookmark
   }
+
 ];
 
 const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {

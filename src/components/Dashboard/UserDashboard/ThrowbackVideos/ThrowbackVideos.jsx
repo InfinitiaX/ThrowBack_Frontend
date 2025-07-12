@@ -75,7 +75,7 @@ const ThrowbackVideos = () => {
   const [memoriesError, setMemoriesError] = useState(null);
   
   // Construire l'URL de base en fonction de l'environnement
-  const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+  const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
   useEffect(() => {
     // Récupérer les vidéos

@@ -18,11 +18,20 @@ import LandingPage from './pages/LandingPage';
 // Dashboard
 import DashboardLayout from './components/Dashboard/UserDashboard/DashboardLayout';
 import ProfilePage from './components/Profile/Profile';          
-import DashboardHome from './components/Dashboard/UserDashboard/Home'
+import DashboardHome from './components/Dashboard/UserDashboard/Home/Home'
 import Settings from './components/Dashboard/UserDashboard/Settings/Settings';
 import Shorts from './components/Dashboard/UserDashboard/Short/Shorts';
+import WeeklyPodcast from './components/Dashboard/UserDashboard/PodCast/WeeklyPodcast';
+import PodcastDetail from './components/Dashboard/UserDashboard/PodCast/PodcastDetail';
 import ThrowbackVideos from './components/Dashboard/UserDashboard/ThrowbackVideos/ThrowbackVideos';
 import VideoDetail from './components/Dashboard/UserDashboard/ThrowbackVideos/VideoDetail';
+import LiveThrowback from './components/Dashboard/UserDashboard/LiveThrowback/LiveThrowback';
+import UserPlaylists from './components/Dashboard/UserDashboard/Playlists';
+import UserPlaylistDetail from './components/Dashboard/UserDashboard/Playlists/UserPlaylistDetail';
+import PlaylistForm from './components/Dashboard/UserDashboard/Playlists/PlaylistForm';
+import PlaylistPlayer from './components/Dashboard/UserDashboard/Playlists/PlaylistPlayer';
+import Search from './components/Dashboard/UserDashboard/Search/Search';
+
 
 // Admin Dashboard
 import AdminDashboard from './components/Dashboard/AdminDashboard';
@@ -32,6 +41,13 @@ import UserDetails from './components/Dashboard/AdminDashboard/admin/UserDetails
 import UserForm from './components/Dashboard/AdminDashboard/admin/UserForm';
 import AdminShorts from './components/Dashboard/AdminDashboard/Shorts';
 import AdminVideos from './components/Dashboard/AdminDashboard/Videos';
+import AdminPodcasts from './components/Dashboard/AdminDashboard/Podcasts'; 
+import AdminLivethrowback from './components/Dashboard/AdminDashboard/LiveStreams';
+import Playlists from './components/Dashboard/AdminDashboard/Playlists';
+import PlaylistDetail from './components/Dashboard/AdminDashboard/Playlists/PlaylistDetail';
+import PlaylistEdit from './components/Dashboard/AdminDashboard/Playlists/PlaylistEdit';
+
+; 
 
 // Composants temporaires pour les pages admin
 const TempPage = ({ title }) => (
@@ -65,15 +81,29 @@ function App() {
             </PrivateRoute>
           }>
             {/* /dashboard affiche un Home par défaut */}
-            <Route index element={<DashboardHome />} />
+            <Route  index element={<LiveThrowback />} />
             {/* /dashboard/profile affiche ta page profil */}
+            {/* <Route path="live" element={<LiveThrowback />} /> */}
             <Route path="profile" element={<ProfilePage />} />
             <Route path="settings" element={<Settings />} />
             <Route path="shorts" element={<Shorts />} />
+            <Route path="podcast" element={<WeeklyPodcast />} />
+            <Route path="podcast/:id" element={<PodcastDetail />} />
             
             {/* Routes pour le module ThrowbackVideos */}
             <Route path="videos" element={<ThrowbackVideos />} />
             <Route path="videos/:id" element={<VideoDetail />} />
+
+            {/* Routes pour les playlists */}
+            <Route path="playlists" element={<UserPlaylists />} />
+            <Route path="playlists/:id" element={<UserPlaylistDetail />} />
+            <Route path="playlists/new" element={<PlaylistForm />} />
+            <Route path="playlists/:id/edit" element={<PlaylistForm />} />
+            <Route path="playlists/:id/play" element={<PlaylistPlayer />} />
+
+                      {/* Ajouter la route de recherche */}
+            <Route path="search" element={<Search />} />
+            
             
             {/* tu peux ajouter d'autres sous-routes ici */}
           </Route>
@@ -97,9 +127,20 @@ function App() {
             
             {/* Gestion des shorts */}
             <Route path="shorts" element={<AdminShorts />} />
+
+            {/* Gestion des livestreams  */}
+            <Route path="livestreams" element={<AdminLivethrowback />} />
+
+            {/* Gestion des podcasts */}
+            <Route path="podcasts" element={<AdminPodcasts />} />
             
+
             {/* Gestion des playlists */}
-            <Route path="playlists" element={<TempPage title="Gestion des Playlists" />} />
+            <Route path="playlists" element={<Playlists />} />
+            <Route path="playlists/:id" element={<PlaylistDetail />} />
+            <Route path="playlists/:id/edit" element={<PlaylistEdit />} />
+            <Route path="playlists/new" element={<PlaylistEdit />} />
+
             
             {/* Modération */}
             <Route path="comments" element={<TempPage title="Modération des Commentaires" />} />

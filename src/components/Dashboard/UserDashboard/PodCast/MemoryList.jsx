@@ -1,0 +1,216 @@
+import React, { useState, useEffect } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faHeart, 
+  faComment, 
+  faSpinner,
+  faExclamationTriangle
+} from '@fortawesome/free-solid-svg-icons';
+import podcastAPI from '../../../../utils/podcastAPI';
+import styles from './MemoryList.module.css';
+
+const MemoryList = ({ podcastId }) => {
+  const [memories, setMemories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [memoryText, setMemoryText] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+
+  // Vérifier si l'utilisateur est authentifié
+  useEffect(() => {
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    setIsAuthenticated(!!token);
+  }, []);
+
+  // Charger les mémoires
+  useEffect(() => {
+    const fetchMemories = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        console.log('Fetching memories for podcast:', podcastId);
+        const data = await podcastAPI.getPodcastMemories(podcastId);
+        console.log('Received memories:', data);
+        setMemories(data || []);
+      } catch (err) {
+        console.error('Error fetching memories:', err);
+        setError('Erreur lors du chargement des souvenirs');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (podcastId) {
+      fetchMemories();
+    }
+  }, [podcastId]);
+
+  // Ajouter une nouvelle mémoire
+  const handleAddMemory = async (e) => {
+    e.preventDefault();
+    
+    if (!isAuthenticated) {
+      alert('Veuillez vous connecter pour partager un souvenir');
+      return;
+    }
+    
+    if (!memoryText.trim()) {
+      return;
+    }
+    
+    if (isSubmitting) {
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      console.log('Adding memory to podcast:', podcastId, 'Content:', memoryText);
+      const response = await podcastAPI.addMemory(podcastId, memoryText);
+      
+      if (response && response.success) {
+        console.log('Memory added successfully:', response.data);
+        // Ajouter la nouvelle mémoire au début de la liste
+        setMemories(prev => [response.data, ...prev]);
+        setMemoryText('');
+      } else {
+        console.error('Failed to add memory:', response);
+        setError(response?.message || 'Erreur lors de l\'ajout du souvenir');
+      }
+    } catch (err) {
+      console.error('Error adding memory:', err);
+      setError('Erreur lors de l\'ajout du souvenir');
+      
+      if (err.response?.status === 401) {
+        alert('Veuillez vous connecter pour partager un souvenir');
+        setIsAuthenticated(false);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Formater la date pour l'affichage
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Composant pour afficher une mémoire
+  const MemoryCard = ({ memory }) => (
+    <div className={styles.memoryCard}>
+      <div className={styles.memoryHeader}>
+        <div className={styles.userInfo}>
+          {memory.imageUrl && (
+            <img 
+              src={memory.imageUrl} 
+              alt={memory.username} 
+              className={styles.userAvatar} 
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = '/images/default-avatar.jpg';
+              }}
+            />
+          )}
+          <span className={styles.username}>{memory.username}</span>
+        </div>
+        <span className={styles.memoryType}>
+          {memory.type === 'posted' ? 'a partagé un souvenir' : 'a partagé ce podcast'}
+        </span>
+      </div>
+      
+      <div className={styles.memoryContent}>
+        <div className={styles.podcastInfo}>
+          <span className={styles.podcastArtist}>{memory.videoArtist}</span>
+          <span className={styles.podcastTitle}> - {memory.videoTitle}</span>
+          <span className={styles.podcastYear}> ({memory.videoYear})</span>
+        </div>
+        
+        <p className={styles.memoryText}>{memory.content}</p>
+      </div>
+      
+      <div className={styles.memoryFooter}>
+        <div className={styles.memoryActions}>
+          <button className={styles.likeButton}>
+            <FontAwesomeIcon icon={faHeart} /> 
+            <span>{memory.likes}</span>
+          </button>
+          
+          <button className={styles.commentButton}>
+            <FontAwesomeIcon icon={faComment} />
+            <span>{memory.comments}</span>
+          </button>
+        </div>
+        
+        <div className={styles.memoryDate}>
+          {formatDate(memory.date)}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className={styles.memoryListContainer}>
+      <h3 className={styles.sectionTitle}>Souvenirs partagés</h3>
+      
+      <div className={styles.memoryInputContainer}>
+        <form onSubmit={handleAddMemory}>
+          <input
+            type="text"
+            placeholder={isAuthenticated 
+              ? "Partagez un souvenir lié à ce podcast..." 
+              : "Connectez-vous pour partager un souvenir"}
+            className={styles.memoryInput}
+            value={memoryText}
+            onChange={(e) => setMemoryText(e.target.value)}
+            disabled={isSubmitting || !isAuthenticated}
+          />
+          <button 
+            type="submit" 
+            className={styles.submitButton}
+            disabled={!memoryText.trim() || isSubmitting || !isAuthenticated}
+          >
+            {isSubmitting ? (
+              <FontAwesomeIcon icon={faSpinner} spin />
+            ) : (
+              'Partager'
+            )}
+          </button>
+        </form>
+      </div>
+      
+      {error && (
+        <div className={styles.errorMessage}>
+          <FontAwesomeIcon icon={faExclamationTriangle} />
+          <span>{error}</span>
+        </div>
+      )}
+      
+      <div className={styles.memoriesList}>
+        {loading ? (
+          <div className={styles.loadingContainer}>
+            <FontAwesomeIcon icon={faSpinner} spin className={styles.spinnerIcon} />
+            <p>Chargement des souvenirs...</p>
+          </div>
+        ) : memories.length > 0 ? (
+          memories.map((memory, index) => (
+            <MemoryCard key={memory.id || index} memory={memory} />
+          ))
+        ) : (
+          <div className={styles.emptyMessage}>
+            <p>Aucun souvenir partagé pour ce podcast.</p>
+            <p>Soyez le premier à partager un souvenir!</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default MemoryList;

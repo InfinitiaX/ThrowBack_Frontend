@@ -28,15 +28,15 @@ const Login = () => {
   useEffect(() => {
     // Redirect if already logged in
     if (isAuthenticated && user) {
-      console.log('👤 User data:', user);
-      console.log('👤 User role:', user.role);
+      console.log(' User data:', user);
+      console.log(' User role:', user.role);
       
       // Vérification du rôle unique
       const isAdmin = user.role === 'admin' || user.role === 'superadmin';
       
-      console.log('🎯 Is admin:', isAdmin);
+      console.log(' Is admin:', isAdmin);
       const redirectUrl = isAdmin ? '/admin' : '/dashboard';
-      console.log('🔄 Redirecting to:', redirectUrl);
+      console.log(' Redirecting to:', redirectUrl);
       
       navigate(redirectUrl);
       return;
@@ -50,10 +50,10 @@ const Login = () => {
 
     if (success === 'true') {
       setSuccessMessage(messageParam || 'Email verified successfully. You can now sign in.');
-      setError(''); // Clear any existing error
+      setError(''); 
     } else if (error) {
       setError(messageParam || 'An error occurred');
-      setSuccessMessage(''); // Clear any existing success message
+      setSuccessMessage(''); 
     } else if (messageParam) {
       // Check if this is a success message (like password reset)
       if (messageParam.includes('successfully') || messageParam.includes('verified')) {
@@ -128,10 +128,10 @@ const Login = () => {
     }
 
     try {
-      console.log('🔐 Tentative de connexion...');
+      console.log(' Tentative de connexion...');
       const response = await api.post('/api/auth/login', loginData);
       
-      console.log('📨 Réponse complète:', response.data);
+      console.log(' Réponse complète:', response.data);
       
       if (response.data.success) {
         // Réinitialiser le compteur de tentatives en cas de succès
@@ -153,25 +153,25 @@ const Login = () => {
 
         if (token && user) {
           login(token, user);
-          console.log('✅ Connexion réussie');
-          console.log('👤 User data complet:', user);
-          console.log('👤 User role:', user.role);
+          console.log(' Connexion réussie');
+          console.log(' User data complet:', user);
+          console.log(' User role:', user.role);
           
           // Vérification du rôle unique
           const isAdmin = user.role === 'admin' || user.role === 'superadmin';
           
-          console.log('🎯 Is admin:', isAdmin);
+          console.log(' Is admin:', isAdmin);
           const redirectUrl = isAdmin ? '/admin' : '/dashboard';
-          console.log('🔄 Redirecting to:', redirectUrl);
+          console.log(' Redirecting to:', redirectUrl);
           
           navigate(redirectUrl);
         } else {
-          console.error('❌ Token or user data missing');
+          console.error(' Token or user data missing');
           setError('Erreur lors de la récupération du token ou de l\'utilisateur.');
         }
       }
     } catch (error) {
-      console.error('❌ Erreur de connexion:', error);
+      console.error(' Erreur de connexion:', error);
       
       // Incrémenter le compteur de tentatives
       const newAttemptCount = attemptCount + 1;

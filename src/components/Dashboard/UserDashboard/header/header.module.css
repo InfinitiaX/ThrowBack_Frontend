@@ -203,6 +203,115 @@
   margin-right: 10px;
 }
 
+/* Create Dropdown Container */
+.createContainer {
+  position: relative;
+}
+
+/* Style for Create dropdown specifically */
+.createContainer .dropdown {
+  width: 220px;
+  top: calc(100% + 5px);
+  right: -10px;
+}
+
+/* Hover effect for dropdown items specific to Create */
+.createContainer .dropdownItem:hover {
+  background-color: #f8f8f8;
+  color: #8b0000;
+}
+
+.createContainer .dropdownIcon {
+  color: #8b0000;
+}
+
+/* Mobile adjustments for Create dropdown */
+@media (max-width: 480px) {
+  .createContainer .dropdown {
+    right: -40px;
+    width: 220px;
+  }
+}
+
+/* Animation for both dropdowns */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  animation: fadeIn 0.2s ease;
+  z-index: 1000;
+}
+
+
+/* Ajouter au fichier header.module.css */
+.suggestionsList {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.suggestionItem {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.suggestionItem:hover {
+  background-color: #f5f5f5;
+}
+
+.suggestionIcon {
+  color: #8b0000;
+  margin-right: 12px;
+  font-size: 14px;
+  width: 16px;
+}
+
+.suggestionText {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggestionType {
+  font-size: 12px;
+  color: #888;
+  margin-left: 8px;
+  text-transform: capitalize;
+}
+
+
+/* Ensure proper positioning when both dropdowns are open */
+.createContainer .dropdown,
+.profileContainer .dropdown {
+  z-index: 1001;
+}
+
+/* Adjust dropdown for narrower screens */
+@media (max-width: 768px) {
+  .createContainer .dropdown {
+    width: 200px;
+  }
+}
+
+
+
+
 .notificationButton:hover {
   background-color: rgba(0, 0, 0, 0.05);
 }

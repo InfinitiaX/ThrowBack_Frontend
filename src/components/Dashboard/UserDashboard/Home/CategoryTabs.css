@@ -1,0 +1,130 @@
+.category-tabs-container {
+  position: relative;
+  margin: 0 -10px 24px -10px;
+  padding: 0 10px;
+}
+
+.category-tabs {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding: 8px 10px;
+  -ms-overflow-style: none;  /* IE et Edge */
+  scrollbar-width: none;  /* Firefox */
+  position: relative;
+}
+
+/* Masquer la barre de défilement pour Chrome/Safari */
+.category-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.category-tab {
+  background: #f5f5f5;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #555;
+}
+
+.category-tab:hover {
+  background: #eaeaea;
+}
+
+.category-tab.active {
+  background: #b31217;
+  color: white;
+}
+
+/* Boutons de défilement */
+.tab-scroll-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  transition: all 0.2s ease;
+}
+
+.tab-scroll-button:hover {
+  background: #f5f5f5;
+}
+
+.tab-scroll-button.left {
+  left: 0;
+}
+
+.tab-scroll-button.right {
+  right: 0;
+}
+
+/* Overlay dégradé pour indiquer le débordement */
+.category-tabs::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60px;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%);
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.category-tabs::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60px;
+  height: 100%;
+  background: linear-gradient(270deg, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%);
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* Media queries pour responsivité */
+@media (max-width: 768px) {
+  .category-tab {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+  }
+  
+  .tab-scroll-button {
+    width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .category-tabs-container {
+    margin: 0 -5px 20px -5px;
+    padding: 0 5px;
+  }
+  
+  .category-tabs {
+    padding: 6px 5px;
+    gap: 8px;
+  }
+  
+  .category-tab {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+}

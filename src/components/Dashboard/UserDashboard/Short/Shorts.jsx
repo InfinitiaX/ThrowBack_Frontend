@@ -5,6 +5,66 @@ import { FaHeart, FaShareAlt, FaStar, FaPlay, FaPause, FaTimes,
          FaExclamationTriangle, FaChevronDown } from 'react-icons/fa';
 import axios from 'axios';
 
+// Configuration Axios avec intercepteurs
+axios.interceptors.request.use(
+  config => {
+    // Ajouter l'URL de base si ce n'est pas déjà fait
+    if (config.url && !config.url.startsWith('http')) {
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      config.url = `${apiBaseUrl}${config.url}`;
+    }
+    
+    // Ajouter le token d'authentification s'il existe
+    const token = localStorage.getItem('token');
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    return config;
+  },
+  error => Promise.reject(error)
+);
+
+// Intercepteur pour toutes les réponses Axios
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    console.error('Axios error:', error);
+    
+    // Gérer les timeouts
+    if (error.code === 'ECONNABORTED') {
+      console.error('Request timeout - La requête a pris trop de temps');
+    }
+    
+    // Gérer les erreurs CORS
+    if (error.message && error.message.includes('Network Error')) {
+      console.error('Possible CORS issue or network problem');
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+// Fonction pour convertir les chemins relatifs en URLs absolues
+function getFullVideoUrl(path) {
+  if (!path) return '';
+  
+  // Si l'URL est déjà absolue, la retourner telle quelle
+  if (path.startsWith('http')) return path;
+  
+  // S'assurer que le chemin commence par un slash
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  
+  // Toujours utiliser une URL de base, jamais une chaîne vide
+  const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+  const fullUrl = `${backendUrl}${normalizedPath}`;
+  
+  // Pour déboguer
+  console.log("Video URL constructed:", fullUrl);
+  
+  return fullUrl;
+}
+
 // Fonction utilitaire pour formater les secondes en mm:ss
 function formatTime(sec) {
   if (!sec || isNaN(sec)) return '00:00';
@@ -46,32 +106,62 @@ export default function Shorts() {
   const fetchShorts = async () => {
     try {
       setIsLoadingShorts(true);
-      const res = await axios.get('/api/videos', {
+      
+      // Utiliser l'URL absolue du backend
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      
+      console.log('Fetching shorts from:', `${apiBaseUrl}/api/videos`);
+      
+      const res = await axios.get(`${apiBaseUrl}/api/videos`, {
         params: {
           type: 'short',
           page: 1,
           limit: 10
-        }
+        },
+        timeout: 30000, // 30 secondes
+        withCredentials: true // Ajouter ceci pour les cookies CORS
       });
       
-      // Vérifier si la réponse contient des données
+      console.log('Shorts response:', res.data);
+      
+      // Différentes possibilités de structure de réponse
+      let shortsData = [];
+      
       if (res.data && Array.isArray(res.data.data)) {
-        setShorts(res.data.data);
-        if (res.data.pagination) {
-          setHasMoreShorts(res.data.pagination.page < res.data.pagination.totalPages);
-        }
+        // Format 1: { data: [...] }
+        shortsData = res.data.data;
+        setHasMoreShorts(res.data.pagination?.page < res.data.pagination?.totalPages);
       } else if (res.data && Array.isArray(res.data)) {
-        // Si les données sont directement dans res.data (format alternatif)
-        setShorts(res.data);
-        setHasMoreShorts(res.data.length >= 10); // Supposer qu'il y a plus si on reçoit au moins 10
+        // Format 2: [...] (tableau direct)
+        shortsData = res.data;
+        setHasMoreShorts(res.data.length >= 10);
+      } else if (res.data && res.data.videos && Array.isArray(res.data.videos)) {
+        // Format 3: { videos: [...] }
+        shortsData = res.data.videos;
+        setHasMoreShorts(res.data.pagination?.page < res.data.pagination?.totalPages);
       } else {
-        showFeedback('Format de réponse inattendu', 'error');
-        setShorts([]);
+        console.warn('Format de réponse inattendu:', res.data);
+        shortsData = [];
+        setHasMoreShorts(false);
       }
+      
+      // Traiter les URLs de vidéos pour qu'elles soient absolues
+      shortsData = shortsData.map(short => {
+        const videoUrl = getFullVideoUrl(short.youtubeUrl);
+        console.log(`Short ${short._id || 'unknown'} URL:`, videoUrl);
+        
+        return {
+          ...short,
+          youtubeUrl: videoUrl
+        };
+      });
+      
+      setShorts(shortsData);
     } catch (err) {
-      console.error('Erreur lors du chargement des shorts:', err);
+      console.error('Erreur détaillée lors du chargement des shorts:', err);
       showFeedback('Erreur lors du chargement des shorts', 'error');
       setShorts([]);
+      setHasMoreShorts(false);
     } finally {
       setIsLoadingShorts(false);
     }
@@ -83,12 +173,18 @@ export default function Shorts() {
     try {
       setIsLoadingMore(true);
       const nextPage = page + 1;
-      const res = await axios.get('/api/videos', {
+      
+      // Utiliser l'URL absolue du backend
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      
+      const res = await axios.get(`${apiBaseUrl}/api/videos`, {
         params: {
           type: 'short',
           page: nextPage,
           limit: 10
-        }
+        },
+        timeout: 30000, // 30 secondes
+        withCredentials: true // Ajouter ceci pour les cookies CORS
       });
       
       let newShorts = [];
@@ -96,7 +192,15 @@ export default function Shorts() {
         newShorts = res.data.data;
       } else if (res.data && Array.isArray(res.data)) {
         newShorts = res.data;
+      } else if (res.data && res.data.videos && Array.isArray(res.data.videos)) {
+        newShorts = res.data.videos;
       }
+      
+      // Traiter les URLs de vidéos pour qu'elles soient absolues
+      newShorts = newShorts.map(short => ({
+        ...short,
+        youtubeUrl: getFullVideoUrl(short.youtubeUrl)
+      }));
       
       if (newShorts.length === 0) {
         setHasMoreShorts(false);
@@ -122,25 +226,46 @@ export default function Shorts() {
     if (!shortId) return;
     
     try {
+      // Utiliser l'URL absolue du backend
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      
+      console.log('Fetching comments for short:', shortId);
+      
       // Tentative de récupération des commentaires via l'API
-      const response = await axios.get(`/api/videos/${shortId}/memories`);
+      const response = await axios.get(`${apiBaseUrl}/api/videos/${shortId}/memories`, {
+        timeout: 15000, // 15 secondes
+        withCredentials: true // Ajouter ceci pour les cookies CORS
+      });
+      
+      console.log('Comments response:', response.data);
       
       // Vérifier si la réponse contient des données
+      let commentsData = [];
+      
       if (response.data && Array.isArray(response.data.data)) {
-        setComments(response.data.data);
+        commentsData = response.data.data;
       } else if (response.data && Array.isArray(response.data)) {
-        setComments(response.data);
+        commentsData = response.data;
+      } else if (response.data && response.data.memories && Array.isArray(response.data.memories)) {
+        commentsData = response.data.memories;
       } else {
-        console.log('Format de réponse inattendu pour les commentaires:', response.data);
-        setComments([]);
+        console.warn('Format de réponse inattendu pour les commentaires:', response.data);
+        commentsData = [];
       }
+      
+      // Normaliser le format des commentaires
+      const normalizedComments = commentsData.map(comment => ({
+        id: comment._id || comment.id || Math.random().toString(36).substr(2, 9),
+        username: comment.auteur?.nom || comment.username || 'Utilisateur',
+        content: comment.contenu || comment.content || comment.texte || '',
+        createdAt: comment.createdAt || comment.date || new Date().toISOString(),
+        imageUrl: getFullVideoUrl(comment.auteur?.photo_profil) || comment.imageUrl || '/images/default-avatar.jpg'
+      }));
+      
+      setComments(normalizedComments);
     } catch (err) {
-      console.error('Erreur lors de la récupération des commentaires:', err);
-      
-      // Fallback avec des commentaires vides
+      console.error('Erreur détaillée lors de la récupération des commentaires:', err);
       setComments([]);
-      
-      // Ne pas afficher d'erreur à l'utilisateur, juste logger
     }
   };
 
@@ -154,9 +279,16 @@ export default function Shorts() {
         return;
       }
       
-      await axios.post(`/api/videos/${activeShortId}/memories`, 
+      // Utiliser l'URL absolue du backend
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      
+      await axios.post(`${apiBaseUrl}/api/videos/${activeShortId}/memories`, 
         { contenu: commentInput },
-        { headers: { 'Authorization': `Bearer ${token}` }}
+        { 
+          headers: { 'Authorization': `Bearer ${token}` },
+          timeout: 15000, // 15 secondes
+          withCredentials: true // Ajouter ceci pour les cookies CORS
+        }
       );
       
       showFeedback('Commentaire ajouté avec succès', 'success');
@@ -200,6 +332,8 @@ export default function Shorts() {
   };
 
   useEffect(() => {
+    console.log('Initializing Shorts component');
+    console.log('API URL:', process.env.REACT_APP_API_URL || 'http://localhost:8080');
     fetchShorts();
     // Réinitialise le centre au milieu de la liste quand on recharge
     setCenterIdx(2);
@@ -407,39 +541,67 @@ export default function Shorts() {
         return;
       }
       
-      // Tenter d'envoyer sur le nouvel endpoint
+      // Utiliser l'URL absolue du backend
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      
+      // Système de retry avec timeout plus long
+      let uploadSuccess = false;
+      let error = null;
+      
+      // Première tentative
       try {
-        await axios.post('/api/videos/shorts', data, {
+        console.log('Tentative d\'upload sur /api/videos/shorts');
+        const response = await axios.post(`${apiBaseUrl}/api/videos/shorts`, data, {
           headers: {
             'Content-Type': 'multipart/form-data',
             'Authorization': `Bearer ${token}`
-          }
+          },
+          timeout: 120000, // 2 minutes
+          withCredentials: true // Ajouter ceci pour les cookies CORS
         });
+        uploadSuccess = true;
+        console.log('Upload réussi sur /api/videos/shorts:', response.data);
       } catch (uploadError) {
         console.error('Erreur sur /api/videos/shorts, tentative sur endpoint alternatif:', uploadError);
+        error = uploadError;
         
-        // Si le premier endpoint échoue, essayer le second endpoint
-        await axios.post('/api/videos/short', data, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        // Deuxième tentative sur endpoint alternatif
+        try {
+          console.log('Tentative d\'upload sur /api/videos/short');
+          const response = await axios.post(`${apiBaseUrl}/api/videos/short`, data, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              'Authorization': `Bearer ${token}`
+            },
+            timeout: 120000, // 2 minutes
+            withCredentials: true // Ajouter ceci pour les cookies CORS
+          });
+          uploadSuccess = true;
+          console.log('Upload réussi sur /api/videos/short:', response.data);
+        } catch (fallbackError) {
+          console.error('Erreur sur /api/videos/short également:', fallbackError);
+          error = fallbackError;
+        }
       }
       
-      showFeedback('Short ajouté avec succès !', 'success');
-      setShowModal(false);
-      setForm({ titre: '', artiste: '', video: null, description: '' });
-      setErrDuree('');
-      
-      // Attendre un court délai avant de recharger la liste pour laisser le temps au serveur de traiter
-      setTimeout(() => {
-        fetchShorts();
-      }, 1000);
+      if (uploadSuccess) {
+        showFeedback('Short ajouté avec succès !', 'success');
+        setShowModal(false);
+        setForm({ titre: '', artiste: '', video: null, description: '' });
+        setErrDuree('');
+        
+        // Attendre un court délai avant de recharger la liste
+        setTimeout(() => {
+          fetchShorts();
+        }, 1000);
+      } else {
+        throw error || new Error('Échec de l\'upload pour une raison inconnue');
+      }
     } catch (err) {
       console.error('Erreur lors de l\'ajout du short:', err);
-      setErrDuree(err.response?.data?.message || err.message || 'Erreur lors de l\'upload');
-      showFeedback('Erreur lors de l\'ajout du short', 'error');
+      const errorMessage = err.response?.data?.message || err.message || 'Erreur lors de l\'upload';
+      setErrDuree(errorMessage);
+      showFeedback(errorMessage, 'error');
     } finally {
       setIsUploading(false);
     }
@@ -481,8 +643,13 @@ export default function Shorts() {
         return;
       }
       
-      const response = await axios.post(`/api/videos/${shortId}/like`, {}, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      // Utiliser l'URL absolue du backend
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      
+      const response = await axios.post(`${apiBaseUrl}/api/videos/${shortId}/like`, {}, {
+        headers: { 'Authorization': `Bearer ${token}` },
+        timeout: 15000, // 15 secondes
+        withCredentials: true // Ajouter ceci pour les cookies CORS
       });
       
       if (response.data && response.data.data) {
@@ -553,10 +720,15 @@ export default function Shorts() {
         return;
       }
       
+      // Utiliser l'URL absolue du backend
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      
       try {
         // Tenter d'appeler l'API de partage
-        await axios.post(`/api/videos/${shortId}/share`, {}, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        await axios.post(`${apiBaseUrl}/api/videos/${shortId}/share`, {}, {
+          headers: { 'Authorization': `Bearer ${token}` },
+          timeout: 15000, // 15 secondes
+          withCredentials: true // Ajouter ceci pour les cookies CORS
         });
       } catch (shareError) {
         // Ignorer les erreurs d'API pour cette fonction non critique
@@ -657,12 +829,13 @@ export default function Shorts() {
                         <video
                           key={short._id}
                           ref={centerVideoRef}
-                          src={short.youtubeUrl}
+                          src={getFullVideoUrl(short.youtubeUrl)}
                           controls={false}
                           className={styles.centerImg}
                           autoPlay={false}
                           muted={isMuted}
                           loop
+                          crossOrigin="anonymous" // Ajouter cet attribut
                         />
                         <div className={styles.centerOverlay}></div>
                         <button
@@ -785,6 +958,7 @@ export default function Shorts() {
                                     onError={(e) => {
                                       e.target.src = '/images/default-avatar.jpg';
                                     }}
+                                    crossOrigin="anonymous" // Ajouter cet attribut
                                   />
                                   <div>
                                     <div className={styles.commentHeader}>
@@ -828,11 +1002,12 @@ export default function Shorts() {
                       onClick={() => handleSideCardClick(realIdx)}
                     >
                       <video
-                        src={short.youtubeUrl}
+                        src={getFullVideoUrl(short.youtubeUrl)}
                         controls={false}
                         className={styles.sideImg}
                         autoPlay={false}
                         muted
+                        crossOrigin="anonymous" // Ajouter cet attribut
                       />
                       <div className={styles.views}>
                         <FaPlay /> {short.duree || 0}s

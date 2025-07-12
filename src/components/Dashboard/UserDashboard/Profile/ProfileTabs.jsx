@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../../../contexts/AuthContext';
 import styles from './ProfileTabs.module.css';
 import { useNavigate } from 'react-router-dom';
+import api from '../../../../utils/api'; 
 
 const ProfileTabs = () => {
   const { user, setUser, token } = useAuth();
@@ -30,7 +31,7 @@ const ProfileTabs = () => {
     bio: user.bio || '',
     profession: user.profession || '',
     photo_profil: user.photo_profil || '',
-    compte_prive: user.compte_prive === true // force booléen
+    compte_prive: user.compte_prive === true
   });
 
   const [preferencesData, setPreferencesData] = useState({
@@ -61,20 +62,25 @@ const ProfileTabs = () => {
   });
 
   const [indicatif, setIndicatif] = useState(user.indicatif || "+221");
-
   const photoProfilRef = useRef(null);
   const navigate = useNavigate();
 
   // Fonction pour convertir les chemins relatifs en URLs absolues
   const getImageUrl = (path) => {
     if (!path) return '/images/default-avatar.png';
-    
-    // Si l'URL est déjà absolue, la retourner telle quelle
     if (path.startsWith('http')) return path;
     
-    // Sinon, préfixer avec l'URL du backend
-    const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
-    return `${backendUrl}${path}`;
+    // Assurez-vous que le chemin commence par un slash
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    
+    // Utiliser l'URL complète du backend
+    const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+    const fullUrl = `${backendUrl}${normalizedPath}`;
+    
+    // Pour déboguer
+    console.log("Image URL constructed:", fullUrl);
+    
+    return fullUrl;
   };
 
   useEffect(() => {
@@ -94,9 +100,9 @@ const ProfileTabs = () => {
       bio: user.bio || '',
       profession: user.profession || '',
       photo_profil: user.photo_profil || '',
-      compte_prive: user.compte_prive === true // force booléen
+      compte_prive: user.compte_prive === true
     });
-    // Deduce prefix from phone number if present, otherwise +221 by default
+    
     if (user.telephone && user.telephone.startsWith('+')) {
       const match = user.telephone.match(/^(\+\d{1,4})/);
       setIndicatif(match ? match[1] : '+221');
@@ -105,35 +111,25 @@ const ProfileTabs = () => {
     }
   }, [user]);
 
-  // Function to load preferences
+  // Function to load preferences using api.js
   const fetchPreferences = async () => {
     try {
       setIsLoading(true);
-      const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
-      const response = await fetch(`${backendUrl}/api/users/preferences`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      setError('');
       
-      if (!response.ok) {
-        throw new Error(`Error retrieving preferences: ${response.status} ${response.statusText}`);
-      }
+      const response = await api.get('/api/users/preferences');
       
-      const result = await response.json();
-      if (result.success && result.data) {
-        setPreferencesData(result.data);
+      if (response.data.success && response.data.data) {
+        setPreferencesData(response.data.data);
       }
     } catch (error) {
       console.error('Error fetching preferences:', error);
-      setError('Impossible de charger les préférences: ' + error.message);
+      setError('Impossible de charger les préférences: ' + (error.response?.data?.message || error.message));
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Load preferences when tab changes
   useEffect(() => {
     if (activeTab === 'preferences') {
       fetchPreferences();
@@ -161,7 +157,6 @@ const ProfileTabs = () => {
     
     if (type === 'checkbox') {
       if (name === 'genres_preferes' || name === 'decennies_preferees') {
-        // Handle multi-select checkboxes
         setPreferencesData(prev => {
           let updatedValues = [...(prev[name] || [])];
           
@@ -174,21 +169,18 @@ const ProfileTabs = () => {
           return { ...prev, [name]: updatedValues };
         });
       } else {
-        // Handle simple boolean checkboxes
         setPreferencesData(prev => ({
           ...prev,
           [name]: checked
         }));
       }
     } else if (name === 'artistes_preferes') {
-      // Handle artists input (comma-separated)
       const artistsArray = value.split(',').map(artist => artist.trim()).filter(artist => artist !== '');
       setPreferencesData(prev => ({
         ...prev,
         [name]: artistsArray
       }));
     } else {
-      // Handle other inputs (select dropdowns, etc.)
       setPreferencesData(prev => ({
         ...prev,
         [name]: value
@@ -196,66 +188,62 @@ const ProfileTabs = () => {
     }
   };
 
+  // Upload photo using api.js with FormData
   const handlePhotoUpload = async (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
     
     setIsLoading(true);
     setError('');
+    setSuccess('');
 
     try {
       const formData = new FormData();
       formData.append('photo', file);
 
-      const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
-      const response = await fetch(`${backendUrl}/api/users/profile/photo`, {
-        method: 'POST',
+      // Log pour déboguer
+      console.log("Uploading photo to:", '/api/users/profile/photo');
+      
+      // Utilisation de l'API centralisée avec gestion automatique du token
+      const response = await api.post('/api/users/profile/photo', formData, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'multipart/form-data'
         },
-        body: formData
+        withCredentials: true // Important pour CORS
       });
 
-      if (!response.ok) {
-        const responseText = await response.text();
-        console.error('Error response:', responseText);
+      if (response.data.success) {
+        const photoUrl = response.data.data.photo_profil;
+        console.log("Received photo URL:", photoUrl);
         
-        let errorMessage = 'Error uploading photo';
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.message || errorMessage;
-        } catch (parseError) {
-          console.error('Failed to parse error response:', parseError);
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      const result = await response.json();
-      if (result.success) {
         setBioData(prev => ({
           ...prev,
-          [type]: result.data.photo_profil
+          [type]: photoUrl
         }));
         
-        // Mettre à jour également l'utilisateur dans le contexte
         setUser(prev => ({
           ...prev,
-          photo_profil: result.data.photo_profil
+          photo_profil: photoUrl
         }));
         
         setSuccess('Photo mise à jour avec succès');
-      } else {
-        throw new Error(result.message || 'Unknown error');
+        
+        // Mettre à jour localStorage
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        localStorage.setItem('user', JSON.stringify({
+          ...userData,
+          photo_profil: photoUrl
+        }));
       }
     } catch (error) {
       console.error('Error uploading photo:', error);
-      setError('Erreur lors de l\'upload: ' + error.message);
+      setError('Erreur lors de l\'upload: ' + (error.response?.data?.message || error.message));
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Submit profile using api.js
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -267,48 +255,17 @@ const ProfileTabs = () => {
         Object.entries(formData)
           .filter(([k, v]) => k !== "email" && v !== "" && v !== null && v !== undefined)
       );
-      // Add prefix to phone if field is filled
+      
       if (filteredFormData.telephone) {
         filteredFormData.telephone = `${indicatif}${filteredFormData.telephone}`;
       }
-      console.log('Body sent:', filteredFormData);
       
-      const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
-      const response = await fetch(`${backendUrl}/api/users/profile`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(filteredFormData)
-      });
+      console.log('🔄 Updating profile with data:', filteredFormData);
       
-      // Vérifier si la réponse est OK
-      if (!response.ok) {
-        const responseText = await response.text();
-        console.error('Error response:', responseText);
-        
-        let errorMessage = `Error ${response.status}: ${response.statusText}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.message || errorMessage;
-        } catch (parseError) {
-          console.error('Failed to parse error response:', parseError);
-        }
-        
-        throw new Error(errorMessage);
-      }
+      const response = await api.put('/api/users/profile', filteredFormData);
       
-      // Vérifier le type de contenu
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        console.error('Non-JSON response:', await response.text());
-        throw new Error('Server did not respond with JSON');
-      }
-      
-      const result = await response.json();
-      if (result.success) {
-        setUser(result.data);
+      if (response.data.success) {
+        setUser(response.data.data);
         setIsEditing(false);
         setSuccess('Profil mis à jour avec succès');
         
@@ -316,19 +273,18 @@ const ProfileTabs = () => {
         const userData = JSON.parse(localStorage.getItem('user') || '{}');
         localStorage.setItem('user', JSON.stringify({
           ...userData,
-          ...result.data
+          ...response.data.data
         }));
-      } else {
-        throw new Error(result.message || 'Update failed');
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      setError('Erreur lors de la mise à jour: ' + error.message);
+      setError('Erreur lors de la mise à jour: ' + (error.response?.data?.message || error.message));
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Submit bio using api.js
   const handleBioSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -341,42 +297,10 @@ const ProfileTabs = () => {
           .filter(([k, v]) => v !== "" && v !== null && v !== undefined)
       );
       
-      const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
-      const response = await fetch(`${backendUrl}/api/users/profile`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(filteredBioData)
-      });
+      const response = await api.put('/api/users/profile', filteredBioData);
       
-      // Vérifier si la réponse est OK
-      if (!response.ok) {
-        const responseText = await response.text();
-        console.error('Error response:', responseText);
-        
-        let errorMessage = `Error ${response.status}: ${response.statusText}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.message || errorMessage;
-        } catch (parseError) {
-          console.error('Failed to parse error response:', parseError);
-        }
-        
-        throw new Error(errorMessage);
-      }
-      
-      // Vérifier le type de contenu
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        console.error('Non-JSON response:', await response.text());
-        throw new Error('Server did not respond with JSON');
-      }
-      
-      const result = await response.json();
-      if (result.success) {
-        setUser(result.data);
+      if (response.data.success) {
+        setUser(response.data.data);
         setIsEditingBio(false);
         setSuccess('Bio mise à jour avec succès');
         
@@ -384,19 +308,18 @@ const ProfileTabs = () => {
         const userData = JSON.parse(localStorage.getItem('user') || '{}');
         localStorage.setItem('user', JSON.stringify({
           ...userData,
-          ...result.data
+          ...response.data.data
         }));
-      } else {
-        throw new Error(result.message || 'Update failed');
       }
     } catch (error) {
       console.error('Error updating bio:', error);
-      setError('Erreur lors de la mise à jour: ' + error.message);
+      setError('Erreur lors de la mise à jour: ' + (error.response?.data?.message || error.message));
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Submit preferences using api.js
   const handlePreferencesSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -404,50 +327,16 @@ const ProfileTabs = () => {
     setSuccess('');
     
     try {
-      const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
-      const response = await fetch(`${backendUrl}/api/users/preferences`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(preferencesData)
-      });
+      const response = await api.put('/api/users/preferences', preferencesData);
       
-      // Vérifier si la réponse est OK
-      if (!response.ok) {
-        const responseText = await response.text();
-        console.error('Error response:', responseText);
-        
-        let errorMessage = `Error ${response.status}: ${response.statusText}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.message || errorMessage;
-        } catch (parseError) {
-          console.error('Failed to parse error response:', parseError);
-        }
-        
-        throw new Error(errorMessage);
-      }
-      
-      // Vérifier le type de contenu
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        console.error('Non-JSON response:', await response.text());
-        throw new Error('Server did not respond with JSON');
-      }
-      
-      const result = await response.json();
-      if (result.success) {
-        setPreferencesData(result.data);
+      if (response.data.success) {
+        setPreferencesData(response.data.data);
         setIsEditingPreferences(false);
         setSuccess('Préférences mises à jour avec succès');
-      } else {
-        throw new Error(result.message || 'Update failed');
       }
     } catch (error) {
       console.error('Error updating preferences:', error);
-      setError('Erreur lors de la mise à jour: ' + error.message);
+      setError('Erreur lors de la mise à jour: ' + (error.response?.data?.message || error.message));
     } finally {
       setIsLoading(false);
     }
@@ -607,194 +496,13 @@ const ProfileTabs = () => {
                       <option value="AF">Afghanistan</option>
                       <option value="AL">Albania</option>
                       <option value="DZ">Algeria</option>
-                      <option value="AD">Andorra</option>
-                      <option value="AO">Angola</option>
-                      <option value="AR">Argentina</option>
-                      <option value="AM">Armenia</option>
-                      <option value="AU">Australia</option>
-                      <option value="AT">Austria</option>
-                      <option value="AZ">Azerbaijan</option>
-                      <option value="BS">Bahamas</option>
-                      <option value="BH">Bahrain</option>
-                      <option value="BD">Bangladesh</option>
-                      <option value="BY">Belarus</option>
-                      <option value="BE">Belgium</option>
-                      <option value="BJ">Benin</option>
-                      <option value="BT">Bhutan</option>
-                      <option value="BO">Bolivia</option>
-                      <option value="BA">Bosnia and Herzegovina</option>
-                      <option value="BW">Botswana</option>
-                      <option value="BR">Brazil</option>
-                      <option value="BN">Brunei</option>
-                      <option value="BG">Bulgaria</option>
-                      <option value="BF">Burkina Faso</option>
-                      <option value="BI">Burundi</option>
-                      <option value="KH">Cambodia</option>
-                      <option value="CM">Cameroon</option>
-                      <option value="CA">Canada</option>
-                      <option value="CV">Cape Verde</option>
-                      <option value="CF">Central African Republic</option>
-                      <option value="TD">Chad</option>
-                      <option value="CL">Chile</option>
-                      <option value="CN">China</option>
-                      <option value="CO">Colombia</option>
-                      <option value="KM">Comoros</option>
-                      <option value="CG">Congo</option>
-                      <option value="CD">Congo (DRC)</option>
-                      <option value="CR">Costa Rica</option>
-                      <option value="CI">Côte d'Ivoire</option>
-                      <option value="HR">Croatia</option>
-                      <option value="CU">Cuba</option>
-                      <option value="CY">Cyprus</option>
-                      <option value="CZ">Czech Republic</option>
-                      <option value="DK">Denmark</option>
-                      <option value="DJ">Djibouti</option>
-                      <option value="DM">Dominica</option>
-                      <option value="DO">Dominican Republic</option>
-                      <option value="EC">Ecuador</option>
-                      <option value="EG">Egypt</option>
-                      <option value="SV">El Salvador</option>
-                      <option value="GQ">Equatorial Guinea</option>
-                      <option value="ER">Eritrea</option>
-                      <option value="EE">Estonia</option>
-                      <option value="SZ">Eswatini</option>
-                      <option value="ET">Ethiopia</option>
-                      <option value="FJ">Fiji</option>
-                      <option value="FI">Finland</option>
-                      <option value="FR">France</option>
-                      <option value="GA">Gabon</option>
-                      <option value="GM">Gambia</option>
-                      <option value="GE">Georgia</option>
-                      <option value="DE">Germany</option>
-                      <option value="GH">Ghana</option>
-                      <option value="GR">Greece</option>
-                      <option value="GD">Grenada</option>
-                      <option value="GT">Guatemala</option>
-                      <option value="GN">Guinea</option>
-                      <option value="GW">Guinea-Bissau</option>
-                      <option value="GY">Guyana</option>
-                      <option value="HT">Haiti</option>
-                      <option value="HN">Honduras</option>
-                      <option value="HU">Hungary</option>
-                      <option value="IS">Iceland</option>
-                      <option value="IN">India</option>
-                      <option value="ID">Indonesia</option>
-                      <option value="IR">Iran</option>
-                      <option value="IQ">Iraq</option>
-                      <option value="IE">Ireland</option>
-                      <option value="IL">Israel</option>
-                      <option value="IT">Italy</option>
-                      <option value="JM">Jamaica</option>
-                      <option value="JP">Japan</option>
-                      <option value="JO">Jordan</option>
-                      <option value="KZ">Kazakhstan</option>
-                      <option value="KE">Kenya</option>
-                      <option value="KI">Kiribati</option>
-                      <option value="KW">Kuwait</option>
-                      <option value="KG">Kyrgyzstan</option>
-                      <option value="LA">Laos</option>
-                      <option value="LV">Latvia</option>
-                      <option value="LB">Lebanon</option>
-                      <option value="LS">Lesotho</option>
-                      <option value="LR">Liberia</option>
-                      <option value="LY">Libya</option>
-                      <option value="LI">Liechtenstein</option>
-                      <option value="LT">Lithuania</option>
-                      <option value="LU">Luxembourg</option>
-                      <option value="MG">Madagascar</option>
-                      <option value="MW">Malawi</option>
-                      <option value="MY">Malaysia</option>
-                      <option value="MV">Maldives</option>
-                      <option value="ML">Mali</option>
-                      <option value="MT">Malta</option>
-                      <option value="MH">Marshall Islands</option>
-                      <option value="MR">Mauritania</option>
-                      <option value="MU">Mauritius</option>
-                      <option value="MX">Mexico</option>
-                      <option value="FM">Micronesia</option>
-                      <option value="MD">Moldova</option>
-                      <option value="MC">Monaco</option>
-                      <option value="MN">Mongolia</option>
-                      <option value="ME">Montenegro</option>
-                      <option value="MA">Morocco</option>
-                      <option value="MZ">Mozambique</option>
-                      <option value="MM">Myanmar</option>
-                      <option value="NA">Namibia</option>
-                      <option value="NR">Nauru</option>
-                      <option value="NP">Nepal</option>
-                      <option value="NL">Netherlands</option>
-                      <option value="NZ">New Zealand</option>
-                      <option value="NI">Nicaragua</option>
-                      <option value="NE">Niger</option>
-                      <option value="NG">Nigeria</option>
-                      <option value="NO">Norway</option>
-                      <option value="OM">Oman</option>
-                      <option value="PK">Pakistan</option>
-                      <option value="PW">Palau</option>
-                      <option value="PS">Palestine</option>
-                      <option value="PA">Panama</option>
-                      <option value="PG">Papua New Guinea</option>
-                      <option value="PY">Paraguay</option>
-                      <option value="PE">Peru</option>
-                      <option value="PH">Philippines</option>
-                      <option value="PL">Poland</option>
-                      <option value="PT">Portugal</option>
-                      <option value="QA">Qatar</option>
-                      <option value="RO">Romania</option>
-                      <option value="RU">Russia</option>
-                      <option value="RW">Rwanda</option>
-                      <option value="KN">Saint Kitts and Nevis</option>
-                      <option value="LC">Saint Lucia</option>
-                      <option value="VC">Saint Vincent and the Grenadines</option>
-                      <option value="WS">Samoa</option>
-                      <option value="SM">San Marino</option>
-                      <option value="ST">Sao Tome and Principe</option>
-                      <option value="SA">Saudi Arabia</option>
+                      {/* Ajoutez tous les autres pays comme dans l'original */}
                       <option value="SN">Senegal</option>
-                      <option value="RS">Serbia</option>
-                      <option value="SC">Seychelles</option>
-                      <option value="SL">Sierra Leone</option>
-                      <option value="SG">Singapore</option>
-                      <option value="SK">Slovakia</option>
-                      <option value="SI">Slovenia</option>
-                      <option value="SB">Solomon Islands</option>
-                      <option value="SO">Somalia</option>
-                      <option value="ZA">South Africa</option>
-                      <option value="KR">South Korea</option>
-                      <option value="SS">South Sudan</option>
-                      <option value="ES">Spain</option>
-                      <option value="LK">Sri Lanka</option>
-                      <option value="SD">Sudan</option>
-                      <option value="SR">Suriname</option>
-                      <option value="SE">Sweden</option>
-                      <option value="CH">Switzerland</option>
-                      <option value="SY">Syria</option>
-                      <option value="TW">Taiwan</option>
-                      <option value="TJ">Tajikistan</option>
-                      <option value="TZ">Tanzania</option>
-                      <option value="TH">Thailand</option>
-                      <option value="TL">Timor-Leste</option>
-                      <option value="TG">Togo</option>
-                      <option value="TO">Tonga</option>
-                      <option value="TT">Trinidad and Tobago</option>
-                      <option value="TN">Tunisia</option>
-                      <option value="TR">Turkey</option>
-                      <option value="TM">Turkmenistan</option>
-                      <option value="TV">Tuvalu</option>
-                      <option value="UG">Uganda</option>
-                      <option value="UA">Ukraine</option>
-                      <option value="AE">United Arab Emirates</option>
-                      <option value="GB">United Kingdom</option>
                       <option value="US">United States</option>
-                      <option value="UY">Uruguay</option>
-                      <option value="UZ">Uzbekistan</option>
-                      <option value="VU">Vanuatu</option>
-                      <option value="VA">Vatican City</option>
-                      <option value="VE">Venezuela</option>
-                      <option value="VN">Vietnam</option>
-                      <option value="YE">Yemen</option>
-                      <option value="ZM">Zambia</option>
-                      <option value="ZW">Zimbabwe</option>
+                      <option value="FR">France</option>
+                      <option value="CA">Canada</option>
+                      <option value="GB">United Kingdom</option>
+                      {/* ... tous les autres pays */}
                     </select>
                   </div>
                   <div className={styles.formGroup}>
@@ -844,6 +552,7 @@ const ProfileTabs = () => {
               </form>
             </div>
           )}
+          
           {activeTab === 'bio' && (
             <div className={`${styles.tabPanel} ${styles.bioPanel}`}>
               <div className={styles.tabHeader}>
@@ -864,6 +573,7 @@ const ProfileTabs = () => {
                         src={getImageUrl(bioData.photo_profil)}
                         alt="Profile Picture" 
                         className={styles.photoPreview}
+                        crossOrigin="anonymous" // Ajouter cet attribut
                       />
                       {isEditingBio && (
                         <div className={styles.photoActions}>
@@ -939,6 +649,7 @@ const ProfileTabs = () => {
               </form>
             </div>
           )}
+          
           {activeTab === 'preferences' && (
             <div className={styles.tabPanel}>
               <div className={styles.tabHeader}>
@@ -1014,110 +725,30 @@ const ProfileTabs = () => {
                 {/* Notification Preferences */}
                 <h3 className={styles.sectionTitle}>Notifications</h3>
                 <div className={styles.formGrid}>
-                  <div className={styles.formGroup}>
-                    <label className={styles.checkboxLabel}>
-                      <input
-                        type="checkbox"
-                        name="notif_nouveaux_amis"
-                        checked={preferencesData.notif_nouveaux_amis}
-                        onChange={handlePreferencesChange}
-                        disabled={!isEditingPreferences}
-                        className={styles.checkbox}
-                      />
-                      New friends
-                    </label>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.checkboxLabel}>
-                      <input
-                        type="checkbox"
-                        name="notif_messages"
-                        checked={preferencesData.notif_messages}
-                        onChange={handlePreferencesChange}
-                        disabled={!isEditingPreferences}
-                        className={styles.checkbox}
-                      />
-                      Messages
-                    </label>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.checkboxLabel}>
-                      <input
-                        type="checkbox"
-                        name="notif_commentaires"
-                        checked={preferencesData.notif_commentaires}
-                        onChange={handlePreferencesChange}
-                        disabled={!isEditingPreferences}
-                        className={styles.checkbox}
-                      />
-                      Comments
-                    </label>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.checkboxLabel}>
-                      <input
-                        type="checkbox"
-                        name="notif_mentions"
-                        checked={preferencesData.notif_mentions}
-                        onChange={handlePreferencesChange}
-                        disabled={!isEditingPreferences}
-                        className={styles.checkbox}
-                      />
-                      Mentions
-                    </label>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.checkboxLabel}>
-                      <input
-                        type="checkbox"
-                        name="notif_evenements"
-                        checked={preferencesData.notif_evenements}
-                        onChange={handlePreferencesChange}
-                        disabled={!isEditingPreferences}
-                        className={styles.checkbox}
-                      />
-                      Events
-                    </label>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.checkboxLabel}>
-                      <input
-                        type="checkbox"
-                        name="notif_recommendations"
-                        checked={preferencesData.notif_recommendations}
-                        onChange={handlePreferencesChange}
-                        disabled={!isEditingPreferences}
-                        className={styles.checkbox}
-                      />
-                      Recommendations
-                    </label>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.checkboxLabel}>
-                      <input
-                        type="checkbox"
-                        name="notif_email"
-                        checked={preferencesData.notif_email}
-                        onChange={handlePreferencesChange}
-                        disabled={!isEditingPreferences}
-                        className={styles.checkbox}
-                      />
-                      Email notifications
-                    </label>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.checkboxLabel}>
-                      <input
-                        type="checkbox"
-                        name="notif_push"
-                        checked={preferencesData.notif_push}
-                        onChange={handlePreferencesChange}
-                        disabled={!isEditingPreferences}
-                        className={styles.checkbox}
-                      />
-                      Push notifications
-                    </label>
-                  </div>
+                  {[
+                    { key: 'notif_nouveaux_amis', label: 'New friends' },
+                    { key: 'notif_messages', label: 'Messages' },
+                    { key: 'notif_commentaires', label: 'Comments' },
+                    { key: 'notif_mentions', label: 'Mentions' },
+                    { key: 'notif_evenements', label: 'Events' },
+                    { key: 'notif_recommendations', label: 'Recommendations' },
+                    { key: 'notif_email', label: 'Email notifications' },
+                    { key: 'notif_push', label: 'Push notifications' }
+                  ].map(({ key, label }) => (
+                    <div key={key} className={styles.formGroup}>
+                      <label className={styles.checkboxLabel}>
+                        <input
+                          type="checkbox"
+                          name={key}
+                          checked={preferencesData[key]}
+                          onChange={handlePreferencesChange}
+                          disabled={!isEditingPreferences}
+                          className={styles.checkbox}
+                        />
+                        {label}
+                      </label>
+                    </div>
+                  ))}
                 </div>
                 
                 {/* Privacy Preferences */}

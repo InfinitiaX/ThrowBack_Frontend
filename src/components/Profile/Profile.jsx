@@ -59,7 +59,7 @@ export default function Profile() {
   const [memoriesError, setMemoriesError] = useState(null);
   
   // Construire l'URL de base en fonction de l'environnement
-  const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://backendtb.testdevinfinitiax.fr';
   
   // Fonction pour convertir les chemins relatifs en URLs absolues
   const getImageUrl = (path) => {

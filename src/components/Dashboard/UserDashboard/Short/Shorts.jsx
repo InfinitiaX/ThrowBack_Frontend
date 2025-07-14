@@ -10,7 +10,7 @@ axios.interceptors.request.use(
   config => {
     // Ajouter l'URL de base si ce n'est pas déjà fait
     if (config.url && !config.url.startsWith('http')) {
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://backendtb.testdevinfinitiax.fr';
       config.url = `${apiBaseUrl}${config.url}`;
     }
     
@@ -56,7 +56,7 @@ function getFullVideoUrl(path) {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   
   // Toujours utiliser une URL de base, jamais une chaîne vide
-  const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+  const backendUrl = process.env.REACT_APP_API_URL || 'https://backendtb.testdevinfinitiax.fr';
   const fullUrl = `${backendUrl}${normalizedPath}`;
   
   // Pour déboguer
@@ -108,7 +108,7 @@ export default function Shorts() {
       setIsLoadingShorts(true);
       
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://backendtb.testdevinfinitiax.fr';
       
       console.log('Fetching shorts from:', `${apiBaseUrl}/api/videos`);
       
@@ -175,7 +175,7 @@ export default function Shorts() {
       const nextPage = page + 1;
       
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://backendtb.testdevinfinitiax.fr';
       
       const res = await axios.get(`${apiBaseUrl}/api/videos`, {
         params: {
@@ -227,7 +227,7 @@ export default function Shorts() {
     
     try {
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://backendtb.testdevinfinitiax.fr';
       
       console.log('Fetching comments for short:', shortId);
       
@@ -280,7 +280,7 @@ export default function Shorts() {
       }
       
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://backendtb.testdevinfinitiax.fr';
       
       await axios.post(`${apiBaseUrl}/api/videos/${activeShortId}/memories`, 
         { contenu: commentInput },
@@ -333,7 +333,7 @@ export default function Shorts() {
 
   useEffect(() => {
     console.log('Initializing Shorts component');
-    console.log('API URL:', process.env.REACT_APP_API_URL || 'http://localhost:8080');
+    console.log('API URL:', process.env.REACT_APP_API_URL || 'https://backendtb.testdevinfinitiax.fr');
     fetchShorts();
     // Réinitialise le centre au milieu de la liste quand on recharge
     setCenterIdx(2);
@@ -542,7 +542,7 @@ export default function Shorts() {
       }
       
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://backendtb.testdevinfinitiax.fr';
       
       // Système de retry avec timeout plus long
       let uploadSuccess = false;
@@ -644,7 +644,7 @@ export default function Shorts() {
       }
       
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://backendtb.testdevinfinitiax.fr';
       
       const response = await axios.post(`${apiBaseUrl}/api/videos/${shortId}/like`, {}, {
         headers: { 'Authorization': `Bearer ${token}` },
@@ -721,7 +721,7 @@ export default function Shorts() {
       }
       
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://backendtb.testdevinfinitiax.fr';
       
       try {
         // Tenter d'appeler l'API de partage

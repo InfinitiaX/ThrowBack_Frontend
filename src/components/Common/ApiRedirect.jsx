@@ -6,7 +6,7 @@ const ApiRedirect = ({ endpoint }) => {
   const params = useParams();
   
   useEffect(() => {
-    let url = `${process.env.REACT_APP_API_URL || 'http://localhost:8080'}${endpoint}`;
+    let url = `${process.env.REACT_APP_API_URL || 'https://backendtb.testdevinfinitiax.fr'}${endpoint}`;
     
     // Replace placeholders with actual values
     Object.keys(params).forEach(key => {

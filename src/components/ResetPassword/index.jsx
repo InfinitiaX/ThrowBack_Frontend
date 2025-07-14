@@ -63,7 +63,7 @@ const ResetPassword = () => {
 
     try {
       // Appel direct au backend en utilisant axios
-      const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      const backendUrl = process.env.REACT_APP_API_URL || 'https://backendtb.testdevinfinitiax.fr';
       const response = await axios.put(`${backendUrl}/api/auth/reset-password`, {
         token,
         password: formData.password

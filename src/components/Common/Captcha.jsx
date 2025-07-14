@@ -16,7 +16,7 @@ const Captcha = ({ onCaptchaChange, resetTrigger }) => {
     
     try {
       const response = await axios.get(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/api/captcha/generate?type=${type}`
+        `${process.env.REACT_APP_API_URL || 'https://backendtb.testdevinfinitiax.fr'}/api/captcha/generate?type=${type}`
       );
       
       if (response.data.success) {

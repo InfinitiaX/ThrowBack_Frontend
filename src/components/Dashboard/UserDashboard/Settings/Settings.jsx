@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 // Configuration d'axios
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8080',
+  baseURL: process.env.REACT_APP_API_URL || 'https://backendtb.testdevinfinitiax.fr',
   headers: {
     'Content-Type': 'application/json'
   }

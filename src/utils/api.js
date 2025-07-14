@@ -6,7 +6,7 @@ import searchAPI from './searchAPI';
 
 
 // Configuration de base
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+const BASE_URL = process.env.REACT_APP_API_URL || 'https://backendtb.testdevinfinitiax.fr';
 
 // Créer une instance axios avec configuration par défaut
 const api = axios.create({

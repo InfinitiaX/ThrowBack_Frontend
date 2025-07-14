@@ -74,7 +74,7 @@ const ProfileTabs = () => {
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
     
     // Utiliser l'URL complète du backend
-    const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+    const backendUrl = process.env.REACT_APP_API_URL || 'https://backendtb.testdevinfinitiax.fr';
     const fullUrl = `${backendUrl}${normalizedPath}`;
     
     // Pour déboguer

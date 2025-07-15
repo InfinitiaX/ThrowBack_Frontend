@@ -65,6 +65,7 @@ const PodcastDetail = () => {
 
   // Format episode number (EP.01)
   const formatEpisodeNumber = (episode) => {
+    if (!episode) return "EP.01";
     return `EP.${episode.toString().padStart(2, '0')}`;
   };
 
@@ -477,21 +478,42 @@ const PodcastDetail = () => {
     }
   };
 
+  // Fonction pour obtenir le chemin de l'image sécurisé
+  const getImagePath = (podcast) => {
+    if (!podcast) return '/images/podcast-default.jpg';
+    
+    if (podcast.coverImage) {
+      if (podcast.coverImage.startsWith('http')) {
+        return podcast.coverImage;
+      }
+      
+      // Si c'est un chemin relatif, ajouter l'URL de base
+      const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+      const normalizedPath = podcast.coverImage.startsWith('/') 
+        ? podcast.coverImage 
+        : `/${podcast.coverImage}`;
+        
+      return `${backendUrl}${normalizedPath}`;
+    }
+    
+    // Fallback: créer un numéro à partir de l'ID string
+    try {
+      const idSum = podcast._id.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+      return `/images/podcast-${(idSum % 6) + 1}.jpg`;
+    } catch (e) {
+      return '/images/podcast-default.jpg';
+    }
+  };
+
   // Composant pour les podcasts recommandés
   const RecommendedPodcast = ({ podcast: recommendedPodcast }) => {
+    if (!recommendedPodcast) return null;
+    
     const isCurrentPodcast = podcast && recommendedPodcast._id === podcast._id;
     
     const handleClick = (e) => {
       e.preventDefault();
       navigate(`/dashboard/podcast/${recommendedPodcast._id}`);
-    };
-    
-    const getImagePath = () => {
-      if (recommendedPodcast.coverImage) return recommendedPodcast.coverImage;
-      
-      // Calculer une image par défaut stable basée sur l'ID
-      const idSum = recommendedPodcast._id.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-      return `/images/podcast-${(idSum % 6) + 1}.jpg`;
     };
     
     return (
@@ -505,12 +527,13 @@ const PodcastDetail = () => {
             {formatEpisodeNumber(recommendedPodcast.episode)}
           </span>
           <img 
-            src={getImagePath()}
+            src={getImagePath(recommendedPodcast)}
             alt={recommendedPodcast.title}
             className={styles.recommendedImg}
             onError={(e) => {
               e.target.src = '/images/podcast-default.jpg';
             }}
+            crossOrigin="anonymous"
           />
         </div>
         <div className={styles.recommendedInfo}>
@@ -579,12 +602,13 @@ const PodcastDetail = () => {
                   {formatEpisodeNumber(podcast.episode)}
                 </span>
                 <img
-                  src={podcast.coverImage || `/images/podcast-${(parseInt(podcast._id) % 6) + 1}.jpg`}
+                  src={getImagePath(podcast)}
                   alt={podcast.title}
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.src = '/images/podcast-default.jpg';
                   }}
+                  crossOrigin="anonymous"
                 />
                 <div className={styles.playButton} onClick={togglePlay}>
                   <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} />

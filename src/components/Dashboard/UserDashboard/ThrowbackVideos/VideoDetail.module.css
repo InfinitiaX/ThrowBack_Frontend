@@ -785,6 +785,70 @@
 
 
 
+/* Styles à ajouter dans VideoDetail.module.css pour harmoniser le MemoryCard */
+
+/* Ces styles assurent que les MemoryCard ont la même apparence dans toutes les vues */
+.memoryBody {
+  font-size: 1rem;
+  color: #222;
+  margin-bottom: 8px;
+  white-space: pre-line;
+}
+
+.memoryUserImage {
+  width: 100%;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  border-radius: 8px;
+  margin: 6px 0;
+}
+
+/* Mettre à jour les styles existants du memoryCard pour harmonisation */
+.memoryCard {
+  background: #fff;
+  border: 1.5px solid #b31217;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px #b3121722;
+  padding: 18px 16px 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.memoryHeader {
+  font-size: 1rem;
+  color: #222;
+  margin-bottom: 6px;
+}
+
+.memoryFooter {
+  display: flex;
+  gap: 18px;
+  color: #b31217;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Ajout pour la compatibilité responsive */
+@media (max-width: 1200px) {
+  .memoryCard {
+    min-width: 300px;
+    max-width: 300px;
+  }
+}
+
+/* Message vide harmonisé */
+.emptyMemories {
+  background: #fff;
+  border-radius: 14px;
+  border: 1.5px solid #ddd;
+  padding: 24px 16px;
+  text-align: center;
+  color: #777;
+  font-style: italic;
+}
+
+
 /* Pour les petits écrans */
 @media (max-width: 768px) {
   .videoInfoBar {

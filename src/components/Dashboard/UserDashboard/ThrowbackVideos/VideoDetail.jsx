@@ -1,3 +1,4 @@
+// VideoDetail.jsx - CORRECTION DES IMPORTS ET UTILISATION COHÉRENTE DU MEMORY CARD
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api, { videoAPI } from '../../../../utils/api'; 
@@ -15,7 +16,11 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './VideoDetail.module.css';
 import PlaylistModal from './PlaylistModal';
-import MemoryCard from './MemoryCard'; // Import du composant MemoryCard harmonisé
+import MemoryCard from './MemoryCard'; // Importation du composant MemoryCard harmonisé
+
+// Import des icônes pour le MemoryCard
+import likeIcon from '../../../../assets/icons/like.png';
+import commentIcon from '../../../../assets/icons/comment.png';
 
 const VideoDetail = () => {
   const { id } = useParams();
@@ -123,29 +128,38 @@ const VideoDetail = () => {
       
       const memoriesData = await videoAPI.getVideoMemories(videoId);
       
-      // Formater les mémoires pour le composant harmonisé
-      const formattedMemories = memoriesData?.map(memory => ({
-        id: memory._id || memory.id || `memory-${Math.random()}`,
-        username: memory.auteur ? 
-          `${memory.auteur.prenom || ''} ${memory.auteur.nom || ''}`.trim() || 'Utilisateur' : 
-          'Utilisateur',
-        type: memory.type || 'posted',
-        videoTitle: memory.video?.titre || memory.videoTitle || video?.titre || 'Vidéo sans titre',
-        videoArtist: memory.video?.artiste || memory.videoArtist || video?.artiste || 'Artiste inconnu',
-        videoYear: memory.video?.annee || memory.videoYear || video?.annee || '----',
-        imageUrl: memory.auteur?.photo_profil || memory.imageUrl,
-        content: memory.contenu || memory.content || 'Pas de contenu',
-        likes: memory.likes || 0,
-        comments: memory.nb_commentaires || memory.comments || 0
-      })) || [];
-      
+      // Formater les souvenirs pour correspondre à l'attente du composant MemoryCard
+      const formattedMemories = formatMemories(memoriesData || []);
       setMemories(formattedMemories);
+      
       console.log(` ${memoriesData?.length || 0} souvenirs chargés`);
     } catch (err) {
       console.error(' Erreur lors du chargement des souvenirs:', err);
       // Ne pas bloquer l'affichage de la vidéo
       setMemories([]);
     }
+  };
+
+  // Formater les données des souvenirs pour l'affichage
+  const formatMemories = (memoriesData) => {
+    if (!Array.isArray(memoriesData) || memoriesData.length === 0) {
+      return [];
+    }
+    
+    return memoriesData.map(memory => ({
+      id: memory._id || memory.id || `memory-${Math.random()}`,
+      username: memory.auteur ? 
+        `${memory.auteur.prenom || ''} ${memory.auteur.nom || ''}`.trim() || 'Utilisateur' : 
+        'Utilisateur',
+      type: memory.type || 'posted',
+      videoTitle: memory.video?.titre || memory.videoTitle || video?.titre || 'Vidéo sans titre',
+      videoArtist: memory.video?.artiste || memory.videoArtist || video?.artiste || 'Artiste inconnu',
+      videoYear: memory.video?.annee || memory.videoYear || video?.annee || '----',
+      imageUrl: memory.auteur?.photo_profil || memory.imageUrl || '/images/default-avatar.jpg',
+      content: memory.contenu || memory.content || 'Pas de contenu',
+      likes: memory.likes || 0,
+      comments: memory.nb_commentaires || memory.comments || 0
+    }));
   };
 
   // Gérer le like d'une vidéo
@@ -258,26 +272,11 @@ const VideoDetail = () => {
       const response = await videoAPI.addMemory(id, memoryText.trim());
       
       if (response.success) {
-        // Formater et ajouter le nouveau souvenir à la liste
+        // Ajouter le nouveau souvenir à la liste
         if (response.data) {
-          const newMemory = {
-            id: response.data._id || `memory-${Date.now()}`,
-            username: response.data.auteur ? 
-              `${response.data.auteur.prenom || ''} ${response.data.auteur.nom || ''}`.trim() || 'Vous' : 
-              'Vous',
-            type: response.data.type || 'posted',
-            videoTitle: response.data.video?.titre || video?.titre || 'Vidéo sans titre',
-            videoArtist: response.data.video?.artiste || video?.artiste || 'Artiste inconnu',
-            videoYear: response.data.video?.annee || video?.annee || '----',
-            imageUrl: response.data.auteur?.photo_profil,
-            content: response.data.contenu || memoryText.trim(),
-            likes: 0,
-            comments: 0
-          };
-          
+          const newMemory = formatMemories([response.data])[0];
           setMemories([newMemory, ...memories]);
         }
-        
         setMemoryText('');
         
         console.log(' Souvenir ajouté avec succès');
@@ -306,7 +305,7 @@ const VideoDetail = () => {
     if (!url) return '/images/video-placeholder.jpg';
     
     if (url.startsWith('/') || url.startsWith('./')) {
-      return `${baseUrl}${url}`;
+      return url;
     }
     
     let videoId = '';
@@ -564,15 +563,15 @@ const VideoDetail = () => {
           </div>
         </main>
 
-        {/* Memories Sidebar avec composant harmonisé */}
+        {/* Memories Sidebar */}
         <aside className={styles.rightCards}>
           {memories.length > 0 ? (
             memories.map((memory, index) => (
               <MemoryCard 
                 key={memory.id || index} 
                 memory={memory}
-                useIcons={true} // Utiliser les icônes FontAwesome
-                isDetailView={true} // Style adapté pour la vue détaillée
+                likeIcon={likeIcon}
+                commentIcon={commentIcon}
                 baseUrl={baseUrl}
               />
             ))

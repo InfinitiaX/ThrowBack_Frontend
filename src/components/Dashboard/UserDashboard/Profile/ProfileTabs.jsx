@@ -573,7 +573,7 @@ const ProfileTabs = () => {
                         src={getImageUrl(bioData.photo_profil)}
                         alt="Profile Picture" 
                         className={styles.photoPreview}
-                        crossOrigin="anonymous" // Ajouter cet attribut
+                        crossOrigin="anonymous" 
                       />
                       {isEditingBio && (
                         <div className={styles.photoActions}>

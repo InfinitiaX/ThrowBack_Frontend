@@ -403,7 +403,10 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
                   src={user?.photo_profil || 'https://via.placeholder.com/40'} 
                   alt="Profile" 
                   className={styles.dropdownProfileImage} 
+                  crossOrigin="anonymous"
                 />
+
+
                 <div className={styles.dropdownUserInfo}>
                   <span className={styles.dropdownUserName}>
                     {user?.prenom || 'Guest'} {user?.nom || 'User'}

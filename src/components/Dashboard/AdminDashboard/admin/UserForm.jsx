@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import styles from './styles.module.css';
 
+// Configuration de l'URL de l'API
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
+
 const UserForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -33,6 +36,20 @@ const UserForm = () => {
     statut_verification: true
   });
 
+  // Fonction pour obtenir les en-têtes d'authentification
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token) {
+      console.error("No authentication token found");
+      setError("Authentication required. Please login again.");
+      return null;
+    }
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
   // Reset form in creation mode
   useEffect(() => {
     if (!id) {
@@ -57,24 +74,42 @@ const UserForm = () => {
     }
   }, [id]);
 
-  // Load user data if in edit mode
+  // Load user data if in edit mode - Version améliorée
   useEffect(() => {
     if (id) {
       setLoading(true);
-      fetch(`/api/admin/users/${id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
-      })
+      
+      const headers = getAuthHeaders();
+      if (!headers) {
+        setLoading(false);
+        return;
+      }
+      
+      const url = `${API_BASE_URL}/api/admin/users/${id}`;
+      console.log("Fetching user data from:", url);
+      
+      fetch(url, { headers })
         .then(res => {
+          console.log("User fetch response:", res.status);
+          
           if (!res.ok) {
-            throw new Error(`Error ${res.status}: ${res.statusText}`);
+            return res.json().then(data => {
+              throw new Error(data.message || `Error ${res.status}: ${res.statusText}`);
+            }).catch(err => {
+              if (err.name === 'SyntaxError') {
+                throw new Error(`Error ${res.status}: ${res.statusText}`);
+              }
+              throw err;
+            });
           }
           return res.json();
         })
         .then(data => {
+          console.log("User data received:", data ? "Yes" : "No");
+          
           // Accept { user: {...} } or {...}
           const userData = data.user || data;
+          
           if (userData && userData.email) {
             setUser({
               prenom: userData.prenom || '',
@@ -95,7 +130,7 @@ const UserForm = () => {
               statut_verification: userData.statut_verification || false
             });
           } else {
-            throw new Error("Invalid user data");
+            throw new Error("Invalid user data received");
           }
         })
         .catch(err => {
@@ -131,7 +166,7 @@ const UserForm = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // Form submission
+  // Form submission - Version améliorée
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -146,6 +181,12 @@ const UserForm = () => {
     
     setError('');
     setIsSaving(true);
+
+    const headers = getAuthHeaders();
+    if (!headers) {
+      setIsSaving(false);
+      return;
+    }
 
     // Prepare data
     const payload = { ...user };
@@ -164,20 +205,24 @@ const UserForm = () => {
     payload.compte_prive = Boolean(payload.compte_prive);
     payload.statut_verification = Boolean(payload.statut_verification);
 
-    const url = id ? `/api/admin/users/${id}` : '/api/admin/users/create';
+    const url = id ? `${API_BASE_URL}/api/admin/users/${id}` : `${API_BASE_URL}/api/admin/users/create`;
     const method = id ? 'PUT' : 'POST';
 
     try {
+      console.log(`Sending ${method} request to ${url}`);
+      
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
+        headers,
         body: JSON.stringify(payload)
       });
 
-      const data = await response.json();
+      console.log("Form submission response:", response.status);
+      
+      const data = await response.json().catch(() => ({
+        success: false,
+        message: `Server returned ${response.status} without valid JSON`
+      }));
       
       if (!response.ok) {
         throw new Error(data.error || data.message || `Error ${response.status}`);

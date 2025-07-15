@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import styles from './styles.module.css';
 
+// Configuration de l'URL de l'API
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
+
 const UserDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -18,48 +21,91 @@ const UserDetails = () => {
   const [loginAttempts, setLoginAttempts] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Configuration des requêtes API
-  const API_BASE_URL = '/api/admin'; // Assurez-vous que cela correspond à votre backend
-  const getAuthHeaders = () => ({
-    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-    'Content-Type': 'application/json'
-  });
+  // Configuration des requêtes API - Version améliorée
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token) {
+      console.error("No authentication token found");
+      setError("Authentication required. Please login again.");
+      return null;
+    }
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
 
-  // Load user data
+  // Load user data - Version améliorée
   useEffect(() => {
     const fetchUserDetails = async () => {
       setLoading(true);
       setError(null);
       
+      const headers = getAuthHeaders();
+      if (!headers) {
+        setLoading(false);
+        return;
+      }
+      
       try {
-        // Parallel requests for user, logs and login attempts
-        const [userRes, logsRes, attemptsRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/users/${id}`, {
-            headers: getAuthHeaders()
-          }),
-          fetch(`${API_BASE_URL}/logs?userId=${id}&limit=20`, {
-            headers: getAuthHeaders()
-          }).catch(() => ({ json: async () => ({ logs: [] }) })),
-          fetch(`${API_BASE_URL}/login-attempts/${id}`, {
-            headers: getAuthHeaders()
-          }).catch(() => ({ json: async () => ({ attempts: null }) }))
-        ]);
-
+        const userUrl = `${API_BASE_URL}/api/admin/users/${id}`;
+        console.log("Fetching user details from:", userUrl);
+        
+        // Fetch user data first
+        const userRes = await fetch(userUrl, { headers });
+        console.log("User details response status:", userRes.status);
+        
         if (!userRes.ok) {
-          throw new Error(`Error ${userRes.status}: ${userRes.statusText}`);
+          const errorData = await userRes.json().catch(() => ({}));
+          throw new Error(errorData.message || `Error ${userRes.status}: ${userRes.statusText}`);
         }
 
-        // Process data
+        // Process user data
         const userData = await userRes.json();
-        const logsData = await logsRes.json();
-        const attemptsData = await attemptsRes.json();
+        const userObj = userData.user || userData;
+        
+        if (!userObj || !userObj.email) {
+          throw new Error("Invalid user data received");
+        }
+        
+        setUser(userObj);
 
-        setUser(userData.user || userData); // Handle both formats
-        setLogs(logsData.logs || []);
-        setLoginAttempts(attemptsData.attempts || null);
+        // Then try to get additional data
+        try {
+          // Logs
+          const logsUrl = `${API_BASE_URL}/api/admin/logs?userId=${id}&limit=20`;
+          console.log("Fetching logs from:", logsUrl);
+          const logsRes = await fetch(logsUrl, { headers })
+            .catch(() => ({ ok: false }));
+            
+          if (logsRes.ok) {
+            const logsData = await logsRes.json();
+            setLogs(logsData.logs || []);
+          } else {
+            console.warn("Could not fetch logs, using empty array");
+            setLogs([]);
+          }
+
+          // Login attempts
+          const attemptsUrl = `${API_BASE_URL}/api/admin/login-attempts/${id}`;
+          console.log("Fetching login attempts from:", attemptsUrl);
+          const attemptsRes = await fetch(attemptsUrl, { headers })
+            .catch(() => ({ ok: false }));
+            
+          if (attemptsRes.ok) {
+            const attemptsData = await attemptsRes.json();
+            setLoginAttempts(attemptsData.attempts || null);
+          } else {
+            console.warn("Could not fetch login attempts, using null");
+            setLoginAttempts(null);
+          }
+        } catch (err) {
+          console.warn("Error loading additional data:", err);
+          // Continue anyway since we have the user data
+        }
       } catch (err) {
         console.error("Error loading user data:", err);
-        setError("Unable to load user data. Please try again.");
+        setError(err.message || "Unable to load user data. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -78,40 +124,50 @@ const UserDetails = () => {
     }
   }, [successMessage]);
 
-  // Handle status change - fonction générique
+  // Handle status change - Version améliorée
   const handleStatusChange = async (status) => {
     setLoading(true);
+    
+    const headers = getAuthHeaders();
+    if (!headers) {
+      setLoading(false);
+      return;
+    }
+    
     try {
       // Utilisez les routes spécifiques pour chaque type de statut
       let endpoint;
       switch(status) {
         case 'ACTIF':
-          endpoint = `${API_BASE_URL}/users/${id}/activate`;
+          endpoint = `${API_BASE_URL}/api/admin/users/${id}/activate`;
           break;
         case 'INACTIF':
-          endpoint = `${API_BASE_URL}/users/${id}/deactivate`;
+          endpoint = `${API_BASE_URL}/api/admin/users/${id}/deactivate`;
           break;
         case 'VERROUILLE':
-          endpoint = `${API_BASE_URL}/users/${id}/lock`;
+          endpoint = `${API_BASE_URL}/api/admin/users/${id}/lock`;
           break;
         case 'SUPPRIME':
-          endpoint = `${API_BASE_URL}/users/${id}/mark-deleted`;
+          endpoint = `${API_BASE_URL}/api/admin/users/${id}/mark-deleted`;
           break;
         default:
           // Fallback à la route générique de statut
-          endpoint = `${API_BASE_URL}/users/${id}/status`;
+          endpoint = `${API_BASE_URL}/api/admin/users/${id}/status`;
       }
+      
+      console.log("Changing status with endpoint:", endpoint);
       
       const response = await fetch(endpoint, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify({ newStatus: status })
       });
       
+      console.log("Status change response:", response.status);
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.message || "An error occurred while changing status");
+        throw new Error(data.message || `Error ${response.status}: ${response.statusText}`);
       }
       
       // Update local state
@@ -144,18 +200,25 @@ const UserDetails = () => {
     handleStatusChange(newStatus);
   };
 
-  // Reset login attempts
+  // Reset login attempts - Version améliorée
   const handleResetLoginAttempts = async () => {
+    const headers = getAuthHeaders();
+    if (!headers) return;
+    
     try {
-      const response = await fetch(`${API_BASE_URL}/users/${id}/reset-login-attempts`, {
+      const url = `${API_BASE_URL}/api/admin/users/${id}/reset-login-attempts`;
+      console.log("Resetting login attempts:", url);
+      
+      const response = await fetch(url, {
         method: 'PUT',
-        headers: getAuthHeaders()
+        headers
       });
       
+      console.log("Reset attempts response:", response.status);
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.message || "An error occurred during reset");
+        throw new Error(data.message || `Error ${response.status}: ${response.statusText}`);
       }
       
       // Update local state
@@ -177,18 +240,25 @@ const UserDetails = () => {
     }
   };
 
-  // Delete user
+  // Delete user - Version améliorée
   const handleDelete = async () => {
+    const headers = getAuthHeaders();
+    if (!headers) return;
+    
     try {
-      const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+      const url = `${API_BASE_URL}/api/admin/users/${id}`;
+      console.log("Deleting user:", url);
+      
+      const response = await fetch(url, {
         method: 'DELETE',
-        headers: getAuthHeaders()
+        headers
       });
       
+      console.log("Delete response:", response.status);
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.message || "An error occurred while deleting");
+        throw new Error(data.message || `Error ${response.status}: ${response.statusText}`);
       }
       
       setSuccessMessage("User has been successfully deleted");

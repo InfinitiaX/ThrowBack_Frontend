@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import styles from './styles.module.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
+// Configuration de l'URL de l'API
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
+
 const Users = () => {
+  const location = useLocation();
+  
   // States
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState(location.state?.successMessage || '');
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -27,9 +32,31 @@ const Users = () => {
     role: ''
   });
 
-  // Load users
+  // Fonction pour obtenir les en-têtes d'authentification
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token) {
+      console.error("No authentication token found");
+      setError("Authentication required. Please login again.");
+      return null;
+    }
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  // Load users - Version améliorée
   const fetchUsers = async (page = 1, filters = {}) => {
     setLoading(true);
+    setError(null);
+    
+    const headers = getAuthHeaders();
+    if (!headers) {
+      setLoading(false);
+      return;
+    }
+    
     try {
       const queryParams = new URLSearchParams({
         page,
@@ -37,32 +64,43 @@ const Users = () => {
         ...filters
       });
 
-      const response = await fetch(`/api/admin/users?${queryParams}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const url = `${API_BASE_URL}/api/admin/users?${queryParams}`;
+      console.log("Fetching users from:", url);
+      
+      const response = await fetch(url, { headers });
+      console.log("Users API response status:", response.status);
 
       if (!response.ok) {
-        throw new Error('Error loading users');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
-      setUsers(data.users || []);
+      console.log("Users data received:", data.users ? `${data.users.length} users` : "No users array");
+      
+      // Support both response formats { users: [...] } and { success: true, users: [...] }
+      const usersArray = data.users || (data.success && data.data?.users) || [];
+      
+      setUsers(usersArray);
       setTotalPages(data.totalPages || 1);
       setTotalUsers(data.total || 0);
-      setCurrentPage(data.currentPage || 1);
+      setCurrentPage(data.currentPage || page);
     } catch (err) {
       console.error('Loading error:', err);
-      setError('Unable to load users. Please try again.');
+      setError(err.message || 'Unable to load users. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Initial effect to load users
+  // Initial effect to load users and handle success message
   useEffect(() => {
     fetchUsers(1, appliedFilters);
+    
+    // Clear location state after reading
+    if (location.state?.successMessage) {
+      window.history.replaceState({}, document.title);
+    }
     
     // Clear messages after 5 seconds
     if (successMessage) {
@@ -71,7 +109,7 @@ const Users = () => {
       }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [appliedFilters, successMessage]);
+  }, [appliedFilters, successMessage, location.state]);
 
   // Filter submission handler
   const handleFilterSubmit = (e) => {
@@ -110,16 +148,19 @@ const Users = () => {
     setShowDeleteModal(true);
   };
 
-  // Delete confirmation and execution
+  // Delete confirmation and execution - Version améliorée
   const handleDeleteConfirm = async () => {
     if (!selectedUser) return;
+    
+    const headers = getAuthHeaders();
+    if (!headers) return;
     
     try {
       // Check if user is not trying to delete themselves
       const userStr = localStorage.getItem('user');
       if (userStr) {
         const currentUser = JSON.parse(userStr);
-        if (currentUser && currentUser.id === selectedUser._id) {
+        if (currentUser && (currentUser.id === selectedUser._id || currentUser._id === selectedUser._id)) {
           setError("You cannot delete your own account");
           setShowDeleteModal(false);
           setSelectedUser(null);
@@ -127,28 +168,25 @@ const Users = () => {
         }
       }
 
-      const response = await fetch(`/api/admin/users/${selectedUser._id}`, {
+      const url = `${API_BASE_URL}/api/admin/users/${selectedUser._id}`;
+      console.log("Deleting user:", url);
+      
+      const response = await fetch(url, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
+        headers
       });
       
+      console.log("Delete response status:", response.status);
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.message || 'Error during deletion');
+        throw new Error(data.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      if (data.success) {
-        setUsers(users.filter(u => u._id !== selectedUser._id));
-        setSuccessMessage(`User ${selectedUser.prenom} ${selectedUser.nom} has been successfully deleted`);
-        setShowDeleteModal(false);
-        setSelectedUser(null);
-      } else {
-        throw new Error(data.message || "Error deleting user.");
-      }
+      setUsers(users.filter(u => u._id !== selectedUser._id));
+      setSuccessMessage(`User ${selectedUser.prenom} ${selectedUser.nom} has been successfully deleted`);
+      setShowDeleteModal(false);
+      setSelectedUser(null);
     } catch (err) {
       console.error('Deletion error:', err);
       setError(err.message || "Network error during user deletion.");
@@ -344,7 +382,7 @@ const Users = () => {
                           {getStatusText(user.statut_compte)}
                         </span>
                       </td>
-                      <td>{new Date(user.date_inscription).toLocaleDateString('en-US')}</td>
+                      <td>{user.date_inscription ? new Date(user.date_inscription).toLocaleDateString('en-US') : 'N/A'}</td>
                       <td>
                         <div className={styles.action_buttons}>
                           <Link to={`/admin/users/${user._id}`} className={`${styles.btn_action} ${styles.btn_view}`} title="View details">

@@ -18,10 +18,6 @@ import styles from './VideoDetail.module.css';
 import PlaylistModal from './PlaylistModal';
 import MemoryCard from './MemoryCard'; // Importation du composant MemoryCard harmonisé
 
-// Import des icônes pour le MemoryCard
-import likeIcon from '../../../../assets/icons/like.png';
-import commentIcon from '../../../../assets/icons/comment.png';
-
 const VideoDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -570,8 +566,6 @@ const VideoDetail = () => {
               <MemoryCard 
                 key={memory.id || index} 
                 memory={memory}
-                likeIcon={likeIcon}
-                commentIcon={commentIcon}
                 baseUrl={baseUrl}
               />
             ))

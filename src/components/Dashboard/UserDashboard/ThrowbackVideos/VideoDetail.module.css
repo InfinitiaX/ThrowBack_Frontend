@@ -785,9 +785,7 @@
 
 
 
-/* Styles à ajouter dans VideoDetail.module.css pour harmoniser le MemoryCard */
 
-/* Ces styles assurent que les MemoryCard ont la même apparence dans toutes les vues */
 .memoryBody {
   font-size: 1rem;
   color: #222;

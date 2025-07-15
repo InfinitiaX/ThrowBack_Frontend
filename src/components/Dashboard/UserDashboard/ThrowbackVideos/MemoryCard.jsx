@@ -1,7 +1,9 @@
 import React from 'react';
 import styles from './VideoDetail.module.css'; // S'assurer d'utiliser le bon fichier CSS
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHeart, faComment } from '@fortawesome/free-solid-svg-icons';
 
-const MemoryCard = ({ memory, likeIcon, commentIcon, baseUrl }) => {
+const MemoryCard = ({ memory, baseUrl }) => {
   // Fonction pour construire des URLs complètes pour les images
   const getImageUrl = (path) => {
     if (!path) return '/images/default-avatar.jpg';
@@ -37,11 +39,11 @@ const MemoryCard = ({ memory, likeIcon, commentIcon, baseUrl }) => {
       </div>
       <div className={styles.memoryFooter}>
         <span>
-          <img src={likeIcon} alt="like" style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 6 }} />
+          <FontAwesomeIcon icon={faHeart} style={{ color: '#d32f2f', marginRight: 6 }} />
           {memory.likes || 0}
         </span>
         <span>
-          <img src={commentIcon} alt="comment" style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 6 }} />
+          <FontAwesomeIcon icon={faComment} style={{ color: '#d32f2f', marginRight: 6 }} />
           {memory.comments || 0}
         </span>
       </div>

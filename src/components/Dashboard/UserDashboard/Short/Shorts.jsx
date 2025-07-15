@@ -835,7 +835,7 @@ export default function Shorts() {
                           autoPlay={false}
                           muted={isMuted}
                           loop
-                          crossOrigin="anonymous" // Ajouter cet attribut
+                          crossOrigin="anonymous" 
                         />
                         <div className={styles.centerOverlay}></div>
                         <button

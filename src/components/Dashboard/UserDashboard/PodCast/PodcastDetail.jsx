@@ -65,7 +65,7 @@ const PodcastDetail = () => {
 
   // Format episode number (EP.01)
   const formatEpisodeNumber = (episode) => {
-    if (!episode) return "EP.01";
+    if (!episode && episode !== 0) return 'EP.01';
     return `EP.${episode.toString().padStart(2, '0')}`;
   };
 
@@ -133,12 +133,12 @@ const PodcastDetail = () => {
         setAllPodcasts(podcastsData);
         console.log(`${podcastsData.length} podcasts chargés`);
       } else {
-        console.warn('Aucun podcast trouvé');
-        setAllPodcasts([]);
+        console.warn('Aucun podcast trouvé, utilisation de données fictives');
+        setupMockData();
       }
     } catch (err) {
       console.error('Erreur lors du chargement des podcasts:', err);
-      setAllPodcasts([]);
+      setupMockData();
     } finally {
       setPodcastsLoading(false);
     }
@@ -154,6 +154,7 @@ const PodcastDetail = () => {
       const podcastData = await podcastAPI.getPodcastById(podcastId);
       
       if (podcastData) {
+        console.log('Podcast data loaded:', podcastData);
         setPodcast(podcastData);
         
         // Vérifier si l'utilisateur a aimé le podcast
@@ -167,20 +168,21 @@ const PodcastDetail = () => {
         console.log('Podcast chargé:', podcastData.title);
       } else {
         setError('Impossible de charger les détails du podcast');
+        setupMockData();
       }
     } catch (err) {
       console.error('Erreur lors du chargement du podcast:', err);
       setError('Erreur lors du chargement du podcast');
       
       // If API fails, use mock data for demo
-      loadMockData();
+      setupMockData();
     } finally {
       setLoading(false);
     }
   };
 
   // Load mock data if API fails
-  const loadMockData = () => {
+  const setupMockData = () => {
     // Mock podcast data
     const mockPodcast = {
       _id: id,
@@ -193,7 +195,7 @@ const PodcastDetail = () => {
       duration: 60,
       publishDate: new Date().toISOString(),
       description: 'In this episode, we explore the fascinating journey of hip hop music from its early days in the 1980s through its golden age in the 90s to its current mainstream dominance. Our guest, DJ Flash, shares insights from decades in the industry.',
-      coverImage: '/images/podcast-hiphop.jpg',
+      coverImage: `/images/podcast-${(parseInt(id) % 6) + 1}.jpg`,
       audioUrl: '/audio/sample-podcast.mp3',
       vimeoUrl: 'https://vimeo.com/123456789',
       topics: ['Hip Hop', 'Music History', 'DJ Culture', 'Music Production'],
@@ -255,7 +257,9 @@ const PodcastDetail = () => {
       }
     ];
     
-    setAllPodcasts(mockRelated);
+    if (allPodcasts.length === 0) {
+      setAllPodcasts(mockRelated);
+    }
   };
 
   // Play/pause control
@@ -478,42 +482,43 @@ const PodcastDetail = () => {
     }
   };
 
-  // Fonction pour obtenir le chemin de l'image sécurisé
-  const getImagePath = (podcast) => {
-    if (!podcast) return '/images/podcast-default.jpg';
-    
-    if (podcast.coverImage) {
-      if (podcast.coverImage.startsWith('http')) {
-        return podcast.coverImage;
-      }
-      
-      // Si c'est un chemin relatif, ajouter l'URL de base
-      const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
-      const normalizedPath = podcast.coverImage.startsWith('/') 
-        ? podcast.coverImage 
-        : `/${podcast.coverImage}`;
-        
-      return `${backendUrl}${normalizedPath}`;
+  // Obtenir un chemin d'image sécurisé
+  const getImagePath = (imagePath) => {
+    if (!imagePath) {
+      // Default image path
+      const idNum = parseInt(id) || 1;
+      return `/images/podcast-${(idNum % 6) + 1}.jpg`;
     }
     
-    // Fallback: créer un numéro à partir de l'ID string
-    try {
-      const idSum = podcast._id.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-      return `/images/podcast-${(idSum % 6) + 1}.jpg`;
-    } catch (e) {
-      return '/images/podcast-default.jpg';
+    if (imagePath.startsWith('http')) {
+      return imagePath;
     }
+    
+    const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+    return `${backendUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
   };
 
   // Composant pour les podcasts recommandés
   const RecommendedPodcast = ({ podcast: recommendedPodcast }) => {
-    if (!recommendedPodcast) return null;
-    
     const isCurrentPodcast = podcast && recommendedPodcast._id === podcast._id;
     
     const handleClick = (e) => {
       e.preventDefault();
       navigate(`/dashboard/podcast/${recommendedPodcast._id}`);
+    };
+    
+    const getImagePath = () => {
+      if (recommendedPodcast.coverImage) {
+        if (recommendedPodcast.coverImage.startsWith('http')) {
+          return recommendedPodcast.coverImage;
+        }
+        const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+        return `${backendUrl}${recommendedPodcast.coverImage.startsWith('/') ? '' : '/'}${recommendedPodcast.coverImage}`;
+      }
+      
+      // Calculer une image par défaut stable basée sur l'ID
+      const idSum = recommendedPodcast._id.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+      return `/images/podcast-${(idSum % 6) + 1}.jpg`;
     };
     
     return (
@@ -527,10 +532,11 @@ const PodcastDetail = () => {
             {formatEpisodeNumber(recommendedPodcast.episode)}
           </span>
           <img 
-            src={getImagePath(recommendedPodcast)}
+            src={getImagePath()}
             alt={recommendedPodcast.title}
             className={styles.recommendedImg}
             onError={(e) => {
+              e.target.onerror = null;
               e.target.src = '/images/podcast-default.jpg';
             }}
             crossOrigin="anonymous"
@@ -602,7 +608,7 @@ const PodcastDetail = () => {
                   {formatEpisodeNumber(podcast.episode)}
                 </span>
                 <img
-                  src={getImagePath(podcast)}
+                  src={getImagePath(podcast.coverImage)}
                   alt={podcast.title}
                   onError={(e) => {
                     e.target.onerror = null;
@@ -779,6 +785,9 @@ const PodcastDetail = () => {
           )}
         </aside>
       </div>
+      
+      {/* Audio element for podcast playback */}
+      <audio ref={audioRef} src={podcast.audioUrl || '/audio/sample-podcast.mp3'} preload="metadata" />
     </div>
   );
 };

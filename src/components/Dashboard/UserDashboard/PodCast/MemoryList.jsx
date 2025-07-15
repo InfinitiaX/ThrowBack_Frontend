@@ -101,6 +101,18 @@ const MemoryList = ({ podcastId }) => {
       minute: '2-digit'
     });
   };
+  
+  // Obtenir URL image avec gestion CORS
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return '/images/default-avatar.jpg';
+    
+    if (imagePath.startsWith('http')) {
+      return imagePath;
+    }
+    
+    const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+    return `${backendUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+  };
 
   // Composant pour afficher une mémoire
   const MemoryCard = ({ memory }) => (
@@ -109,13 +121,14 @@ const MemoryList = ({ podcastId }) => {
         <div className={styles.userInfo}>
           {memory.imageUrl && (
             <img 
-              src={memory.imageUrl} 
+              src={getImageUrl(memory.imageUrl)} 
               alt={memory.username} 
               className={styles.userAvatar} 
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.src = '/images/default-avatar.jpg';
               }}
+              crossOrigin="anonymous"
             />
           )}
           <span className={styles.username}>{memory.username}</span>
@@ -200,7 +213,7 @@ const MemoryList = ({ podcastId }) => {
           </div>
         ) : memories.length > 0 ? (
           memories.map((memory, index) => (
-            <MemoryCard key={memory.id || index} memory={memory} />
+            <MemoryCard key={memory.id || memory._id || index} memory={memory} />
           ))
         ) : (
           <div className={styles.emptyMessage}>

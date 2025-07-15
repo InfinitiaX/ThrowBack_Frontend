@@ -75,7 +75,7 @@ const ThrowbackVideos = () => {
   const [memoriesError, setMemoriesError] = useState(null);
   
   // Construire l'URL de base en fonction de l'environnement
-  const baseUrl = process.env.REACT_APP_API_URL || 'https://backendtb.testdevinfinitiax.fr';
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
   useEffect(() => {
     // Récupérer les vidéos

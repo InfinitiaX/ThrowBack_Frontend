@@ -69,6 +69,7 @@ const PodcastCard = ({ podcast, onPlay, isPlaying, getImagePath, handleImageErro
           alt={podcast.title}
           className={styles.podcastCardImage}
           onError={onImageError}
+          crossOrigin="anonymous"
         />
       </div>
       

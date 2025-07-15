@@ -14,6 +14,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './WeeklyPodcast.module.css';
 import PodcastCard from './PodcastCard';
+import api from '../../../../utils/api';
 
 const DEFAULT_IMAGE_PATH = '/images/podcast-default.jpg';
 
@@ -34,7 +35,7 @@ const WeeklyPodcast = () => {
     return `EP.${episode.toString().padStart(2, '0')}`;
   };
 
-  // Fetcher les podcasts
+  // Fetcher les podcasts - utilisant l'API centrale
   useEffect(() => {
     const fetchPodcasts = async () => {
       setIsLoading(true);
@@ -42,35 +43,34 @@ const WeeklyPodcast = () => {
       
       try {
         console.log('Fetching podcasts, page:', currentPage);
-        // Construire les paramètres de requête
-        const params = new URLSearchParams();
-        params.append('page', currentPage);
-        params.append('limit', 6);
         
-        const response = await fetch(`/api/podcasts/user?${params.toString()}`);
+        // Utiliser l'API centralisée au lieu de fetch direct
+        const response = await api.get(`/api/podcasts/user`, {
+          params: {
+            page: currentPage,
+            limit: 6
+          }
+        });
         
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to fetch podcasts');
-        }
+        console.log('Podcasts data:', response.data);
         
-        const data = await response.json();
-        console.log('Podcasts data:', data);
-        
-        if (data.success) {
-          setPodcasts(data.data || []);
-          setTotalPages(data.pagination?.totalPages || 1);
+        if (response.data.success) {
+          setPodcasts(response.data.data || []);
+          setTotalPages(response.data.pagination?.totalPages || 1);
           
           // Utiliser le podcast en vedette fourni par l'API
-          if (data.featuredPodcast) {
-            setFeaturedPodcast(data.featuredPodcast);
+          if (response.data.featuredPodcast) {
+            setFeaturedPodcast(response.data.featuredPodcast);
+          } else if (response.data.data && response.data.data.length > 0) {
+            // Fallback: utiliser le premier podcast comme featuredPodcast
+            setFeaturedPodcast(response.data.data[0]);
           }
         } else {
-          throw new Error(data.message || 'Failed to fetch podcasts');
+          throw new Error(response.data.message || 'Failed to fetch podcasts');
         }
       } catch (err) {
         console.error('Error fetching podcasts:', err);
-        setError(err.message);
+        setError(err.message || 'Une erreur est survenue lors du chargement des podcasts');
         
         // Si aucun podcast n'est chargé, utiliser des données factices
         if (podcasts.length === 0) {
@@ -254,6 +254,7 @@ const WeeklyPodcast = () => {
                 src={getImagePath(featuredPodcast)}
                 alt={featuredPodcast.title}
                 onError={handleImageError}
+                crossOrigin="anonymous"
               />
             </div>
             <div className={styles.featuredPodcastContent}>

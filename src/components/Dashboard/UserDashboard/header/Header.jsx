@@ -47,6 +47,19 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
   const suggestionsRef = useRef(null);
   const navigate = useNavigate();
 
+  // Fonction pour convertir les chemins relatifs en URLs absolues
+  const getImageUrl = (path) => {
+    if (!path) return 'https://via.placeholder.com/32';
+    if (path.startsWith('http')) return path;
+    
+    // Assurez-vous que le chemin commence par un slash
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    
+    // Utiliser l'URL complète du backend
+    const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+    return `${backendUrl}${normalizedPath}`;
+  };
+
   // Détecter la taille de l'écran
   useEffect(() => {
     const handleResize = () => {
@@ -390,9 +403,10 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
             aria-label="Profile menu"
           >
             <img 
-              src={user?.photo_profil || 'https://via.placeholder.com/32'} 
+              src={getImageUrl(user?.photo_profil)} 
               alt="Profile" 
-              className={styles.profileImage} 
+              className={styles.profileImage}
+              crossOrigin="anonymous"
             />
           </button>
           
@@ -400,13 +414,11 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
             <div className={styles.dropdown}>
               <div className={styles.dropdownHeader}>
                 <img 
-                  src={user?.photo_profil || 'https://via.placeholder.com/40'} 
+                  src={getImageUrl(user?.photo_profil)} 
                   alt="Profile" 
                   className={styles.dropdownProfileImage} 
                   crossOrigin="anonymous"
                 />
-
-
                 <div className={styles.dropdownUserInfo}>
                   <span className={styles.dropdownUserName}>
                     {user?.prenom || 'Guest'} {user?.nom || 'User'}

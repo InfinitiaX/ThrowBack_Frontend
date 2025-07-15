@@ -1,4 +1,3 @@
-// VideoDetail.jsx - CORRECTION DES IMPORTS
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api, { videoAPI } from '../../../../utils/api'; 
@@ -16,6 +15,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './VideoDetail.module.css';
 import PlaylistModal from './PlaylistModal';
+import MemoryCard from './MemoryCard'; // Import du composant MemoryCard harmonisé
 
 const VideoDetail = () => {
   const { id } = useParams();
@@ -41,6 +41,9 @@ const VideoDetail = () => {
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
   const [showShareOptions, setShowShareOptions] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
+
+  // Construire l'URL de base en fonction de l'environnement
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
   // Charger toutes les vidéos au montage du composant
   useEffect(() => {
@@ -119,8 +122,24 @@ const VideoDetail = () => {
       console.log(' Chargement des souvenirs pour la vidéo:', videoId);
       
       const memoriesData = await videoAPI.getVideoMemories(videoId);
-      setMemories(memoriesData || []);
       
+      // Formater les mémoires pour le composant harmonisé
+      const formattedMemories = memoriesData?.map(memory => ({
+        id: memory._id || memory.id || `memory-${Math.random()}`,
+        username: memory.auteur ? 
+          `${memory.auteur.prenom || ''} ${memory.auteur.nom || ''}`.trim() || 'Utilisateur' : 
+          'Utilisateur',
+        type: memory.type || 'posted',
+        videoTitle: memory.video?.titre || memory.videoTitle || video?.titre || 'Vidéo sans titre',
+        videoArtist: memory.video?.artiste || memory.videoArtist || video?.artiste || 'Artiste inconnu',
+        videoYear: memory.video?.annee || memory.videoYear || video?.annee || '----',
+        imageUrl: memory.auteur?.photo_profil || memory.imageUrl,
+        content: memory.contenu || memory.content || 'Pas de contenu',
+        likes: memory.likes || 0,
+        comments: memory.nb_commentaires || memory.comments || 0
+      })) || [];
+      
+      setMemories(formattedMemories);
       console.log(` ${memoriesData?.length || 0} souvenirs chargés`);
     } catch (err) {
       console.error(' Erreur lors du chargement des souvenirs:', err);
@@ -239,10 +258,26 @@ const VideoDetail = () => {
       const response = await videoAPI.addMemory(id, memoryText.trim());
       
       if (response.success) {
-        // Ajouter le nouveau souvenir à la liste
+        // Formater et ajouter le nouveau souvenir à la liste
         if (response.data) {
-          setMemories([response.data, ...memories]);
+          const newMemory = {
+            id: response.data._id || `memory-${Date.now()}`,
+            username: response.data.auteur ? 
+              `${response.data.auteur.prenom || ''} ${response.data.auteur.nom || ''}`.trim() || 'Vous' : 
+              'Vous',
+            type: response.data.type || 'posted',
+            videoTitle: response.data.video?.titre || video?.titre || 'Vidéo sans titre',
+            videoArtist: response.data.video?.artiste || video?.artiste || 'Artiste inconnu',
+            videoYear: response.data.video?.annee || video?.annee || '----',
+            imageUrl: response.data.auteur?.photo_profil,
+            content: response.data.contenu || memoryText.trim(),
+            likes: 0,
+            comments: 0
+          };
+          
+          setMemories([newMemory, ...memories]);
         }
+        
         setMemoryText('');
         
         console.log(' Souvenir ajouté avec succès');
@@ -271,7 +306,7 @@ const VideoDetail = () => {
     if (!url) return '/images/video-placeholder.jpg';
     
     if (url.startsWith('/') || url.startsWith('./')) {
-      return url;
+      return `${baseUrl}${url}`;
     }
     
     let videoId = '';
@@ -365,43 +400,6 @@ const VideoDetail = () => {
       </a>
     );
   };
-
-  // Composant pour les souvenirs partagés
-  const MemoryCard = ({ memory }) => (
-    <div className={styles.memoryCard}>
-      <div className={styles.memoryHeader}>
-        <span className={styles.memoryUsername}>{memory.username}</span> 
-        {memory.type === 'posted' ? (
-          <span> posted a memory on the music video:</span>
-        ) : (
-          <span> just shared a throwback to the iconic music video:</span>
-        )}
-      </div>
-      <div className={styles.memoryContent}>
-        <div className={styles.memoryVideoInfo}>
-          🎵 {memory.videoArtist || video?.artiste} - {memory.videoTitle || video?.titre} ({memory.videoYear || video?.annee}). Please, like and comment! 👍
-        </div>
-        {memory.imageUrl && (
-          <img 
-            src={memory.imageUrl} 
-            alt={memory.username} 
-            className={styles.memoryUserImage} 
-          />
-        )}
-        <div className={styles.memoryText}>{memory.content}</div>
-      </div>
-      <div className={styles.memoryFooter}>
-        <div className={styles.memoryLikes}>
-          <FontAwesomeIcon icon={faHeart} className={styles.memoryIcon} />
-          <span>{memory.likes}</span>
-        </div>
-        <div className={styles.memoryComments}>
-          <FontAwesomeIcon icon={faComment} className={styles.memoryIcon} />
-          <span>{memory.comments}</span>
-        </div>
-      </div>
-    </div>
-  );
 
   // États de chargement et d'erreur
   if (loading) {
@@ -566,11 +564,17 @@ const VideoDetail = () => {
           </div>
         </main>
 
-        {/* Memories Sidebar */}
+        {/* Memories Sidebar avec composant harmonisé */}
         <aside className={styles.rightCards}>
           {memories.length > 0 ? (
             memories.map((memory, index) => (
-              <MemoryCard key={memory.id || index} memory={memory} />
+              <MemoryCard 
+                key={memory.id || index} 
+                memory={memory}
+                useIcons={true} // Utiliser les icônes FontAwesome
+                isDetailView={true} // Style adapté pour la vue détaillée
+                baseUrl={baseUrl}
+              />
             ))
           ) : (
             <div className={styles.emptyMemories}>

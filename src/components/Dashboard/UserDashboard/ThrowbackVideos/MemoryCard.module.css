@@ -1,0 +1,110 @@
+/* MemoryCard.module.css */
+.memoryCard {
+  background: #fff;
+  border: 1.5px solid #b31217;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(179, 18, 23, 0.13);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.memoryHeader {
+  font-size: 0.9rem;
+  color: #444;
+  margin-bottom: 6px;
+}
+
+.memoryUsername {
+  color: #d32f2f;
+  font-weight: 600;
+}
+
+.memoryContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.memoryVideoInfo {
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.memoryUserImage {
+  width: 100%;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  border-radius: 8px;
+  margin: 6px 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.memoryText {
+  white-space: pre-line;
+  color: #d32f2f;
+  font-size: 0.95rem;
+}
+
+.memoryFooter {
+  display: flex;
+  justify-content: flex-start;
+  gap: 16px;
+  margin-top: 6px;
+}
+
+.memoryLikes, .memoryComments {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.memoryIcon {
+  color: #777;
+  font-size: 1rem;
+}
+
+.iconImage {
+  width: 22px;
+  height: 22px;
+  vertical-align: middle;
+}
+
+/* Animations pour le ticker (page principale) */
+@keyframes ticker {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+/* Responsive styles */
+@media (max-width: 1200px) {
+  .memoryCard {
+    min-width: 300px;
+  }
+}
+
+/* Mode sombre (à activer selon vos besoins) */
+@media (prefers-color-scheme: dark) {
+  .memoryCard {
+    background: #1e1e1e;
+    border-color: #d32f2f;
+  }
+  
+  .memoryHeader,
+  .memoryVideoInfo {
+    color: #ddd;
+  }
+  
+  .memoryLikes,
+  .memoryComments {
+    color: #aaa;
+  }
+}

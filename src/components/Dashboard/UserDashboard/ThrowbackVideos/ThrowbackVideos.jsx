@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import styles from './ThrowbackVideos.module.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -12,7 +12,6 @@ import {
 import likeIcon from '../../../../assets/icons/like.png';
 import commentIcon from '../../../../assets/icons/comment.png';
 import MemoryCard from './MemoryCard';
-import VideoCard from './VideoCard';
 
 // Définition des données mockées pour le fallback
 const mockMemories = [
@@ -67,6 +66,7 @@ const mockVideos = [
 ];
 
 const ThrowbackVideos = () => {
+  const navigate = useNavigate();
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -152,7 +152,7 @@ const ThrowbackVideos = () => {
       videoTitle: memory.video?.titre || memory.videoTitle || 'Vidéo sans titre',
       videoArtist: memory.video?.artiste || memory.videoArtist || 'Artiste inconnu',
       videoYear: memory.video?.annee || memory.videoYear || '----',
-      imageUrl: getImageUrl(memory.auteur?.photo_profil || memory.imageUrl),
+      imageUrl: memory.auteur?.photo_profil || memory.imageUrl,
       content: memory.contenu || memory.content || 'Pas de contenu',
       likes: memory.likes || 0,
       comments: memory.nb_commentaires || memory.comments || 0
@@ -224,6 +224,69 @@ const ThrowbackVideos = () => {
     return `${baseUrl}${path}`;
   };
 
+  // Fonction pour obtenir la miniature YouTube
+  const getYouTubeThumbnail = (url) => {
+    if (!url) return '/images/video-placeholder.jpg';
+    
+    if (url.startsWith('/') || url.startsWith('./')) {
+      return `${baseUrl}${url}`;
+    }
+    
+    let videoId = '';
+    
+    try {
+      if (url.includes('youtube.com/watch?v=')) {
+        const urlObj = new URL(url);
+        videoId = urlObj.searchParams.get('v');
+      } else if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/')[1];
+      } else if (url.includes('youtube.com/embed/')) {
+        videoId = url.split('youtube.com/embed/')[1];
+      }
+      
+      if (videoId) {
+        if (videoId.includes('&')) {
+          videoId = videoId.split('&')[0];
+        }
+        return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+      }
+    } catch (error) {
+      console.error('Erreur de parsing URL YouTube:', error);
+    }
+    
+    return '/images/video-placeholder.jpg';
+  };
+
+  // Composant VideoCard intégré
+  const VideoCard = ({ video }) => {
+    const handleClick = (e) => {
+      e.preventDefault();
+      navigate(`/dashboard/videos/${video._id}`);
+    };
+
+    return (
+      <a 
+        href={`/dashboard/videos/${video._id}`}
+        className={styles.videoCard}
+        onClick={handleClick}
+      >
+        <img 
+          src={getYouTubeThumbnail(video.youtubeUrl)} 
+          alt={`${video.artiste} - ${video.titre}`} 
+          className={styles.videoImg}
+          onError={(e) => {
+            e.target.src = '/images/video-placeholder.jpg';
+          }}
+        />
+        <div className={styles.videoTitle}>
+          <span className={styles.artistName}>{video.artiste}</span>
+          <span className={styles.songTitle}>: {video.titre} </span>
+          <span className={styles.yearInfo}>({video.annee})</span>
+        </div>
+      </a>
+    );
+  };
+
   return (
     <div className={styles.throwbackVideosBg}>
       <div className={styles.mainContentWrap}>
@@ -246,8 +309,7 @@ const ThrowbackVideos = () => {
                 videos.map((video) => (
                   <VideoCard 
                     key={video._id || `video-${Math.random()}`} 
-                    video={video} 
-                    baseUrl={baseUrl}
+                    video={video}
                   />
                 ))
               ) : (

@@ -1,49 +1,97 @@
 import React from 'react';
-import styles from './ThrowbackVideos.module.css';
+import styles from './MemoryCard.module.css';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHeart, faComment } from '@fortawesome/free-solid-svg-icons';
 
-const MemoryCard = ({ memory, likeIcon, commentIcon, baseUrl }) => {
-  // Fonction pour construire des URLs complètes pour les images
+const MemoryCard = ({ 
+  memory, 
+  baseUrl = '',
+  useIcons = false,
+  likeIcon = null,
+  commentIcon = null,
+  isDetailView = false
+}) => {
+  // Extraire les données du souvenir avec valeurs par défaut
+  const {
+    id = '',
+    username = 'Utilisateur',
+    type = 'posted',
+    videoTitle = 'Vidéo sans titre',
+    videoArtist = 'Artiste inconnu',
+    videoYear = '----',
+    imageUrl = null,
+    content = '',
+    likes = 0,
+    comments = 0
+  } = memory || {};
+
+  // Construire l'URL complète pour l'image
   const getImageUrl = (path) => {
     if (!path) return '/images/default-avatar.jpg';
-    
-    // Si c'est déjà une URL absolue
     if (path.startsWith('http')) return path;
-    
-    // Sinon, construire l'URL complète
     return `${baseUrl}${path}`;
   };
 
+  // Condition pour afficher l'image
+  const shouldShowImage = imageUrl && !isDetailView;
+
   return (
     <div className={styles.memoryCard}>
+      {/* En-tête avec nom d'utilisateur et type de partage */}
       <div className={styles.memoryHeader}>
-        <span style={{color:'#d32f2f',fontWeight:600}}>{memory.username || 'Utilisateur'}</span>
-        {memory.type === 'posted' ? (
+        <span className={styles.memoryUsername}>{username}</span> 
+        {type === 'posted' ? (
           <span> posted a memory on the music video:</span>
         ) : (
           <span> just shared a throwback to the iconic music video:</span>
         )}
       </div>
-      <img 
-        src={getImageUrl(memory.imageUrl)} 
-        alt={memory.videoTitle || 'Vidéo'} 
-        className={styles.memoryImage}
-        onError={(e) => {
-          e.target.src = '/images/default-avatar.jpg';
-        }}
-      />
-      <div className={styles.memoryBody}>
-        {memory.videoArtist || 'Artiste'} - {memory.videoTitle || 'Titre'} ({memory.videoYear || '----'}). Please, like and comment to show some love! <br/>
-        <span style={{color:'#d32f2f'}}>{memory.content || 'Aucun contenu'}</span>
+
+      {/* Contenu principal */}
+      <div className={styles.memoryContent}>
+        {/* Info sur la vidéo */}
+        <div className={styles.memoryVideoInfo}>
+          🎵 {videoArtist} - {videoTitle} ({videoYear}). Please, like and comment! 👍
+        </div>
+
+        {/* Image si disponible et applicable */}
+        {shouldShowImage && (
+          <img 
+            src={getImageUrl(imageUrl)} 
+            alt={username} 
+            className={styles.memoryUserImage} 
+            onError={(e) => {
+              e.target.src = '/images/default-avatar.jpg';
+            }}
+          />
+        )}
+
+        {/* Texte du souvenir */}
+        <div className={styles.memoryText}>{content}</div>
       </div>
+
+      {/* Pied avec statistiques */}
       <div className={styles.memoryFooter}>
-        <span>
-          <img src={likeIcon} alt="like" style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 6 }} />
-          {memory.likes || 0}
-        </span>
-        <span>
-          <img src={commentIcon} alt="comment" style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 6 }} />
-          {memory.comments || 0}
-        </span>
+        <div className={styles.memoryLikes}>
+          {useIcons ? (
+            <FontAwesomeIcon icon={faHeart} className={styles.memoryIcon} />
+          ) : likeIcon ? (
+            <img src={likeIcon} alt="like" className={styles.iconImage} />
+          ) : (
+            <FontAwesomeIcon icon={faHeart} className={styles.memoryIcon} />
+          )}
+          <span>{likes}</span>
+        </div>
+        <div className={styles.memoryComments}>
+          {useIcons ? (
+            <FontAwesomeIcon icon={faComment} className={styles.memoryIcon} />
+          ) : commentIcon ? (
+            <img src={commentIcon} alt="comment" className={styles.iconImage} />
+          ) : (
+            <FontAwesomeIcon icon={faComment} className={styles.memoryIcon} />
+          )}
+          <span>{comments}</span>
+        </div>
       </div>
     </div>
   );

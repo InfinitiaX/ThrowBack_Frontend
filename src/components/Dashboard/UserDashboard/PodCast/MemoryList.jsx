@@ -110,7 +110,7 @@ const MemoryList = ({ podcastId }) => {
       return imagePath;
     }
     
-    const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+    const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
     return `${backendUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
   };
 

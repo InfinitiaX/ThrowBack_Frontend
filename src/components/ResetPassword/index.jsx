@@ -63,7 +63,7 @@ const ResetPassword = () => {
 
     try {
       // Appel direct au backend en utilisant axios
-      const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+      const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
       const response = await axios.put(`${backendUrl}/api/auth/reset-password`, {
         token,
         password: formData.password

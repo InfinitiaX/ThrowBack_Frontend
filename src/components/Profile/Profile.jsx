@@ -59,7 +59,7 @@ export default function Profile() {
   const [memoriesError, setMemoriesError] = useState(null);
   
   // Construire l'URL de base en fonction de l'environnement
-  const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
   
   // Fonction pour convertir les chemins relatifs en URLs absolues
   const getImageUrl = (path) => {

@@ -74,7 +74,7 @@ const ProfileTabs = () => {
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
     
     // Utiliser l'URL complète du backend
-    const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+    const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
     const fullUrl = `${backendUrl}${normalizedPath}`;
     
     // Pour déboguer

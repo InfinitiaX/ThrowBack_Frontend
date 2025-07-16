@@ -1,7 +1,10 @@
 // components/Dashboard/AdminDashboard/Playlists/PlaylistsTable.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
 import styles from './PlaylistsTable.module.css';
+
+// Configuration de l'URL de base pour les ressources
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
 const PlaylistsTable = ({ 
   playlists, 
@@ -17,6 +20,30 @@ const PlaylistsTable = ({
   onView,
   onEdit
 }) => {
+  // État pour suivre les images qui ont échoué à charger
+  const [failedImages, setFailedImages] = useState({});
+
+  // Gestion des erreurs de chargement d'image
+  const handleImageError = (id, type) => {
+    setFailedImages(prev => ({
+      ...prev,
+      [`${type}_${id}`]: true
+    }));
+  };
+
+  // Fonction pour construire l'URL complète des images
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    
+    // Si l'URL est déjà absolue (commence par http ou https)
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    
+    // Si l'URL est relative, préfixer avec l'URL de base de l'API
+    return `${API_BASE_URL}${path}`;
+  };
+
   // Fonction pour formatter la date
   const formatDate = (dateString) => {
     try {
@@ -138,11 +165,12 @@ const PlaylistsTable = ({
               <tr key={playlist._id}>
                 <td>
                   <div className={styles.playlistNameCell}>
-                    {playlist.image_couverture ? (
+                    {playlist.image_couverture && !failedImages[`playlist_${playlist._id}`] ? (
                       <img 
-                        src={playlist.image_couverture} 
+                        src={getImageUrl(playlist.image_couverture)}
                         alt={playlist.nom} 
                         className={styles.playlistThumbnail}
+                        onError={() => handleImageError(playlist._id, 'playlist')}
                       />
                     ) : (
                       <div className={styles.playlistDefaultThumbnail}>
@@ -156,11 +184,12 @@ const PlaylistsTable = ({
                   <div className={styles.userCell}>
                     {playlist.proprietaire ? (
                       <>
-                        {playlist.proprietaire.photo_profil ? (
+                        {playlist.proprietaire.photo_profil && !failedImages[`user_${playlist.proprietaire._id}`] ? (
                           <img 
-                            src={playlist.proprietaire.photo_profil} 
+                            src={getImageUrl(playlist.proprietaire.photo_profil)}
                             alt={`${playlist.proprietaire.prenom} ${playlist.proprietaire.nom}`} 
                             className={styles.userAvatar}
+                            onError={() => handleImageError(playlist.proprietaire._id, 'user')}
                           />
                         ) : (
                           <div className={styles.userDefaultAvatar}>

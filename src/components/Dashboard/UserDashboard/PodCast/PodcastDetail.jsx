@@ -494,7 +494,7 @@ const PodcastDetail = () => {
       return imagePath;
     }
     
-    const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+    const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
     return `${backendUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
   };
 
@@ -512,7 +512,7 @@ const PodcastDetail = () => {
         if (recommendedPodcast.coverImage.startsWith('http')) {
           return recommendedPodcast.coverImage;
         }
-        const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+        const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
         return `${backendUrl}${recommendedPodcast.coverImage.startsWith('/') ? '' : '/'}${recommendedPodcast.coverImage}`;
       }
       

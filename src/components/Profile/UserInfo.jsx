@@ -36,7 +36,7 @@ export default function UserInfo({ onBack }) {
     if (path.startsWith('http')) return path;
     
     // Sinon, préfixer avec l'URL du backend
-    const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+    const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
     return `${backendUrl}${path}`;
   };
 
@@ -117,7 +117,7 @@ export default function UserInfo({ onBack }) {
       console.log(payload);
 
       // Utiliser URL absolue
-      const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+      const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
       const res = await retryOperation(() =>
         api.put(`${backendUrl}/api/users/profile`, payload)
       );

@@ -44,7 +44,7 @@ const VideoDetail = () => {
   const [shareMessage, setShareMessage] = useState('');
 
   // Construire l'URL de base en fonction de l'environnement
-  const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
 
   // Charger toutes les vidéos au montage du composant
   useEffect(() => {

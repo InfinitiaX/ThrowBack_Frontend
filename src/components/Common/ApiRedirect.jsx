@@ -6,7 +6,7 @@ const ApiRedirect = ({ endpoint }) => {
   const params = useParams();
   
   useEffect(() => {
-    let url = `${process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com'}${endpoint}`;
+    let url = `${process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com '}${endpoint}`;
     
     // Replace placeholders with actual values
     Object.keys(params).forEach(key => {

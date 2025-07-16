@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../Videos/Videos.module.css';
 
-// Configuration de l'URL de l'API - Suppression de l'espace qui causait des problèmes
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+// Configuration de l'URL de l'API
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
 const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => {
   const isEdit = !!initialData;
@@ -19,7 +19,6 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
   const [error, setError] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
   const [uploadMode, setUploadMode] = useState('file');
-  const [uploadProgress, setUploadProgress] = useState(0);
   
   // Fonction pour obtenir les headers d'authentification
   const getAuthHeaders = (contentType = 'application/json') => {
@@ -37,24 +36,6 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
     }
     
     return { 'Authorization': `Bearer ${token}` };
-  };
-
-  // Fonction pour obtenir les URLs complètes
-  const getFullVideoUrl = (path) => {
-    if (!path) return '';
-    
-    // Si l'URL est déjà absolue, la retourner telle quelle
-    if (path.startsWith('http')) return path;
-    
-    // S'assurer que le chemin commence par un slash
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    
-    // URL de base sans espace à la fin
-    const baseWithoutTrailingSlash = API_BASE_URL.endsWith('/') 
-      ? API_BASE_URL.slice(0, -1) 
-      : API_BASE_URL;
-    
-    return `${baseWithoutTrailingSlash}${normalizedPath}`;
   };
 
   useEffect(() => {
@@ -77,11 +58,6 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
         }
       } else {
         setUploadMode('file');
-        
-        // Pour les fichiers uploadés, on peut essayer de générer un aperçu
-        if (initialData.youtubeUrl && !initialData.youtubeUrl.includes('youtube')) {
-          setPreviewUrl(getFullVideoUrl(initialData.youtubeUrl));
-        }
       }
     } else {
       setForm({ titre: '', artiste: '', description: '', youtubeUrl: '' });
@@ -93,9 +69,7 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
     setVideoDuration(null);
     setDurationError('');
     setError('');
-    setUploadProgress(0);
-    
-    // Ne pas réinitialiser previewUrl ici pour permettre aux prévisualisations de s'afficher
+    setPreviewUrl('');
   }, [isEdit, initialData, isOpen]);
 
   if (!isOpen) return null;
@@ -261,82 +235,6 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
     return true;
   };
 
-  // Fonction améliorée avec retries pour l'upload
-  const uploadWithRetry = async (url, formData, maxRetries = 2) => {
-    let lastError = null;
-    
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`Tentative d'upload ${attempt + 1}/${maxRetries + 1}`);
-        
-        const xhr = new XMLHttpRequest();
-        
-        // Promisifier XMLHttpRequest pour avoir le support du progress
-        const uploadPromise = new Promise((resolve, reject) => {
-          xhr.upload.addEventListener('progress', (event) => {
-            if (event.lengthComputable) {
-              const percentComplete = Math.round((event.loaded / event.total) * 100);
-              setUploadProgress(percentComplete);
-            }
-          });
-          
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                const response = JSON.parse(xhr.responseText);
-                resolve(response);
-              } catch (parseError) {
-                reject(new Error('Invalid JSON response'));
-              }
-            } else {
-              try {
-                const errorResponse = JSON.parse(xhr.responseText);
-                reject(new Error(errorResponse.message || `Error ${xhr.status}`));
-              } catch (parseError) {
-                reject(new Error(`Error ${xhr.status}`));
-              }
-            }
-          };
-          
-          xhr.onerror = () => reject(new Error('Network error'));
-          xhr.ontimeout = () => reject(new Error('Request timed out'));
-        });
-        
-        // Configurez et envoyez la requête
-        xhr.open('POST', url, true);
-        
-        // Ajoutez les headers d'authentification
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        if (token) {
-          xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-        }
-        
-        // Ne pas définir Content-Type, le navigateur le fera avec la boundary
-        xhr.timeout = 60000 * (attempt + 1); // Augmenter le timeout pour chaque tentative
-        xhr.withCredentials = true; // Important pour CORS avec credentials
-        
-        // Envoi de la requête
-        xhr.send(formData);
-        
-        // Attendre la fin de l'upload
-        const response = await uploadPromise;
-        return response;
-      } catch (err) {
-        console.error(`Erreur tentative ${attempt + 1}:`, err);
-        lastError = err;
-        
-        // Si ce n'est pas la dernière tentative, attendre avant de réessayer
-        if (attempt < maxRetries) {
-          setUploadProgress(0); // Réinitialiser la progression
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-      }
-    }
-    
-    // Si toutes les tentatives échouent, lancer l'erreur
-    throw lastError;
-  };
-
   // Version améliorée de handleSubmit
   const handleSubmit = async e => {
     e.preventDefault();
@@ -345,10 +243,9 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
     
     setLoading(true);
     setError('');
-    setUploadProgress(0);
     
     try {
-      let response;
+      let res, data;
       
       if (isEdit) {
         // Edit mode - metadata only
@@ -365,19 +262,12 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
         
         console.log(`Updating short: ${initialData._id}`);
         
-        const res = await fetch(`${API_BASE_URL}/api/admin/shorts/${initialData._id}`, {
+        res = await fetch(`${API_BASE_URL}/api/admin/shorts/${initialData._id}`, {
           method: 'PATCH',
           headers,
           body: JSON.stringify(payload),
           credentials: 'include'
         });
-        
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.message || `Erreur ${res.status}: ${res.statusText}`);
-        }
-        
-        response = await res.json();
       } else {
         // Creation mode
         if (uploadMode === 'youtube') {
@@ -398,19 +288,12 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
           
           console.log("Creating short with YouTube URL");
           
-          const res = await fetch(`${API_BASE_URL}/api/admin/shorts`, {
+          res = await fetch(`${API_BASE_URL}/api/admin/shorts`, {
             method: 'POST',
             headers,
             body: JSON.stringify(payload),
             credentials: 'include'
           });
-          
-          if (!res.ok) {
-            const errorData = await res.json().catch(() => ({}));
-            throw new Error(errorData.message || `Erreur ${res.status}: ${res.statusText}`);
-          }
-          
-          response = await res.json();
         } else {
           // Create with file upload
           const formData = new FormData();
@@ -418,42 +301,44 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
           formData.append('artiste', form.artiste);
           formData.append('description', form.description);
           formData.append('type', 'short');
-          if (file) formData.append('videoFile', file); // S'assurer que le nom correspond à ce qu'attend le backend
+          if (file) formData.append('videoFile', file);
           if (videoDuration) formData.append('duree', Math.round(videoDuration));
+          
+          const headers = getAuthHeaders(null); // Pas de Content-Type pour FormData
+          if (!headers) {
+            setLoading(false);
+            return;
+          }
           
           console.log("Creating short with file upload");
           
-          // Utiliser notre fonction améliorée avec retry et progress
-          response = await uploadWithRetry(`${API_BASE_URL}/api/admin/shorts`, formData);
+          res = await fetch(`${API_BASE_URL}/api/admin/shorts`, {
+            method: 'POST',
+            headers,
+            body: formData,
+            credentials: 'include'
+          });
         }
       }
       
-      console.log("Form submission response:", response);
+      console.log("Response status:", res.status);
       
-      // Normaliser la structure de réponse
-      let savedShort;
-      if (response.data) {
-        savedShort = response.data;
-      } else if (response.video) {
-        savedShort = response.video;
-      } else {
-        savedShort = response;
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `Erreur ${res.status}: ${res.statusText}`);
       }
       
-      // Ensure videoUrl is absolute
-      if (savedShort.youtubeUrl && !savedShort.youtubeUrl.startsWith('http')) {
-        savedShort.youtubeUrl = getFullVideoUrl(savedShort.youtubeUrl);
-      }
+      data = await res.json();
+      console.log("Form submission response:", data);
       
       // Notify parent of success
-      onShortSaved(savedShort);
+      onShortSaved(data.data || data.video || data);
       
       // Close modal and reset
       onClose();
     } catch (err) {
       console.error("Form submission error:", err);
       setError(err.message || "Une erreur s'est produite lors de l'enregistrement");
-      setUploadProgress(0);
     } finally {
       setLoading(false);
     }
@@ -590,15 +475,7 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
             <div className={styles.previewContainer}>
               <label>Preview</label>
               <div className={styles.thumbnailPreview}>
-                <img 
-                  src={previewUrl} 
-                  alt="Video preview" 
-                  crossOrigin="anonymous"
-                  onError={(e) => {
-                    console.error("Preview image error:", e);
-                    e.target.src = '/images/placeholder-video.jpg';
-                  }}
-                />
+                <img src={previewUrl} alt="Video preview" />
               </div>
             </div>
           )}
@@ -628,20 +505,6 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
               rows={3}
             />
           </div>
-
-          {/* Progress bar for file upload */}
-          {loading && uploadProgress > 0 && uploadProgress < 100 && (
-            <div className={styles.progressContainer}>
-              <label>Upload Progress</label>
-              <div className={styles.progressBarContainer}>
-                <div 
-                  className={styles.progressBar} 
-                  style={{ width: `${uploadProgress}%` }}
-                />
-                <span className={styles.progressText}>{uploadProgress}%</span>
-              </div>
-            </div>
-          )}
         </div>
         
         <div className={styles.modalFooter}>

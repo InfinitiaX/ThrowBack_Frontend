@@ -3,8 +3,8 @@ import AdminShortFormModal from './AdminShortFormModal';
 import AdminShortDetailModal from './AdminShortDetailModal';
 import styles from '../Videos/Videos.module.css';
 
-// Configuration de l'URL de l'API - Suppression de l'espace qui causait des problèmes
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+// Configuration de l'URL de l'API
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
 const Shorts = () => {
   const [shorts, setShorts] = useState([]);
@@ -31,27 +31,6 @@ const Shorts = () => {
     return { 'Authorization': `Bearer ${token}` };
   };
 
-  // Fonction sécurisée pour obtenir une URL complète
-  const getFullVideoUrl = (path) => {
-    if (!path) return '';
-    
-    // Si l'URL est déjà absolue, la retourner telle quelle
-    if (path.startsWith('http')) return path;
-    
-    // S'assurer que le chemin commence par un slash et ne contient pas de double slash
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    
-    // URL de base sans espace à la fin
-    const baseWithoutTrailingSlash = API_BASE_URL.endsWith('/') 
-      ? API_BASE_URL.slice(0, -1) 
-      : API_BASE_URL;
-    
-    const fullUrl = `${baseWithoutTrailingSlash}${normalizedPath}`;
-    console.log("Video URL constructed:", fullUrl);
-    
-    return fullUrl;
-  };
-
   // Version améliorée de fetchShorts
   const fetchShorts = async () => {
     setLoading(true);
@@ -73,12 +52,8 @@ const Shorts = () => {
       console.log(`Fetching shorts from: ${API_BASE_URL}/api/admin/shorts?${params.toString()}`);
       
       const res = await fetch(`${API_BASE_URL}/api/admin/shorts?${params.toString()}`, {
-        headers: {
-          ...headers,
-          'Accept': 'application/json'
-        },
-        credentials: 'include',
-        mode: 'cors'
+        headers,
+        credentials: 'include' // Important pour les cookies
       });
       
       console.log("Response status:", res.status, res.statusText);
@@ -97,34 +72,8 @@ const Shorts = () => {
       const data = await res.json();
       console.log("Shorts data received:", data);
       
-      // Normalisation des données pour gérer différents formats de réponse API
-      let shortsData = [];
-      let pagination = null;
-      
-      if (data.videos && Array.isArray(data.videos)) {
-        shortsData = data.videos;
-        pagination = data.pagination;
-      } else if (data.data && Array.isArray(data.data)) {
-        shortsData = data.data;
-        pagination = data.pagination;
-      } else if (Array.isArray(data)) {
-        shortsData = data;
-      }
-      
-      // Traiter les URLs de vidéos pour qu'elles soient absolues
-      shortsData = shortsData.map(short => ({
-        ...short,
-        youtubeUrl: getFullVideoUrl(short.youtubeUrl)
-      }));
-      
-      setShorts(shortsData);
-      
-      // Gestion cohérente de la pagination
-      if (pagination) {
-        setTotalPages(pagination.totalPages || 1);
-      } else {
-        setTotalPages(data.totalPages || 1);
-      }
+      setShorts(data.videos || []);
+      setTotalPages(data.totalPages || 1);
       
     } catch (err) {
       console.error("Shorts fetch error:", err);
@@ -143,12 +92,8 @@ const Shorts = () => {
       console.log("Fetching shorts stats");
       
       const res = await fetch(`${API_BASE_URL}/api/admin/shorts/stats`, {
-        headers: {
-          ...headers,
-          'Accept': 'application/json'
-        },
-        credentials: 'include',
-        mode: 'cors'
+        headers,
+        credentials: 'include'
       });
       
       console.log("Stats response status:", res.status);
@@ -222,12 +167,8 @@ const Shorts = () => {
       
       const res = await fetch(`${API_BASE_URL}/api/admin/shorts/${shortToDelete._id}`, {
         method: 'DELETE',
-        headers: {
-          ...headers,
-          'Accept': 'application/json'
-        },
-        credentials: 'include',
-        mode: 'cors'
+        headers,
+        credentials: 'include'
       });
       
       console.log("Delete response:", res.status);
@@ -237,7 +178,7 @@ const Shorts = () => {
         throw new Error(errorData.message || `Erreur ${res.status}: ${res.statusText}`);
       }
       
-      await res.json();
+      const data = await res.json();
       
       setShorts(list => list.filter(s => s._id !== shortToDelete._id));
       fetchStats(); // Refresh stats
@@ -267,8 +208,9 @@ const Shorts = () => {
         return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
       }
     } else if (youtubeUrl && youtubeUrl.startsWith('/uploads/')) {
-      // Pour les uploads, on peut utiliser un placeholder ou générer la thumbnail
-      return `${API_BASE_URL}${youtubeUrl.startsWith('/') ? '' : '/'}${youtubeUrl}`;
+      // For uploaded files, we could use the video file itself as poster
+      // or generate thumbnails server-side. For now, use placeholder.
+      return '/images/placeholder-video.jpg';
     }
     
     // Default fallback
@@ -323,7 +265,6 @@ const Shorts = () => {
         src={thumbnailSrc}
         alt={short.titre}
         onError={handleImageError}
-        crossOrigin="anonymous"
         style={{ 
           opacity: isGenerating ? 0.5 : 1,
           transition: 'opacity 0.3s ease'
@@ -335,41 +276,34 @@ const Shorts = () => {
   const getYouTubeVideoId = (url) => {
     try {
       if (!url) return null;
+      const videoUrl = new URL(url);
+      let videoId = '';
       
-      // Tentative avec l'API URL
-      try {
-        const videoUrl = new URL(url);
-        let videoId = '';
-        
-        if (videoUrl.hostname.includes('youtube.com')) {
-          // Format classique: youtube.com/watch?v=VIDEO_ID
-          if (videoUrl.searchParams.get('v')) {
-            videoId = videoUrl.searchParams.get('v');
-          }
-          // Format Shorts: youtube.com/shorts/VIDEO_ID
-          else if (videoUrl.pathname.startsWith('/shorts/')) {
-            videoId = videoUrl.pathname.replace('/shorts/', '');
-          }
-          // Format embed: youtube.com/embed/VIDEO_ID
-          else if (videoUrl.pathname.startsWith('/embed/')) {
-            videoId = videoUrl.pathname.replace('/embed/', '');
-          }
-        } else if (videoUrl.hostname.includes('youtu.be')) {
-          // Format court: youtu.be/VIDEO_ID
-          videoId = videoUrl.pathname.substring(1);
+      if (videoUrl.hostname.includes('youtube.com')) {
+        // Classic format: youtube.com/watch?v=VIDEO_ID
+        if (videoUrl.searchParams.get('v')) {
+          videoId = videoUrl.searchParams.get('v');
         }
-        
-        return videoId;
-      } catch (error) {
-        // Fallback pour les URLs mal formées
-        const match = url && url.match ? url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i) : null;
-        if (match && match[1]) {
-          return match[1];
+        // Shorts format: youtube.com/shorts/VIDEO_ID
+        else if (videoUrl.pathname.startsWith('/shorts/')) {
+          videoId = videoUrl.pathname.replace('/shorts/', '');
         }
-        return null;
+        // Embed format: youtube.com/embed/VIDEO_ID
+        else if (videoUrl.pathname.startsWith('/embed/')) {
+          videoId = videoUrl.pathname.replace('/embed/', '');
+        }
+      } else if (videoUrl.hostname.includes('youtu.be')) {
+        // Short format: youtu.be/VIDEO_ID
+        videoId = videoUrl.pathname.substring(1);
       }
+      
+      return videoId;
     } catch (error) {
-      console.error("Error parsing YouTube URL:", error);
+      // Fallback pour les URLs mal formées
+      const match = url && url.match ? url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i) : null;
+      if (match && match[1]) {
+        return match[1];
+      }
       return null;
     }
   };
@@ -592,7 +526,7 @@ const Shorts = () => {
         short={viewShort}
       />
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal - Style like Video Management */}
       {deleteModalOpen && shortToDelete && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent} style={{ maxWidth: '450px' }}>

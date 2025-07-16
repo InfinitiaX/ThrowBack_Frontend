@@ -1,6 +1,8 @@
-// src/components/admin/Videos/EditVideoModal.jsx
 import React, { useState, useEffect } from 'react';
 import styles from './Videos.module.css';
+
+// Configuration de l'URL de l'API - Sans espace à la fin
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
 // Liste des genres disponibles (synchronisée avec le backend)
 const GENRES = [
@@ -23,7 +25,8 @@ const EditVideoModal = ({ isOpen, onClose, video, onVideoUpdated }) => {
     annee: '',
     decennie: '',
     duree: '',
-    description: ''
+    description: '',
+    videoProvider: '' // YouTube, Vimeo, etc.
   });
   
   const [loading, setLoading] = useState(false);
@@ -42,13 +45,17 @@ const EditVideoModal = ({ isOpen, onClose, video, onVideoUpdated }) => {
         annee: video.annee ? video.annee.toString() : '',
         decennie: video.decennie || '',
         duree: video.duree ? video.duree.toString() : '',
-        description: video.description || ''
+        description: video.description || '',
+        videoProvider: video.videoProvider || 'youtube'
       });
 
       // Set preview URL
       const videoId = getYouTubeVideoId(video.youtubeUrl);
       if (videoId) {
         setPreviewUrl(`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`);
+      } else if (video.youtubeUrl && video.youtubeUrl.includes('vimeo')) {
+        // Pour Vimeo, on pourrait utiliser une API ou simplement un logo de placeholder
+        setPreviewUrl('https://i.vimeocdn.com/favicon/main-touch_180');
       }
     }
   }, [video, isOpen]);
@@ -58,6 +65,8 @@ const EditVideoModal = ({ isOpen, onClose, video, onVideoUpdated }) => {
   // Extract YouTube video ID and generate thumbnail
   const getYouTubeVideoId = (url) => {
     try {
+      if (!url) return null;
+      
       const videoUrl = new URL(url);
       let videoId = '';
       
@@ -69,6 +78,7 @@ const EditVideoModal = ({ isOpen, onClose, video, onVideoUpdated }) => {
       
       return videoId;
     } catch (error) {
+      console.error("Error parsing YouTube URL:", error);
       return null;
     }
   };
@@ -104,6 +114,18 @@ const EditVideoModal = ({ isOpen, onClose, video, onVideoUpdated }) => {
       const videoId = getYouTubeVideoId(value);
       if (videoId) {
         setPreviewUrl(`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`);
+        
+        // Mettre à jour le type de source dans le formulaire
+        setFormData(prev => ({
+          ...prev,
+          videoProvider: 'youtube'
+        }));
+      } else if (value && value.includes('vimeo.com')) {
+        setPreviewUrl('https://i.vimeocdn.com/favicon/main-touch_180');
+        setFormData(prev => ({
+          ...prev,
+          videoProvider: 'vimeo'
+        }));
       } else {
         setPreviewUrl('');
       }
@@ -135,7 +157,7 @@ const EditVideoModal = ({ isOpen, onClose, video, onVideoUpdated }) => {
       return false;
     }
     if (!formData.youtubeUrl.trim()) {
-      setError('YouTube URL is required');
+      setError('Video URL is required');
       return false;
     }
     if (!formData.type) {
@@ -147,11 +169,25 @@ const EditVideoModal = ({ isOpen, onClose, video, onVideoUpdated }) => {
       return false;
     }
     
-    // Validate YouTube URL
-    const videoId = getYouTubeVideoId(formData.youtubeUrl);
-    if (!videoId) {
-      setError('Please enter a valid YouTube URL');
-      return false;
+    // Validate URL for YouTube or Vimeo
+    if (formData.youtubeUrl) {
+      if (formData.youtubeUrl.includes('youtube.com') || formData.youtubeUrl.includes('youtu.be')) {
+        // YouTube URL validation
+        const videoId = getYouTubeVideoId(formData.youtubeUrl);
+        if (!videoId) {
+          setError('Please enter a valid YouTube URL');
+          return false;
+        }
+      } else if (formData.youtubeUrl.includes('vimeo.com')) {
+        // Basic Vimeo URL validation
+        if (!formData.youtubeUrl.match(/vimeo\.com\/(\d+)/)) {
+          setError('Please enter a valid Vimeo URL');
+          return false;
+        }
+      } else {
+        setError('Please enter a valid YouTube or Vimeo URL');
+        return false;
+      }
     }
 
     return true;
@@ -173,30 +209,40 @@ const EditVideoModal = ({ isOpen, onClose, video, onVideoUpdated }) => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/videos/${video._id}`, {
+      
+      // Utiliser l'URL de base configurée
+      const apiUrl = `${API_BASE_URL}/api/admin/videos/${video._id}`;
+      console.log(`Updating video at: ${apiUrl}`);
+      
+      const response = await fetch(apiUrl, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
           ...formData,
           annee: formData.annee ? parseInt(formData.annee) : undefined,
           duree: formData.duree ? parseInt(formData.duree) : undefined
-        })
+        }),
+        credentials: 'include'
       });
       
-      const data = await response.json();
-      
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to update video');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      // Notify parent component
-      onVideoUpdated(data.data);
+      const data = await response.json();
+      console.log("Video updated successfully:", data);
+      
+      // Notify parent component with the updated video
+      onVideoUpdated(data.data || data.video || data);
       
     } catch (err) {
-      setError(err.message);
+      console.error("Error updating video:", err);
+      setError(err.message || "An error occurred while updating the video");
     } finally {
       setLoading(false);
     }
@@ -246,7 +292,7 @@ const EditVideoModal = ({ isOpen, onClose, video, onVideoUpdated }) => {
 
           <div className={styles.formGroup}>
             <label htmlFor="youtubeUrl">
-              YouTube URL <span className={styles.required}>*</span>
+              Video URL <span className={styles.required}>*</span>
             </label>
             <input
               type="url"
@@ -254,17 +300,33 @@ const EditVideoModal = ({ isOpen, onClose, video, onVideoUpdated }) => {
               name="youtubeUrl"
               value={formData.youtubeUrl}
               onChange={handleChange}
-              placeholder="https://www.youtube.com/watch?v=..."
+              placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
               disabled={loading}
               required
             />
+            <small className={styles.formHelp}>
+              {formData.youtubeUrl.includes('youtube') ? 'YouTube Video' : 
+               formData.youtubeUrl.includes('vimeo') ? 'Vimeo Video' : 
+               'Supports YouTube and Vimeo links'}
+            </small>
           </div>
 
           {previewUrl && (
             <div className={styles.previewContainer}>
               <label>Preview</label>
               <div className={styles.thumbnailPreview}>
-                <img src={previewUrl} alt="Video thumbnail" />
+                <img 
+                  src={previewUrl} 
+                  alt="Video thumbnail"
+                  crossOrigin="anonymous"
+                  onError={(e) => {
+                    console.error("Error loading preview image:", e);
+                    e.target.src = '/images/placeholder-video.jpg';
+                  }}
+                />
+                {formData.youtubeUrl.includes('vimeo') && (
+                  <span className={styles.vimeoNote}>Vimeo Video</span>
+                )}
               </div>
             </div>
           )}

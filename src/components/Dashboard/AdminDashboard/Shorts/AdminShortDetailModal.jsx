@@ -1,40 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import styles from '../Videos/Videos.module.css';
 
-// Configuration de l'URL de l'API - Suppression de l'espace qui causait des problèmes
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
-
 const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
-  const [videoError, setVideoError] = useState(false);
-  const [isVideoLoading, setIsVideoLoading] = useState(true);
-  
-  useEffect(() => {
-    // Réinitialiser les états lors de l'ouverture du modal avec un nouveau short
-    if (isOpen && short) {
-      setVideoError(false);
-      setIsVideoLoading(true);
-    }
-  }, [isOpen, short]);
-  
   if (!isOpen || !short) return null;
-
-  // Fonction plus robuste pour obtenir l'URL complète
-  const getFullVideoUrl = (path) => {
-    if (!path) return '';
-    
-    // Si l'URL est déjà absolue, la retourner telle quelle
-    if (path.startsWith('http')) return path;
-    
-    // S'assurer que le chemin commence par un slash
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    
-    // URL de base sans espace à la fin
-    const baseWithoutTrailingSlash = API_BASE_URL.endsWith('/') 
-      ? API_BASE_URL.slice(0, -1) 
-      : API_BASE_URL;
-    
-    return `${baseWithoutTrailingSlash}${normalizedPath}`;
-  };
 
   // Fonction plus robuste pour extraire l'ID YouTube
   const getYouTubeEmbedUrl = (url) => {
@@ -85,11 +53,8 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
   };
 
   const isYouTubeVideo = short.youtubeUrl && (short.youtubeUrl.includes('youtube.com') || short.youtubeUrl.includes('youtu.be'));
-  const embedUrl = isYouTubeVideo ? getYouTubeEmbedUrl(short.youtubeUrl) : null;
+  const embedUrl = getYouTubeEmbedUrl(short.youtubeUrl);
   const formattedDate = new Date(short.createdAt).toLocaleString();
-  
-  // Préparer l'URL correcte pour les fichiers locaux
-  const videoSrc = isYouTubeVideo ? embedUrl : getFullVideoUrl(short.youtubeUrl);
 
   return (
     <div className={styles.modalOverlay}>
@@ -114,82 +79,37 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
-                onLoad={() => setIsVideoLoading(false)}
-                onError={() => {
-                  setVideoError(true);
-                  setIsVideoLoading(false);
-                }}
               ></iframe>
-              
-              {isVideoLoading && (
-                <div className={styles.videoLoading}>
-                  <i className="fas fa-spinner fa-spin"></i>
-                  <p>Loading video...</p>
-                </div>
-              )}
             </div>
-          ) : !isYouTubeVideo && short.youtubeUrl ? (
+          ) : short.youtubeUrl && !isYouTubeVideo ? (
             // Local video file
             <div className={styles.videoEmbed}>
-              {videoError ? (
-                <div className={styles.videoUnavailable}>
-                  <i className="fas fa-exclamation-triangle"></i>
-                  <p>Video could not be loaded</p>
-                  <a 
-                    href={getFullVideoUrl(short.youtubeUrl)} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className={styles.externalLink}
-                  >
-                    Open video in new tab <i className="fas fa-external-link-alt"></i>
-                  </a>
-                </div>
-              ) : (
-                <>
-                  <video
-                    controls
-                    autoPlay
-                    crossOrigin="anonymous"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      borderRadius: '6px',
-                      display: isVideoLoading ? 'none' : 'block'
-                    }}
-                    onLoadedData={() => setIsVideoLoading(false)}
-                    onError={(e) => {
-                      console.error("Video loading error:", e);
-                      setVideoError(true);
-                      setIsVideoLoading(false);
-                    }}
-                  >
-                    <source src={videoSrc} type="video/mp4" />
-                    <source src={videoSrc} type="video/webm" />
-                    <source src={videoSrc} type="video/ogg" />
-                    Votre navigateur ne supporte pas la lecture de vidéos.
-                  </video>
-                  
-                  {isVideoLoading && (
-                    <div className={styles.videoLoading}>
-                      <i className="fas fa-spinner fa-spin"></i>
-                      <p>Loading video...</p>
-                    </div>
-                  )}
-                </>
-              )}
+              <video
+                controls
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '6px'
+                }}
+              >
+                <source src={short.youtubeUrl} type="video/mp4" />
+                <source src={short.youtubeUrl} type="video/webm" />
+                <source src={short.youtubeUrl} type="video/ogg" />
+                Votre navigateur ne supporte pas la lecture de vidéos.
+              </video>
             </div>
           ) : (
             <div className={styles.videoUnavailable}>
               <i className="fas fa-bolt"></i>
-              <p>Video preview not available</p>
+              <p>Aperçu vidéo non disponible</p>
               {short.youtubeUrl && (
                 <a 
-                  href={getFullVideoUrl(short.youtubeUrl)} 
+                  href={short.youtubeUrl} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className={styles.externalLink}
                 >
-                  Open file <i className="fas fa-external-link-alt"></i>
+                  Ouvrir le fichier <i className="fas fa-external-link-alt"></i>
                 </a>
               )}
             </div>
@@ -209,34 +129,34 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
                 )}
               </div>
               <div className={styles.videoAddedOn}>
-                Added on {formattedDate}
+                Ajouté le {formattedDate}
               </div>
             </div>
             
             <div className={styles.detailsGrid}>
               <div className={styles.detailItem}>
-                <h4>Title</h4>
+                <h4>Titre</h4>
                 <p>{short.titre}</p>
               </div>
               
               <div className={styles.detailItem}>
-                <h4>Artist</h4>
+                <h4>Artiste</h4>
                 <p>{short.artiste || '—'}</p>
               </div>
 
               <div className={styles.detailItem}>
-                <h4>Duration</h4>
+                <h4>Durée</h4>
                 <p>
                   {short.duree ? (
                     <span style={{ color: '#4caf50', fontWeight: '600' }}>
-                      <i className="fas fa-clock"></i> {short.duree} seconds
+                      <i className="fas fa-clock"></i> {short.duree} secondes
                     </span>
                   ) : '—'}
                 </p>
               </div>
 
               <div className={styles.detailItem}>
-                <h4>Source Type</h4>
+                <h4>Type de source</h4>
                 <p>
                   {isYouTubeVideo ? (
                     <span style={{ color: '#ff0000', fontWeight: '600' }}>
@@ -244,17 +164,17 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
                     </span>
                   ) : (
                     <span style={{ color: '#2196f3', fontWeight: '600' }}>
-                      <i className="fas fa-upload"></i> Uploaded file
+                      <i className="fas fa-upload"></i> Fichier uploadé
                     </span>
                   )}
                 </p>
               </div>
 
               <div className={styles.detailItem}>
-                <h4>Views</h4>
+                <h4>Vues</h4>
                 <p>
                   <span style={{ color: '#4caf50' }}>
-                    <i className="fas fa-eye"></i> {short.vues || 0} views
+                    <i className="fas fa-eye"></i> {short.vues || 0} vues
                   </span>
                 </p>
               </div>
@@ -281,7 +201,7 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
               </div>
               
               <div className={styles.detailItem}>
-                <h4>URL/Path</h4>
+                <h4>URL/Chemin</h4>
                 <p className={styles.youtubeUrl}>
                   {isYouTubeVideo ? (
                     <a 
@@ -305,7 +225,7 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
               </div>
               
               <div className={styles.detailItem}>
-                <h4>Added by</h4>
+                <h4>Ajouté par</h4>
                 <p>
                   {short.auteur ? (
                     typeof short.auteur === 'object' && short.auteur.nom && short.auteur.prenom ? (
@@ -318,7 +238,7 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
               </div>
 
               <div className={styles.detailItem}>
-                <h4>Created on</h4>
+                <h4>Date de création</h4>
                 <p>{new Date(short.createdAt).toLocaleDateString('fr-FR', {
                   weekday: 'long',
                   year: 'numeric',
@@ -331,7 +251,7 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
 
               {short.updatedAt && short.updatedAt !== short.createdAt && (
                 <div className={styles.detailItem}>
-                  <h4>Last modified</h4>
+                  <h4>Dernière modification</h4>
                   <p>{new Date(short.updatedAt).toLocaleDateString('fr-FR', {
                     weekday: 'long',
                     year: 'numeric',
@@ -350,7 +270,7 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
                   <p>
                     {short.vues > 0 && short.likes > 0 && (
                       <span style={{ color: '#4caf50' }}>
-                        Engagement rate: {((short.likes / short.vues) * 100).toFixed(1)}%
+                        Taux d'engagement: {((short.likes / short.vues) * 100).toFixed(1)}%
                       </span>
                     )}
                   </p>
@@ -365,7 +285,7 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
             className={styles.closeModalButton}
             onClick={onClose}
           >
-            <i className="fas fa-times"></i> Close
+            <i className="fas fa-times"></i> Fermer
           </button>
         </div>
       </div>

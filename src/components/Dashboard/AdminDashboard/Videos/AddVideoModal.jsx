@@ -1,6 +1,8 @@
-// src/components/admin/Videos/AddVideoModal.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './Videos.module.css';
+
+// Configuration de l'URL de l'API - Sans espace à la fin
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
 // Liste des genres disponibles (synchronisée avec le backend)
 const GENRES = [
@@ -24,13 +26,34 @@ const AddVideoModal = ({ isOpen, onClose, onVideoCreated }) => {
     decennie: '',
     duree: '',
     description: '',
-    sourceType: 'youtube', // Nouveau champ pour indiquer YouTube ou Vimeo
+    sourceType: 'youtube' // Nouveau champ pour indiquer YouTube ou Vimeo
   });
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
   const [videoProvider, setVideoProvider] = useState('youtube');
+
+  // Reset form data when modal is opened
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        titre: '',
+        youtubeUrl: '',
+        type: 'music',
+        genre: '',
+        artiste: '',
+        annee: '',
+        decennie: '',
+        duree: '',
+        description: '',
+        sourceType: 'youtube'
+      });
+      setPreviewUrl('');
+      setVideoProvider('youtube');
+      setError('');
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -70,6 +93,7 @@ const AddVideoModal = ({ isOpen, onClose, onVideoCreated }) => {
       
       return { videoId, provider };
     } catch (error) {
+      console.error("Error parsing video URL:", error);
       return { videoId: null, provider: null };
     }
   };
@@ -133,7 +157,7 @@ const AddVideoModal = ({ isOpen, onClose, onVideoCreated }) => {
         // Mettre à jour le type de source dans le formulaire
         setFormData(prev => ({
           ...prev,
-          sourceType: videoInfo.provider
+          sourceType: videoInfo.provider || 'youtube'
         }));
       } else {
         setPreviewUrl('');
@@ -184,11 +208,17 @@ const AddVideoModal = ({ isOpen, onClose, onVideoCreated }) => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/videos', {
+      
+      // Utiliser l'URL de base configurée
+      const apiUrl = `${API_BASE_URL}/api/admin/videos`;
+      console.log(`Submitting video to: ${apiUrl}`);
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
           ...formData,
@@ -196,14 +226,17 @@ const AddVideoModal = ({ isOpen, onClose, onVideoCreated }) => {
           duree: formData.duree ? parseInt(formData.duree) : undefined,
           // Inclure l'information sur le fournisseur de la vidéo
           videoProvider: videoProvider
-        })
+        }),
+        credentials: 'include'
       });
       
-      const data = await response.json();
-      
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to create video');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
+      
+      const data = await response.json();
+      console.log("Video created successfully:", data);
       
       // Reset form
       setFormData({
@@ -222,10 +255,11 @@ const AddVideoModal = ({ isOpen, onClose, onVideoCreated }) => {
       setVideoProvider('youtube');
       
       // Notify parent component
-      onVideoCreated(data.data);
+      onVideoCreated(data.data || data.video || data);
       
     } catch (err) {
-      setError(err.message);
+      console.error("Error creating video:", err);
+      setError(err.message || "An error occurred while creating the video");
     } finally {
       setLoading(false);
     }
@@ -312,7 +346,15 @@ const AddVideoModal = ({ isOpen, onClose, onVideoCreated }) => {
             <div className={styles.previewContainer}>
               <label>Preview</label>
               <div className={styles.thumbnailPreview}>
-                <img src={previewUrl} alt="Video thumbnail" />
+                <img 
+                  src={previewUrl} 
+                  alt="Video thumbnail" 
+                  crossOrigin="anonymous"
+                  onError={(e) => {
+                    console.error("Error loading preview image:", e);
+                    e.target.src = '/images/placeholder-video.jpg';
+                  }}
+                />
                 {videoProvider === 'vimeo' && (
                   <span className={styles.vimeoNote}>
                     {videoProvider === 'vimeo' ? 'Vimeo Video' : ''}

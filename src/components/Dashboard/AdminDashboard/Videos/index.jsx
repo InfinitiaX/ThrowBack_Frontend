@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import AddVideoModal from './AddVideoModal';
 import EditVideoModal from './EditVideoModal';
-import VideoDetailModal from './AdminVideoDetailModal';
+import VideoDetailModal from './VideoDetailModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import styles from './Videos.module.css';
+
+// Configuration de l'URL de l'API - Sans espace à la fin
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
 // Liste des genres disponibles (normalement importé du modèle Video)
 const GENRES = [
@@ -81,19 +84,48 @@ const Videos = () => {
       params.append('page', currentPage);
       params.append('limit', 12);
       
-      const response = await fetch(`/api/admin/videos?${params.toString()}`, {
+      // Utiliser l'URL de base configurée
+      const apiUrl = `${API_BASE_URL}/api/admin/videos?${params.toString()}`;
+      console.log(`Fetching videos from: ${apiUrl}`);
+      
+      const response = await fetch(apiUrl, {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        credentials: 'include'
       });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch videos');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
       const data = await response.json();
-      setVideos(data.videos || []);
-      setTotalPages(data.totalPages || 1);
+      console.log("Videos data received:", data);
+      
+      // Normalisation des données pour gérer différents formats de réponse API
+      let videosData = [];
+      let pagination = null;
+      
+      if (data.videos && Array.isArray(data.videos)) {
+        videosData = data.videos;
+        pagination = data.pagination;
+      } else if (data.data && Array.isArray(data.data)) {
+        videosData = data.data;
+        pagination = data.pagination;
+      } else if (Array.isArray(data)) {
+        videosData = data;
+      }
+      
+      setVideos(videosData);
+      
+      // Gestion cohérente de la pagination
+      if (pagination) {
+        setTotalPages(pagination.totalPages || 1);
+      } else {
+        setTotalPages(data.totalPages || 1);
+      }
       
       // Set total count
       if (data.total) {
@@ -108,9 +140,9 @@ const Videos = () => {
         fetchVideoStats();
       }
     } catch (err) {
-      setError(err.message);
-      setShowError(true);
       console.error('Error fetching videos:', err);
+      setError(err.message || "An error occurred while loading videos");
+      setShowError(true);
     } finally {
       setLoading(false);
     }
@@ -120,22 +152,33 @@ const Videos = () => {
   const fetchVideoStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/videos/stats', {
+      
+      // Utiliser l'URL de base configurée
+      const apiUrl = `${API_BASE_URL}/api/admin/videos/stats`;
+      console.log(`Fetching video stats from: ${apiUrl}`);
+      
+      const response = await fetch(apiUrl, {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        credentials: 'include'
       });
       
       if (!response.ok) {
+        console.warn(`Stats fetch failed: ${response.status} ${response.statusText}`);
         return; // Silently fail stats
       }
       
       const data = await response.json();
+      console.log("Video stats received:", data);
+      
       if (data.success) {
         setStats(data.stats);
       }
     } catch (err) {
       console.error('Error fetching video stats:', err);
+      // Ne pas afficher d'erreur pour les stats, ce n'est pas critique
     }
   };
 
@@ -158,6 +201,7 @@ const Videos = () => {
     setDecadeFilter('');
     setGenreFilter('');
     setCurrentPage(1);
+    // fetchVideos sera appelé par l'effet useEffect
   };
 
   // Toggle view mode between grid and table
@@ -212,6 +256,27 @@ const Videos = () => {
     setEditModalOpen(true);
   };
 
+  // Helper function to extract YouTube video ID
+  const getYouTubeVideoId = (url) => {
+    try {
+      if (!url) return 'placeholder';
+      
+      const videoUrl = new URL(url);
+      let videoId = '';
+      
+      if (videoUrl.hostname.includes('youtube.com')) {
+        videoId = videoUrl.searchParams.get('v');
+      } else if (videoUrl.hostname.includes('youtu.be')) {
+        videoId = videoUrl.pathname.substring(1);
+      }
+      
+      return videoId || 'placeholder';
+    } catch (error) {
+      console.error("Error parsing YouTube URL:", error);
+      return 'placeholder';
+    }
+  };
+
   // Render video grid item
   const renderVideoGridItem = (video) => (
     <div key={video._id} className={styles.videoCard}>
@@ -221,9 +286,17 @@ const Videos = () => {
         onClick={() => handleViewDetails(video)}
       >
         <img 
-          src={`https://img.youtube.com/vi/${getYouTubeVideoId(video.youtubeUrl)}/mqdefault.jpg`} 
+          src={
+            video.youtubeUrl && video.youtubeUrl.includes('youtube') 
+              ? `https://img.youtube.com/vi/${getYouTubeVideoId(video.youtubeUrl)}/mqdefault.jpg`
+              : video.youtubeUrl && video.youtubeUrl.includes('vimeo')
+                ? 'https://i.vimeocdn.com/favicon/main-touch_180'
+                : '/images/placeholder-video.jpg'
+          }
           alt={video.titre}
+          crossOrigin="anonymous"
           onError={(e) => {
+            console.error("Error loading thumbnail:", e);
             e.target.onerror = null;
             e.target.src = '/images/placeholder-video.jpg';
           }}
@@ -283,9 +356,16 @@ const Videos = () => {
     <tr key={video._id} className={styles.videoTableRow}>
       <td className={styles.thumbnailCell}>
         <img 
-          src={`https://img.youtube.com/vi/${getYouTubeVideoId(video.youtubeUrl)}/default.jpg`} 
+          src={
+            video.youtubeUrl && video.youtubeUrl.includes('youtube') 
+              ? `https://img.youtube.com/vi/${getYouTubeVideoId(video.youtubeUrl)}/default.jpg`
+              : video.youtubeUrl && video.youtubeUrl.includes('vimeo')
+                ? 'https://i.vimeocdn.com/favicon/main-touch_180'
+                : '/images/placeholder-video.jpg'
+          }
           alt={video.titre}
           className={styles.tableThumbnail}
+          crossOrigin="anonymous"
           onError={(e) => {
             e.target.onerror = null;
             e.target.src = '/images/placeholder-video.jpg';
@@ -331,12 +411,10 @@ const Videos = () => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        
-      <div>
-      <h1>Video Management</h1>
-      <br/>
-      <p>Welcome to the videos management panel 👋</p>
-      </div>
+        <div>
+          <h1>Video Management</h1>
+          <p>Welcome to the videos management panel 👋</p>
+        </div>
   
         <div className={styles.headerActions}>
           {!isMobile && (
@@ -384,7 +462,7 @@ const Videos = () => {
           <div className={styles.statIcon} style={{backgroundColor: '#40c057'}}>
             <i className="fas fa-podcast"></i>
           </div>
-           <div className={styles.statContent}>
+          <div className={styles.statContent}>
             <div className={styles.statValue}>{stats.podcast || 0}</div>
             <div className={styles.statLabel}>Podcasts</div>
           </div>
@@ -665,24 +743,6 @@ const Videos = () => {
       )}
     </div>
   );
-};
-
-// Helper function to extract YouTube video ID
-const getYouTubeVideoId = (url) => {
-  try {
-    const videoUrl = new URL(url);
-    let videoId = '';
-    
-    if (videoUrl.hostname.includes('youtube.com')) {
-      videoId = videoUrl.searchParams.get('v');
-    } else if (videoUrl.hostname.includes('youtu.be')) {
-      videoId = videoUrl.pathname.substring(1);
-    }
-    
-    return videoId || 'placeholder';
-  } catch (error) {
-    return 'placeholder';
-  }
 };
 
 export default Videos;

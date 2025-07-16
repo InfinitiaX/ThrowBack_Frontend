@@ -1,8 +1,21 @@
-// src/components/admin/Videos/VideoDetailModal.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './Videos.module.css';
 
+// Configuration de l'URL de l'API - Sans espace à la fin
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+
 const VideoDetailModal = ({ isOpen, onClose, video }) => {
+  const [videoError, setVideoError] = useState(false);
+  const [isVideoLoading, setIsVideoLoading] = useState(true);
+  
+  useEffect(() => {
+    // Réinitialiser les états lors de l'ouverture du modal avec une nouvelle vidéo
+    if (isOpen && video) {
+      setVideoError(false);
+      setIsVideoLoading(true);
+    }
+  }, [isOpen, video]);
+  
   if (!isOpen || !video) return null;
 
   // Extract YouTube video ID
@@ -10,21 +23,85 @@ const VideoDetailModal = ({ isOpen, onClose, video }) => {
     try {
       if (!url) return null;
       
-      const videoUrl = new URL(url);
-      let videoId = '';
-      
-      if (videoUrl.hostname.includes('youtube.com')) {
-        videoId = videoUrl.searchParams.get('v');
-      } else if (videoUrl.hostname.includes('youtu.be')) {
-        videoId = videoUrl.pathname.substring(1);
+      // Check if it's a YouTube URL
+      if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        let videoId = '';
+        
+        try {
+          const videoUrl = new URL(url);
+          
+          if (videoUrl.hostname.includes('youtube.com')) {
+            // Classic format: youtube.com/watch?v=VIDEO_ID
+            if (videoUrl.searchParams.get('v')) {
+              videoId = videoUrl.searchParams.get('v');
+            }
+            // Shorts format: youtube.com/shorts/VIDEO_ID
+            else if (videoUrl.pathname.startsWith('/shorts/')) {
+              videoId = videoUrl.pathname.replace('/shorts/', '');
+            }
+            // Embed format: youtube.com/embed/VIDEO_ID
+            else if (videoUrl.pathname.startsWith('/embed/')) {
+              videoId = videoUrl.pathname.replace('/embed/', '');
+            }
+          } else if (videoUrl.hostname.includes('youtu.be')) {
+            // Short format: youtu.be/VIDEO_ID
+            videoId = videoUrl.pathname.substring(1);
+          }
+        } catch (urlError) {
+          // Fallback pour les URLs mal formées
+          const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+          if (match && match[1]) {
+            videoId = match[1];
+          }
+        }
+        
+        return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
       }
       
-      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+      // Check if it's a Vimeo URL
+      if (url.includes('vimeo.com')) {
+        let vimeoId = '';
+        
+        try {
+          const videoUrl = new URL(url);
+          
+          if (videoUrl.hostname.includes('vimeo.com')) {
+            // Regular format: vimeo.com/VIDEO_ID
+            const segments = videoUrl.pathname.split('/').filter(Boolean);
+            vimeoId = segments[0];
+            
+            // Handle potential channel format: vimeo.com/channels/channelname/VIDEO_ID
+            if (segments.length > 1 && segments[0] === 'channels' && !isNaN(segments[segments.length - 1])) {
+              vimeoId = segments[segments.length - 1];
+            }
+          } else if (videoUrl.hostname.includes('player.vimeo.com')) {
+            // Embed format: player.vimeo.com/video/VIDEO_ID
+            const segments = videoUrl.pathname.split('/').filter(Boolean);
+            if (segments.length > 1 && segments[0] === 'video') {
+              vimeoId = segments[1];
+            }
+          }
+        } catch (urlError) {
+          // Fallback pour les URLs mal formées
+          const match = url.match(/vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|)(\d+)(?:$|\/|\?)/i);
+          if (match && match[1]) {
+            vimeoId = match[1];
+          }
+        }
+        
+        return vimeoId ? `https://player.vimeo.com/video/${vimeoId}` : null;
+      }
+      
+      // For local files or other types, return the direct URL
+      return url;
     } catch (error) {
+      console.error("Error parsing video URL:", error);
       return null;
     }
   };
 
+  const isYouTubeVideo = video.youtubeUrl && (video.youtubeUrl.includes('youtube.com') || video.youtubeUrl.includes('youtu.be'));
+  const isVimeoVideo = video.youtubeUrl && video.youtubeUrl.includes('vimeo.com');
   const embedUrl = getYouTubeEmbedUrl(video.youtubeUrl);
   const formattedDate = new Date(video.createdAt).toLocaleString();
 
@@ -72,15 +149,50 @@ const VideoDetailModal = ({ isOpen, onClose, video }) => {
         </div>
         
         <div className={styles.videoDetailContent}>
-          {embedUrl ? (
+          {/* Video Player */}
+          {isYouTubeVideo && embedUrl ? (
             <div className={styles.videoEmbed}>
               <iframe
-                src={embedUrl}
+                src={`${embedUrl}?autoplay=0&mute=1`}
                 title={video.titre}
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
+                onLoad={() => setIsVideoLoading(false)}
+                onError={() => {
+                  setVideoError(true);
+                  setIsVideoLoading(false);
+                }}
               ></iframe>
+              
+              {isVideoLoading && (
+                <div className={styles.videoLoading}>
+                  <i className="fas fa-spinner fa-spin"></i>
+                  <p>Loading video...</p>
+                </div>
+              )}
+            </div>
+          ) : isVimeoVideo && embedUrl ? (
+            <div className={styles.videoEmbed}>
+              <iframe
+                src={`${embedUrl}?autoplay=0&mute=1`}
+                title={video.titre}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                onLoad={() => setIsVideoLoading(false)}
+                onError={() => {
+                  setVideoError(true);
+                  setIsVideoLoading(false);
+                }}
+              ></iframe>
+              
+              {isVideoLoading && (
+                <div className={styles.videoLoading}>
+                  <i className="fas fa-spinner fa-spin"></i>
+                  <p>Loading video...</p>
+                </div>
+              )}
             </div>
           ) : (
             <div className={styles.videoUnavailable}>
@@ -93,7 +205,7 @@ const VideoDetailModal = ({ isOpen, onClose, video }) => {
                   rel="noopener noreferrer"
                   className={styles.externalLink}
                 >
-                  Open on YouTube <i className="fas fa-external-link-alt"></i>
+                  Open video <i className="fas fa-external-link-alt"></i>
                 </a>
               )}
             </div>
@@ -102,7 +214,9 @@ const VideoDetailModal = ({ isOpen, onClose, video }) => {
           <div className={styles.videoDetails}>
             <div className={styles.detailHeader}>
               <div className={styles.videoTypeBadges}>
-                <div className={styles.videoType}>{video.type}</div>
+                <div className={styles.videoType}>
+                  {video.type.toUpperCase()}
+                </div>
                 {video.genre && (
                   <div 
                     className={styles.videoGenre}
@@ -161,7 +275,11 @@ const VideoDetailModal = ({ isOpen, onClose, video }) => {
 
               <div className={styles.detailItem}>
                 <h4>Views</h4>
-                <p>{video.vues || 0} views</p>
+                <p>
+                  <span style={{ color: '#4caf50' }}>
+                    <i className="fas fa-eye"></i> {video.vues || 0} views
+                  </span>
+                </p>
               </div>
 
               <div className={styles.detailItem}>
@@ -191,7 +309,7 @@ const VideoDetailModal = ({ isOpen, onClose, video }) => {
               </div>
               
               <div className={styles.detailItem}>
-                <h4>YouTube URL</h4>
+                <h4>Video URL</h4>
                 <p className={styles.youtubeUrl}>
                   <a 
                     href={video.youtubeUrl} 
@@ -204,7 +322,7 @@ const VideoDetailModal = ({ isOpen, onClose, video }) => {
               </div>
               
               <div className={styles.detailItem}>
-                <h4>ID</h4>
+                <h4>Video ID</h4>
                 <p className={styles.videoId}>{video._id}</p>
               </div>
               
@@ -212,12 +330,31 @@ const VideoDetailModal = ({ isOpen, onClose, video }) => {
                 <h4>Added by</h4>
                 <p>
                   {video.auteur ? (
-                    video.auteur.nom && video.auteur.prenom ? (
+                    typeof video.auteur === 'object' && video.auteur.nom && video.auteur.prenom ? (
                       `${video.auteur.prenom} ${video.auteur.nom}`
                     ) : (
                       video.auteur._id || video.auteur
                     )
                   ) : '—'}
+                </p>
+              </div>
+
+              <div className={styles.detailItem}>
+                <h4>Source</h4>
+                <p>
+                  {isYouTubeVideo ? (
+                    <span style={{ color: '#ff0000', fontWeight: '600' }}>
+                      <i className="fab fa-youtube"></i> YouTube
+                    </span>
+                  ) : isVimeoVideo ? (
+                    <span style={{ color: '#1ab7ea', fontWeight: '600' }}>
+                      <i className="fab fa-vimeo"></i> Vimeo
+                    </span>
+                  ) : (
+                    <span style={{ color: '#555', fontWeight: '600' }}>
+                      <i className="fas fa-link"></i> External URL
+                    </span>
+                  )}
                 </p>
               </div>
 

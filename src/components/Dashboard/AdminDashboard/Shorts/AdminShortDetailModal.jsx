@@ -4,32 +4,41 @@ import styles from '../Videos/Videos.module.css';
 const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
   if (!isOpen || !short) return null;
 
-  // Extract YouTube video ID or check if it's a local file
+  // Fonction plus robuste pour extraire l'ID YouTube
   const getYouTubeEmbedUrl = (url) => {
     try {
       if (!url) return null;
       
       // Check if it's a YouTube URL
       if (url.includes('youtube.com') || url.includes('youtu.be')) {
-        const videoUrl = new URL(url);
         let videoId = '';
         
-        if (videoUrl.hostname.includes('youtube.com')) {
-          // Classic format: youtube.com/watch?v=VIDEO_ID
-          if (videoUrl.searchParams.get('v')) {
-            videoId = videoUrl.searchParams.get('v');
+        try {
+          const videoUrl = new URL(url);
+          
+          if (videoUrl.hostname.includes('youtube.com')) {
+            // Classic format: youtube.com/watch?v=VIDEO_ID
+            if (videoUrl.searchParams.get('v')) {
+              videoId = videoUrl.searchParams.get('v');
+            }
+            // Shorts format: youtube.com/shorts/VIDEO_ID
+            else if (videoUrl.pathname.startsWith('/shorts/')) {
+              videoId = videoUrl.pathname.replace('/shorts/', '');
+            }
+            // Embed format: youtube.com/embed/VIDEO_ID
+            else if (videoUrl.pathname.startsWith('/embed/')) {
+              videoId = videoUrl.pathname.replace('/embed/', '');
+            }
+          } else if (videoUrl.hostname.includes('youtu.be')) {
+            // Short format: youtu.be/VIDEO_ID
+            videoId = videoUrl.pathname.substring(1);
           }
-          // Shorts format: youtube.com/shorts/VIDEO_ID
-          else if (videoUrl.pathname.startsWith('/shorts/')) {
-            videoId = videoUrl.pathname.replace('/shorts/', '');
+        } catch (urlError) {
+          // Fallback pour les URLs mal formées
+          const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+          if (match && match[1]) {
+            videoId = match[1];
           }
-          // Embed format: youtube.com/embed/VIDEO_ID
-          else if (videoUrl.pathname.startsWith('/embed/')) {
-            videoId = videoUrl.pathname.replace('/embed/', '');
-          }
-        } else if (videoUrl.hostname.includes('youtu.be')) {
-          // Short format: youtu.be/VIDEO_ID
-          videoId = videoUrl.pathname.substring(1);
         }
         
         return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
@@ -38,6 +47,7 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
       // For local files, return the direct URL
       return url;
     } catch (error) {
+      console.error("Error parsing YouTube URL:", error);
       return null;
     }
   };

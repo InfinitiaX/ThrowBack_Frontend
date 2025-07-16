@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../Videos/Videos.module.css';
 
+// Configuration de l'URL de l'API
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
+
 const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => {
   const isEdit = !!initialData;
   const [form, setForm] = useState({
@@ -15,7 +18,25 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
-  const [uploadMode, setUploadMode] = useState('file'); 
+  const [uploadMode, setUploadMode] = useState('file');
+  
+  // Fonction pour obtenir les headers d'authentification
+  const getAuthHeaders = (contentType = 'application/json') => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token) {
+      setError("Authentification requise. Veuillez vous reconnecter.");
+      return null;
+    }
+    
+    if (contentType) {
+      return {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': contentType
+      };
+    }
+    
+    return { 'Authorization': `Bearer ${token}` };
+  };
 
   useEffect(() => {
     if (isEdit && initialData) {
@@ -55,29 +76,42 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
 
   const getYouTubeVideoId = (url) => {
     try {
-      const videoUrl = new URL(url);
-      let videoId = '';
+      if (!url) return null;
       
-      if (videoUrl.hostname.includes('youtube.com')) {
-        // Classic format: youtube.com/watch?v=VIDEO_ID
-        if (videoUrl.searchParams.get('v')) {
-          videoId = videoUrl.searchParams.get('v');
+      // Try with URL API first
+      try {
+        const videoUrl = new URL(url);
+        let videoId = '';
+        
+        if (videoUrl.hostname.includes('youtube.com')) {
+          // Classic format: youtube.com/watch?v=VIDEO_ID
+          if (videoUrl.searchParams.get('v')) {
+            videoId = videoUrl.searchParams.get('v');
+          }
+          // Shorts format: youtube.com/shorts/VIDEO_ID
+          else if (videoUrl.pathname.startsWith('/shorts/')) {
+            videoId = videoUrl.pathname.replace('/shorts/', '');
+          }
+          // Embed format: youtube.com/embed/VIDEO_ID
+          else if (videoUrl.pathname.startsWith('/embed/')) {
+            videoId = videoUrl.pathname.replace('/embed/', '');
+          }
+        } else if (videoUrl.hostname.includes('youtu.be')) {
+          // Short format: youtu.be/VIDEO_ID
+          videoId = videoUrl.pathname.substring(1);
         }
-        // Shorts format: youtube.com/shorts/VIDEO_ID
-        else if (videoUrl.pathname.startsWith('/shorts/')) {
-          videoId = videoUrl.pathname.replace('/shorts/', '');
+        
+        return videoId;
+      } catch (urlError) {
+        // Fallback method with regex
+        const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+        if (match && match[1]) {
+          return match[1];
         }
-        // Embed format: youtube.com/embed/VIDEO_ID
-        else if (videoUrl.pathname.startsWith('/embed/')) {
-          videoId = videoUrl.pathname.replace('/embed/', '');
-        }
-      } else if (videoUrl.hostname.includes('youtu.be')) {
-        // Short format: youtu.be/VIDEO_ID
-        videoId = videoUrl.pathname.substring(1);
+        return null;
       }
-      
-      return videoId;
     } catch (error) {
+      console.error("Error parsing YouTube URL:", error);
       return null;
     }
   };
@@ -201,6 +235,7 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
     return true;
   };
 
+  // Version améliorée de handleSubmit
   const handleSubmit = async e => {
     e.preventDefault();
     
@@ -210,7 +245,6 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
     setError('');
     
     try {
-      const token = localStorage.getItem('token');
       let res, data;
       
       if (isEdit) {
@@ -220,13 +254,19 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
           type: 'short'
         };
         
-        res = await fetch(`/api/admin/shorts/${initialData._id}`, {
+        const headers = getAuthHeaders();
+        if (!headers) {
+          setLoading(false);
+          return;
+        }
+        
+        console.log(`Updating short: ${initialData._id}`);
+        
+        res = await fetch(`${API_BASE_URL}/api/admin/shorts/${initialData._id}`, {
           method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(payload)
+          headers,
+          body: JSON.stringify(payload),
+          credentials: 'include'
         });
       } else {
         // Creation mode
@@ -240,13 +280,19 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
             type: 'short'
           };
           
-          res = await fetch('/api/admin/shorts', {
+          const headers = getAuthHeaders();
+          if (!headers) {
+            setLoading(false);
+            return;
+          }
+          
+          console.log("Creating short with YouTube URL");
+          
+          res = await fetch(`${API_BASE_URL}/api/admin/shorts`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(payload)
+            headers,
+            body: JSON.stringify(payload),
+            credentials: 'include'
           });
         } else {
           // Create with file upload
@@ -258,30 +304,41 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
           if (file) formData.append('videoFile', file);
           if (videoDuration) formData.append('duree', Math.round(videoDuration));
           
-          res = await fetch('/api/admin/shorts', {
+          const headers = getAuthHeaders(null); // Pas de Content-Type pour FormData
+          if (!headers) {
+            setLoading(false);
+            return;
+          }
+          
+          console.log("Creating short with file upload");
+          
+          res = await fetch(`${API_BASE_URL}/api/admin/shorts`, {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            },
-            body: formData
+            headers,
+            body: formData,
+            credentials: 'include'
           });
         }
       }
       
-      data = await res.json();
+      console.log("Response status:", res.status);
       
       if (!res.ok) {
-        throw new Error(data.message || 'Error saving short');
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `Erreur ${res.status}: ${res.statusText}`);
       }
+      
+      data = await res.json();
+      console.log("Form submission response:", data);
       
       // Notify parent of success
       onShortSaved(data.data || data.video || data);
       
       // Close modal and reset
       onClose();
-      
     } catch (err) {
-      setError(err.message);
+      console.error("Form submission error:", err);
+      setError(err.message || "Une erreur s'est produite lors de l'enregistrement");
     } finally {
       setLoading(false);
     }

@@ -3,6 +3,9 @@ import AdminShortFormModal from './AdminShortFormModal';
 import AdminShortDetailModal from './AdminShortDetailModal';
 import styles from '../Videos/Videos.module.css';
 
+// Configuration de l'URL de l'API
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
+
 const Shorts = () => {
   const [shorts, setShorts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,53 +20,96 @@ const Shorts = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [stats, setStats] = useState({ total: 0, recent: [] });
+  
+  // Fonction améliorée pour obtenir les headers d'authentification
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token) {
+      setError("Authentification requise. Veuillez vous reconnecter.");
+      return null;
+    }
+    return { 'Authorization': `Bearer ${token}` };
+  };
 
-  // Fetch shorts with pagination and search
+  // Version améliorée de fetchShorts
   const fetchShorts = async () => {
     setLoading(true);
     setError('');
+    
+    const headers = getAuthHeaders();
+    if (!headers) {
+      setLoading(false);
+      return;
+    }
+    
     try {
-      const token = localStorage.getItem('token');
-      
       // Build query parameters
       const params = new URLSearchParams();
       if (searchQuery) params.append('search', searchQuery);
       params.append('page', currentPage);
       params.append('limit', 12);
       
-      const res = await fetch(`/api/admin/shorts?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      console.log(`Fetching shorts from: ${API_BASE_URL}/api/admin/shorts?${params.toString()}`);
+      
+      const res = await fetch(`${API_BASE_URL}/api/admin/shorts?${params.toString()}`, {
+        headers,
+        credentials: 'include' // Important pour les cookies
       });
       
+      console.log("Response status:", res.status, res.statusText);
+      
+      if (!res.ok) {
+        // Tenter de récupérer le message d'erreur JSON si disponible
+        try {
+          const errorData = await res.json();
+          throw new Error(errorData.message || `Erreur ${res.status}: ${res.statusText}`);
+        } catch (jsonError) {
+          // Si pas de JSON valide, utiliser le statut HTTP
+          throw new Error(`Erreur ${res.status}: ${res.statusText}`);
+        }
+      }
+      
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Error loading shorts');
+      console.log("Shorts data received:", data);
       
       setShorts(data.videos || []);
       setTotalPages(data.totalPages || 1);
       
     } catch (err) {
-      setError(err.message);
+      console.error("Shorts fetch error:", err);
+      setError(err.message || "Une erreur s'est produite lors du chargement des shorts");
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch stats
+  // Version améliorée de fetchStats
   const fetchStats = async () => {
+    const headers = getAuthHeaders();
+    if (!headers) return;
+    
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/admin/shorts/stats', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      console.log("Fetching shorts stats");
+      
+      const res = await fetch(`${API_BASE_URL}/api/admin/shorts/stats`, {
+        headers,
+        credentials: 'include'
       });
       
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          setStats(data.stats);
-        }
+      console.log("Stats response status:", res.status);
+      
+      if (!res.ok) {
+        console.warn(`Stats fetch failed: ${res.status} ${res.statusText}`);
+        return; // Continue without stats rather than failing completely
+      }
+      
+      const data = await res.json();
+      if (data.success) {
+        setStats(data.stats);
       }
     } catch (err) {
       console.error('Error fetching shorts stats:', err);
+      // Don't set the main error state for stats - this is not critical
     }
   };
 
@@ -103,27 +149,44 @@ const Shorts = () => {
     setDeleteModalOpen(true);
   };
 
+  // Version améliorée de handleDelete
   const handleDelete = async () => {
     if (!shortToDelete) return;
     
     setDeleteLoading(shortToDelete._id);
     setError('');
+    
+    const headers = getAuthHeaders();
+    if (!headers) {
+      setDeleteLoading(null);
+      return;
+    }
+    
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/admin/shorts/${shortToDelete._id}`, {
+      console.log(`Deleting short: ${shortToDelete._id}`);
+      
+      const res = await fetch(`${API_BASE_URL}/api/admin/shorts/${shortToDelete._id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers,
+        credentials: 'include'
       });
       
+      console.log("Delete response:", res.status);
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `Erreur ${res.status}: ${res.statusText}`);
+      }
+      
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Error deleting short');
       
       setShorts(list => list.filter(s => s._id !== shortToDelete._id));
       fetchStats(); // Refresh stats
       setDeleteModalOpen(false);
       setShortToDelete(null);
     } catch (err) {
-      setError(err.message);
+      console.error("Delete error:", err);
+      setError(err.message || "Une erreur s'est produite lors de la suppression");
     } finally {
       setDeleteLoading(null);
     }
@@ -236,6 +299,11 @@ const Shorts = () => {
       
       return videoId;
     } catch (error) {
+      // Fallback pour les URLs mal formées
+      const match = url && url.match ? url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i) : null;
+      if (match && match[1]) {
+        return match[1];
+      }
       return null;
     }
   };
@@ -290,6 +358,7 @@ const Shorts = () => {
               onClick={() => {
                 setSearchQuery('');
                 setCurrentPage(1);
+                fetchShorts();
               }} 
               className={styles.resetButton}
             >

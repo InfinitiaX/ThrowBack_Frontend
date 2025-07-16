@@ -4,7 +4,7 @@ import styles from './Videos.module.css';
 // Configuration de l'URL de l'API - Sans espace à la fin
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
-const VideoDetailModal = ({ isOpen, onClose, video }) => {
+const AdminVideoDetailModal = ({ isOpen, onClose, video }) => {
   const [videoError, setVideoError] = useState(false);
   const [isVideoLoading, setIsVideoLoading] = useState(true);
   
@@ -387,4 +387,4 @@ const VideoDetailModal = ({ isOpen, onClose, video }) => {
   );
 };
 
-export default VideoDetailModal;
+export default AdminVideoDetailModal;

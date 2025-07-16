@@ -15,7 +15,7 @@ const GENRES = [
   'Electronic', 'Dance', 'House', 'Techno', 'Country', 'Folk', 
   'Classical', 'Opera', 'Reggae', 'Reggaeton', 'Latin', 'World', 
   'Alternative', 'Indie', 'Metal', 'Punk', 'Funk', 'Disco', 
-  'Gospel', 'Soundtrack', 'Other'
+  'Gospel', 'Soundtrack', 'Kizomba'
 ];
 
 const Videos = () => {

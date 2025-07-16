@@ -1,4 +1,3 @@
-// components/Dashboard/AdminDashboard/Playlists/PlaylistDetail.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
@@ -6,6 +5,9 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
 import styles from './PlaylistDetail.module.css';
+
+// Configuration de l'URL de base pour les ressources
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
 const PlaylistDetail = () => {
   const { id } = useParams();
@@ -30,6 +32,30 @@ const PlaylistDetail = () => {
   const [userResults, setUserResults] = useState([]);
   const [userLoading, setUserLoading] = useState(false);
   const [selectedPermission, setSelectedPermission] = useState('LECTURE');
+  
+  // État pour suivre les images qui ont échoué à charger
+  const [failedImages, setFailedImages] = useState({});
+
+  // Fonction pour gérer les erreurs de chargement d'image
+  const handleImageError = (id, type) => {
+    setFailedImages(prev => ({
+      ...prev,
+      [`${type}_${id}`]: true
+    }));
+  };
+
+  // Fonction pour construire l'URL complète des images
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    
+    // Si l'URL est déjà absolue (commence par http ou https)
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    
+    // Si l'URL est relative, préfixer avec l'URL de base de l'API
+    return `${API_BASE_URL}${path}`;
+  };
 
   // Charger les détails de la playlist
   useEffect(() => {
@@ -39,7 +65,7 @@ const PlaylistDetail = () => {
   const fetchPlaylistDetails = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`/api/admin/playlists/${id}`);
+      const response = await axios.get(`${API_BASE_URL}/api/admin/playlists/${id}`);
       
       if (response.data.success) {
         setPlaylist(response.data.data);
@@ -68,7 +94,7 @@ const PlaylistDetail = () => {
     
     setSearchLoading(true);
     try {
-      const response = await axios.get(`/api/videos/search?q=${encodeURIComponent(searchQuery)}`);
+      const response = await axios.get(`${API_BASE_URL}/api/videos/search?q=${encodeURIComponent(searchQuery)}`);
       
       if (response.data.success || response.data.data) {
         // Filtrer les vidéos déjà dans la playlist
@@ -94,7 +120,7 @@ const PlaylistDetail = () => {
     
     setUserLoading(true);
     try {
-      const response = await axios.get(`/api/admin/users?search=${encodeURIComponent(userSearch)}`);
+      const response = await axios.get(`${API_BASE_URL}/api/admin/users?search=${encodeURIComponent(userSearch)}`);
       
       if (response.data.success || response.data.users) {
         // Filtrer les utilisateurs déjà collaborateurs
@@ -130,7 +156,7 @@ const PlaylistDetail = () => {
         ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
         : [];
       
-      const response = await axios.put(`/api/admin/playlists/${id}`, {
+      const response = await axios.put(`${API_BASE_URL}/api/admin/playlists/${id}`, {
         nom: formData.nom,
         description: formData.description,
         visibilite: formData.visibilite,
@@ -153,7 +179,7 @@ const PlaylistDetail = () => {
   // Ajouter une vidéo à la playlist
   const handleAddVideo = async (videoId) => {
     try {
-      const response = await axios.post(`/api/admin/playlists/${id}/videos`, {
+      const response = await axios.post(`${API_BASE_URL}/api/admin/playlists/${id}/videos`, {
         videoId
       });
       
@@ -174,7 +200,7 @@ const PlaylistDetail = () => {
   const handleRemoveVideo = async (videoId) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette vidéo de la playlist ?')) {
       try {
-        const response = await axios.delete(`/api/admin/playlists/${id}/videos/${videoId}`);
+        const response = await axios.delete(`${API_BASE_URL}/api/admin/playlists/${id}/videos/${videoId}`);
         
         if (response.data.success) {
           toast.success('Vidéo supprimée de la playlist');
@@ -210,7 +236,7 @@ const PlaylistDetail = () => {
         ordre: index + 1
       }));
       
-      const response = await axios.put(`/api/admin/playlists/${id}/reorder`, {
+      const response = await axios.put(`${API_BASE_URL}/api/admin/playlists/${id}/reorder`, {
         nouveauOrdre
       });
       
@@ -230,7 +256,7 @@ const PlaylistDetail = () => {
   // Ajouter un collaborateur
   const handleAddCollaborator = async (userId) => {
     try {
-      const response = await axios.put(`/api/admin/playlists/${id}/collaborateurs`, {
+      const response = await axios.put(`${API_BASE_URL}/api/admin/playlists/${id}/collaborateurs`, {
         action: 'add',
         userId,
         permission: selectedPermission
@@ -253,7 +279,7 @@ const PlaylistDetail = () => {
   const handleRemoveCollaborator = async (userId) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce collaborateur ?')) {
       try {
-        const response = await axios.put(`/api/admin/playlists/${id}/collaborateurs`, {
+        const response = await axios.put(`${API_BASE_URL}/api/admin/playlists/${id}/collaborateurs`, {
           action: 'remove',
           userId
         });
@@ -274,7 +300,7 @@ const PlaylistDetail = () => {
   // Mettre à jour les permissions d'un collaborateur
   const handleUpdateCollaboratorPermission = async (userId, permission) => {
     try {
-      const response = await axios.put(`/api/admin/playlists/${id}/collaborateurs`, {
+      const response = await axios.put(`${API_BASE_URL}/api/admin/playlists/${id}/collaborateurs`, {
         action: 'update',
         userId,
         permission
@@ -355,7 +381,7 @@ const PlaylistDetail = () => {
             className={`${styles.actionButton} ${styles.deleteButton}`}
             onClick={() => {
               if (window.confirm('Êtes-vous sûr de vouloir supprimer cette playlist ? Cette action est irréversible.')) {
-                axios.delete(`/api/admin/playlists/${id}`)
+                axios.delete(`${API_BASE_URL}/api/admin/playlists/${id}`)
                   .then(response => {
                     if (response.data.success) {
                       toast.success('Playlist supprimée avec succès');
@@ -563,6 +589,7 @@ const PlaylistDetail = () => {
                           <img
                             src={`https://img.youtube.com/vi/${video.youtubeUrl.split('v=')[1] || video.youtubeUrl.split('/').pop()}/mqdefault.jpg`}
                             alt={video.titre}
+                            onError={() => handleImageError(video._id, 'videoThumb')}
                           />
                         ) : (
                           <div className={styles.videoPlaceholder}>
@@ -631,6 +658,7 @@ const PlaylistDetail = () => {
                                     <img
                                       src={`https://img.youtube.com/vi/${item.video_id.youtubeUrl.split('v=')[1] || item.video_id.youtubeUrl.split('/').pop()}/mqdefault.jpg`}
                                       alt={item.video_id.titre}
+                                      onError={() => handleImageError(item.video_id._id, 'playlistVideoThumb')}
                                     />
                                   ) : (
                                     <div className={styles.videoPlaceholder}>
@@ -727,8 +755,12 @@ const PlaylistDetail = () => {
                   {userResults.map((user) => (
                     <div key={user._id} className={styles.userCard}>
                       <div className={styles.userAvatar}>
-                        {user.photo_profil ? (
-                          <img src={user.photo_profil} alt={`${user.prenom} ${user.nom}`} />
+                        {user.photo_profil && !failedImages[`userResult_${user._id}`] ? (
+                          <img 
+                            src={getImageUrl(user.photo_profil)} 
+                            alt={`${user.prenom} ${user.nom}`} 
+                            onError={() => handleImageError(user._id, 'userResult')}
+                          />
                         ) : (
                           <div className={styles.userInitials}>
                             {user.prenom?.[0] || ''}{user.nom?.[0] || ''}
@@ -757,8 +789,12 @@ const PlaylistDetail = () => {
               <h3>Collaborateurs</h3>
               <div className={styles.ownerCard}>
                 <div className={styles.userAvatar}>
-                  {playlist.proprietaire.photo_profil ? (
-                    <img src={playlist.proprietaire.photo_profil} alt={`${playlist.proprietaire.prenom} ${playlist.proprietaire.nom}`} />
+                  {playlist.proprietaire.photo_profil && !failedImages[`owner_${playlist.proprietaire._id}`] ? (
+                    <img 
+                      src={getImageUrl(playlist.proprietaire.photo_profil)} 
+                      alt={`${playlist.proprietaire.prenom} ${playlist.proprietaire.nom}`} 
+                      onError={() => handleImageError(playlist.proprietaire._id, 'owner')}
+                    />
                   ) : (
                     <div className={styles.userInitials}>
                       {playlist.proprietaire.prenom?.[0] || ''}{playlist.proprietaire.nom?.[0] || ''}
@@ -785,8 +821,12 @@ const PlaylistDetail = () => {
                   {playlist.collaborateurs.map((collab) => (
                     <div key={collab.utilisateur._id} className={styles.collaboratorCard}>
                       <div className={styles.userAvatar}>
-                        {collab.utilisateur.photo_profil ? (
-                          <img src={collab.utilisateur.photo_profil} alt={`${collab.utilisateur.prenom} ${collab.utilisateur.nom}`} />
+                        {collab.utilisateur.photo_profil && !failedImages[`collab_${collab.utilisateur._id}`] ? (
+                          <img 
+                            src={getImageUrl(collab.utilisateur.photo_profil)} 
+                            alt={`${collab.utilisateur.prenom} ${collab.utilisateur.nom}`}
+                            onError={() => handleImageError(collab.utilisateur._id, 'collab')}
+                          />
                         ) : (
                           <div className={styles.userInitials}>
                             {collab.utilisateur.prenom?.[0] || ''}{collab.utilisateur.nom?.[0] || ''}

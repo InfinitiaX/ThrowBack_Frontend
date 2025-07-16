@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import AddVideoModal from './AddVideoModal';
 import EditVideoModal from './EditVideoModal';
-import AdminVideoDetailModal  from './AdminVideoDetailModal ';
+import VideoDetailModal from './AdminVideoDetailModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import styles from './Videos.module.css';
 
@@ -720,7 +720,7 @@ const Videos = () => {
             onVideoUpdated={handleVideoUpdated}
           />
           
-          <AdminVideoDetailModal 
+          <VideoDetailModal
             isOpen={detailModalOpen}
             onClose={() => {
               setDetailModalOpen(false);

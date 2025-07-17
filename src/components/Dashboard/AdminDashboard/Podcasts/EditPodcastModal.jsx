@@ -12,6 +12,9 @@ const CATEGORIES = [
 ];
 
 const EditPodcastModal = ({ isOpen, onClose, podcast, onPodcastUpdated }) => {
+  // Utiliser l'URL de base de l'API
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+  
   const [formData, setFormData] = useState({
     title: '',
     episode: '',
@@ -65,6 +68,8 @@ const EditPodcastModal = ({ isOpen, onClose, podcast, onPodcastUpdated }) => {
 
   // Extraire l'ID Vimeo à partir de l'URL
   const getVimeoId = (url) => {
+    if (!url) return null;
+    
     try {
       const vimeoUrl = new URL(url);
       
@@ -82,6 +87,7 @@ const EditPodcastModal = ({ isOpen, onClose, podcast, onPodcastUpdated }) => {
       
       return null;
     } catch (error) {
+      console.error('Erreur lors de l\'extraction de l\'ID Vimeo:', error);
       return null;
     }
   };
@@ -178,13 +184,16 @@ const EditPodcastModal = ({ isOpen, onClose, podcast, onPodcastUpdated }) => {
     
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error("Vous n'êtes pas authentifié. Veuillez vous reconnecter.");
+      }
       
       // Préparer les topics comme un tableau
       const topicsArray = formData.topics
         ? formData.topics.split(',').map(topic => topic.trim())
         : [];
       
-      const response = await fetch(`/api/podcasts/${podcast._id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/podcasts/${podcast._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -200,17 +209,19 @@ const EditPodcastModal = ({ isOpen, onClose, podcast, onPodcastUpdated }) => {
         })
       });
       
-      const data = await response.json();
-      
       if (!response.ok) {
-        throw new Error(data.message || 'Échec de la mise à jour du podcast');
+        const errorData = await response.json().catch(() => ({ message: 'Erreur serveur' }));
+        throw new Error(errorData.message || 'Échec de la mise à jour du podcast');
       }
+      
+      const data = await response.json();
       
       // Notifier le composant parent
       onPodcastUpdated(data.data);
       
     } catch (err) {
       setError(err.message);
+      console.error('Erreur lors de la mise à jour du podcast:', err);
     } finally {
       setLoading(false);
     }
@@ -307,7 +318,7 @@ const EditPodcastModal = ({ isOpen, onClose, podcast, onPodcastUpdated }) => {
               disabled={loading}
               required
             />
-            <small className={styles.formHelp}>
+                          <small className={styles.formHelp}>
               {formData.vimeoUrl ? 
                 (getVimeoId(formData.vimeoUrl) ? 'URL Vimeo valide' : 'URL Vimeo invalide') :
                 'Exemple: https://vimeo.com/123456789'}

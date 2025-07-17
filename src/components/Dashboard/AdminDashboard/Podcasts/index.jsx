@@ -16,6 +16,9 @@ const CATEGORIES = [
 ];
 
 const Podcasts = () => {
+  // URL de base de l'API
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+  
   // État des podcasts et du chargement
   const [podcasts, setPodcasts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +74,9 @@ const Podcasts = () => {
       setLoading(true);
       setShowError(false);
       const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error("Vous n'êtes pas authentifié. Veuillez vous reconnecter.");
+      }
       
       // Construire les paramètres de requête
       const params = new URLSearchParams();
@@ -81,14 +87,16 @@ const Podcasts = () => {
       params.append('page', currentPage);
       params.append('limit', 12);
       
-      const response = await fetch(`/api/podcasts/admin/all?${params.toString()}`, {
+      const response = await fetch(`${API_BASE_URL}/api/podcasts/admin/all?${params.toString()}`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       
       if (!response.ok) {
-        throw new Error('Échec de la récupération des podcasts');
+        const errorData = await response.json().catch(() => ({ message: 'Erreur serveur' }));
+        throw new Error(errorData.message || 'Échec de la récupération des podcasts');
       }
       
       const data = await response.json();
@@ -112,13 +120,20 @@ const Podcasts = () => {
   const fetchPodcastStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/podcasts/admin/stats', {
+      if (!token) {
+        console.error("Token d'authentification non trouvé");
+        return;
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/api/podcasts/admin/stats`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       
       if (!response.ok) {
+        console.error('Erreur lors de la récupération des statistiques');
         return; // Échouer silencieusement pour les stats
       }
       
@@ -208,6 +223,8 @@ const Podcasts = () => {
   // Extraire l'ID Vimeo à partir de l'URL
   const getVimeoId = (url) => {
     try {
+      if (!url) return null;
+      
       const vimeoUrl = new URL(url);
       
       if (vimeoUrl.hostname.includes('vimeo.com')) {

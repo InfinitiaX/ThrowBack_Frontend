@@ -12,6 +12,9 @@ const CATEGORIES = [
 ];
 
 const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
+  // Utiliser l'URL de base de l'API
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+  
   const [formData, setFormData] = useState({
     title: '',
     episode: '',
@@ -36,6 +39,8 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
 
   // Extraire l'ID Vimeo à partir de l'URL
   const getVimeoId = (url) => {
+    if (!url) return null;
+    
     try {
       const vimeoUrl = new URL(url);
       
@@ -53,6 +58,7 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
       
       return null;
     } catch (error) {
+      console.error('Erreur lors de l\'extraction de l\'ID Vimeo:', error);
       return null;
     }
   };
@@ -127,13 +133,16 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
     
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error("Vous n'êtes pas authentifié. Veuillez vous reconnecter.");
+      }
       
       // Préparer les topics comme un tableau
       const topicsArray = formData.topics
         ? formData.topics.split(',').map(topic => topic.trim())
         : [];
       
-      const response = await fetch('/api/podcasts', {
+      const response = await fetch(`${API_BASE_URL}/api/podcasts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -149,11 +158,12 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
         })
       });
       
-      const data = await response.json();
-      
       if (!response.ok) {
-        throw new Error(data.message || 'Échec de la création du podcast');
+        const errorData = await response.json().catch(() => ({ message: 'Erreur serveur' }));
+        throw new Error(errorData.message || 'Échec de la création du podcast');
       }
+      
+      const data = await response.json();
       
       // Réinitialiser le formulaire
       setFormData({
@@ -178,6 +188,7 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
       
     } catch (err) {
       setError(err.message);
+      console.error('Erreur lors de la création du podcast:', err);
     } finally {
       setLoading(false);
     }

@@ -26,6 +26,7 @@ const PodcastDetailModal = ({ isOpen, onClose, podcast }) => {
       
       return vimeoId ? `https://player.vimeo.com/video/${vimeoId}` : null;
     } catch (error) {
+      console.error('Erreur lors de l\'extraction de l\'URL d\'intégration Vimeo:', error);
       return null;
     }
   };
@@ -36,8 +37,10 @@ const PodcastDetailModal = ({ isOpen, onClose, podcast }) => {
   };
 
   const embedUrl = getVimeoEmbedUrl(podcast.vimeoUrl);
-  const formattedDate = new Date(podcast.publishDate).toLocaleDateString();
-  const createdDate = new Date(podcast.createdAt).toLocaleDateString();
+  
+  // Gestion des dates
+  const formattedDate = podcast.publishDate ? new Date(podcast.publishDate).toLocaleDateString() : 'Non définie';
+  const createdDate = podcast.createdAt ? new Date(podcast.createdAt).toLocaleDateString() : 'Non définie';
 
   // Obtenir une couleur pour une catégorie
   const getCategoryColor = (category) => {

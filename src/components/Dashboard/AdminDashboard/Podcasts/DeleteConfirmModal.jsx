@@ -4,6 +4,9 @@ import styles from './Podcasts.module.css';
 const DeleteConfirmModal = ({ isOpen, onClose, podcastId, podcastTitle, onPodcastDeleted }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Utiliser l'URL de base de l'API
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
   if (!isOpen) return null;
 
@@ -13,15 +16,20 @@ const DeleteConfirmModal = ({ isOpen, onClose, podcastId, podcastTitle, onPodcas
       setError('');
       
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/podcasts/${podcastId}`, {
+      if (!token) {
+        throw new Error("Vous n'êtes pas authentifié. Veuillez vous reconnecter.");
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/api/podcasts/${podcastId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ message: 'Erreur serveur' }));
         throw new Error(errorData.message || 'Échec de la suppression du podcast');
       }
 
@@ -40,7 +48,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, podcastId, podcastTitle, onPodcas
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
           <h2>Confirmer la suppression</h2>
-          <button className={styles.closeButton} onClick={onClose}>
+          <button className={styles.closeButton} onClick={onClose} disabled={loading}>
             <i className="fas fa-times"></i>
           </button>
         </div>

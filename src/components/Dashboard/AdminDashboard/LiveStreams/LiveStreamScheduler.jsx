@@ -10,7 +10,7 @@ const LiveStreamScheduler = ({ onSchedule, videosSelected, isLoading }) => {
     endDate: formatDateTimeForInput(addHours(new Date(), 2)),
     category: 'MUSIC_PERFORMANCE',
     hostName: 'ThrowBack Host',
-    tags: '',  // Maintenir en tant que chaîne vide
+    tags: '',
     isPublic: true,
     chatEnabled: true,
     loop: true,

@@ -11,6 +11,8 @@ const VideoUrlImport = ({ onVideoSelect }) => {
 
   // Déterminer le type de plateforme à partir de l'URL
   const getVideoSourceType = (url) => {
+    if (!url) return null;
+    
     if (url.includes('youtube.com') || url.includes('youtu.be')) {
       return 'youtube';
     } else if (url.includes('vimeo.com')) {
@@ -24,6 +26,8 @@ const VideoUrlImport = ({ onVideoSelect }) => {
 
   // Extraire l'ID de la vidéo à partir de l'URL
   const extractVideoId = (url, sourceType) => {
+    if (!url || !sourceType) return null;
+    
     try {
       let videoId = null;
       
@@ -36,7 +40,7 @@ const VideoUrlImport = ({ onVideoSelect }) => {
         } else if (url.includes('youtu.be/')) {
           videoId = url.split('youtu.be/')[1];
           // Supprimer les paramètres supplémentaires
-          if (videoId.includes('?')) {
+          if (videoId && videoId.includes('?')) {
             videoId = videoId.split('?')[0];
           }
         }
@@ -75,6 +79,11 @@ const VideoUrlImport = ({ onVideoSelect }) => {
 
   // Fonction pour récupérer les métadonnées à partir d'une URL vidéo
   const fetchVideoMetadata = async (url) => {
+    if (!url) {
+      setError("L'URL est vide");
+      return null;
+    }
+    
     setIsProcessing(true);
     setError('');
     
@@ -93,18 +102,37 @@ const VideoUrlImport = ({ onVideoSelect }) => {
       
       // Récupérer les métadonnées depuis le backend
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/video-info?url=${encodeURIComponent(url)}&id=${videoId}&source=${sourceType}`, {
+      
+      if (!token) {
+        throw new Error('Token d\'authentification non trouvé');
+      }
+      
+const apiUrl = `/api/video-info?url=${encodeURIComponent(url)}&id=${videoId}&source=${sourceType}`;
+      console.log('Fetching video info from:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || "Échec de la récupération des métadonnées vidéo");
+        // En cas d'erreur, vérifier si nous avons une réponse JSON
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Video info error:', errorData);
+        
+        // Si l'API échoue, utiliser une simulation pour des raisons de développement
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Using simulated video data for development');
+          return simulateMetadata(url, sourceType, videoId);
+        }
+        
+        throw new Error(errorData.message || `Échec de la récupération des métadonnées (${response.status})`);
       }
       
       const data = await response.json();
+      console.log('Video metadata received:', data);
       
       // Formater les données pour la compilation
       const videoData = {
@@ -131,8 +159,8 @@ const VideoUrlImport = ({ onVideoSelect }) => {
       
       return videoData;
     } catch (error) {
-      setError(error.message);
-      console.error('Erreur lors de l\'importation de la vidéo:', error);
+      console.error('Error importing video:', error);
+      setError(error.message || "Une erreur s'est produite lors de l'importation de la vidéo");
       return null;
     } finally {
       setIsProcessing(false);
@@ -159,8 +187,8 @@ const VideoUrlImport = ({ onVideoSelect }) => {
       return;
     }
     
-    const results = [];
-    const failures = [];
+    let results = [];
+    let failures = [];
     
     // Traiter les URLs une par une
     for (const url of urls) {
@@ -183,8 +211,10 @@ const VideoUrlImport = ({ onVideoSelect }) => {
     // Afficher un résumé
     if (failures.length > 0) {
       setError(`${results.length} vidéos importées avec succès. ${failures.length} échecs.`);
-    } else {
+    } else if (results.length > 0) {
       setError('');
+    } else {
+      setError("Aucune vidéo n'a pu être importée. Vérifiez les URLs.");
     }
     
     // Vider le champ de batch
@@ -205,6 +235,8 @@ const VideoUrlImport = ({ onVideoSelect }) => {
 
   // Simuler des métadonnées si l'API n'est pas disponible (pour développement)
   const simulateMetadata = (url, sourceType, videoId) => {
+    console.log('Simulating metadata for:', url, sourceType, videoId);
+    
     // Cette fonction n'est utilisée que si l'API n'est pas disponible
     return {
       videoId,

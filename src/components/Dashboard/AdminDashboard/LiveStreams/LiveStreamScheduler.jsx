@@ -6,8 +6,8 @@ const LiveStreamScheduler = ({ onSchedule, videosSelected, isLoading }) => {
   const [schedulingData, setSchedulingData] = useState({
     title: '',
     description: '',
-    startDate: formatDateTimeForInput(new Date()),
-    endDate: formatDateTimeForInput(addHours(new Date(), 2)),
+    startDate: formatDateTimeForInput(addMinutes(new Date(), 30)),
+    endDate: formatDateTimeForInput(addHours(new Date(), 3)),
     category: 'MUSIC_PERFORMANCE',
     hostName: 'ThrowBack Host',
     tags: '',
@@ -30,6 +30,13 @@ const LiveStreamScheduler = ({ onSchedule, videosSelected, isLoading }) => {
   function addHours(date, hours) {
     const newDate = new Date(date);
     newDate.setHours(newDate.getHours() + hours);
+    return newDate;
+  }
+
+  // Helper pour ajouter des minutes à une date
+  function addMinutes(date, minutes) {
+    const newDate = new Date(date);
+    newDate.setMinutes(newDate.getMinutes() + minutes);
     return newDate;
   }
   

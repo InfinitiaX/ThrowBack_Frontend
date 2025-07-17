@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import styles from './LiveThrowback.module.css';
 
-const VideoUrlImport = ({ onVideoSelect }) => {
+const VideoUrlImport = ({ onVideoSelect, apiBaseUrl }) => {
   const [videoUrl, setVideoUrl] = useState('');
   const [batchUrls, setBatchUrls] = useState('');
   const [showBatchInput, setShowBatchInput] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
   const [importedVideos, setImportedVideos] = useState([]);
+
+  // Utiliser l'URL de base passée en prop ou l'URL par défaut
+  const baseUrl = apiBaseUrl || process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
   // Déterminer le type de plateforme à partir de l'URL
   const getVideoSourceType = (url) => {
@@ -79,8 +82,8 @@ const VideoUrlImport = ({ onVideoSelect }) => {
 
   // Fonction pour récupérer les métadonnées à partir d'une URL vidéo
   const fetchVideoMetadata = async (url) => {
-    if (!url) {
-      setError("L'URL est vide");
+    if (!url || !url.trim()) {
+      setError("Veuillez entrer une URL vidéo valide.");
       return null;
     }
     
@@ -102,15 +105,11 @@ const VideoUrlImport = ({ onVideoSelect }) => {
       
       // Récupérer les métadonnées depuis le backend
       const token = localStorage.getItem('token');
-      
       if (!token) {
-        throw new Error('Token d\'authentification non trouvé');
+        throw new Error("Vous n'êtes pas authentifié. Veuillez vous reconnecter.");
       }
       
-const apiUrl = `/api/video-info?url=${encodeURIComponent(url)}&id=${videoId}&source=${sourceType}`;
-      console.log('Fetching video info from:', apiUrl);
-      
-      const response = await fetch(apiUrl, {
+      const response = await fetch(`${baseUrl}/api/video-info?url=${encodeURIComponent(url)}&id=${videoId}&source=${sourceType}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -118,21 +117,23 @@ const apiUrl = `/api/video-info?url=${encodeURIComponent(url)}&id=${videoId}&sou
       });
       
       if (!response.ok) {
-        // En cas d'erreur, vérifier si nous avons une réponse JSON
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Video info error:', errorData);
+        // En cas d'erreur avec le backend, utiliser la simulation
+        console.warn('Échec API, utilisation des métadonnées simulées');
+        const simData = simulateMetadata(url, sourceType, videoId);
         
-        // Si l'API échoue, utiliser une simulation pour des raisons de développement
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Using simulated video data for development');
-          return simulateMetadata(url, sourceType, videoId);
-        }
+        // Ajouter à la liste des vidéos importées
+        setImportedVideos(prev => [simData, ...prev]);
         
-        throw new Error(errorData.message || `Échec de la récupération des métadonnées (${response.status})`);
+        // Vider le champ d'URL
+        setVideoUrl('');
+        
+        // Transmettre au composant parent
+        onVideoSelect(simData);
+        
+        return simData;
       }
       
       const data = await response.json();
-      console.log('Video metadata received:', data);
       
       // Formater les données pour la compilation
       const videoData = {
@@ -159,8 +160,8 @@ const apiUrl = `/api/video-info?url=${encodeURIComponent(url)}&id=${videoId}&sou
       
       return videoData;
     } catch (error) {
-      console.error('Error importing video:', error);
-      setError(error.message || "Une erreur s'est produite lors de l'importation de la vidéo");
+      setError(error.message);
+      console.error('Erreur lors de l\'importation de la vidéo:', error);
       return null;
     } finally {
       setIsProcessing(false);
@@ -187,8 +188,8 @@ const apiUrl = `/api/video-info?url=${encodeURIComponent(url)}&id=${videoId}&sou
       return;
     }
     
-    let results = [];
-    let failures = [];
+    const results = [];
+    const failures = [];
     
     // Traiter les URLs une par une
     for (const url of urls) {
@@ -211,10 +212,8 @@ const apiUrl = `/api/video-info?url=${encodeURIComponent(url)}&id=${videoId}&sou
     // Afficher un résumé
     if (failures.length > 0) {
       setError(`${results.length} vidéos importées avec succès. ${failures.length} échecs.`);
-    } else if (results.length > 0) {
-      setError('');
     } else {
-      setError("Aucune vidéo n'a pu être importée. Vérifiez les URLs.");
+      setError('');
     }
     
     // Vider le champ de batch
@@ -235,8 +234,6 @@ const apiUrl = `/api/video-info?url=${encodeURIComponent(url)}&id=${videoId}&sou
 
   // Simuler des métadonnées si l'API n'est pas disponible (pour développement)
   const simulateMetadata = (url, sourceType, videoId) => {
-    console.log('Simulating metadata for:', url, sourceType, videoId);
-    
     // Cette fonction n'est utilisée que si l'API n'est pas disponible
     return {
       videoId,

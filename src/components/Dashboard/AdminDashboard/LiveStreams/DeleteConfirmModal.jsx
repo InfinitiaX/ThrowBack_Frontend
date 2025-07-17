@@ -2,66 +2,86 @@
 import React, { useState } from 'react';
 import styles from './LiveThrowback.module.css';
 
-const DeleteConfirmModal = ({ isOpen, onClose, livestreamId, livestreamTitle, onLiveStreamDeleted }) => {
-  const [loading, setLoading] = useState(false);
+const DeleteConfirmModal = ({ 
+  isOpen, 
+  onClose, 
+  livestreamId, 
+  livestreamTitle, 
+  onLiveStreamDeleted,
+  apiBaseUrl 
+}) => {
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState('');
-
-  if (!isOpen) return null;
+  
+  // Utiliser l'URL de base passée en prop ou l'URL par défaut
+  const baseUrl = apiBaseUrl || process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
   const handleDelete = async () => {
     try {
-      setLoading(true);
+      setIsDeleting(true);
       setError('');
       
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/livestreams/${livestreamId}`, {
+      if (!token) {
+        throw new Error("Vous n'êtes pas authentifié. Veuillez vous reconnecter.");
+      }
+      
+      const response = await fetch(`${baseUrl}/api/livestreams/${livestreamId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Échec de la suppression du livestream');
+        const errorData = await response.json().catch(() => ({ message: 'Erreur serveur' }));
+        throw new Error(errorData.message || 'Échec de la suppression du LiveThrowback');
       }
       
-      // Notifier le composant parent
+      // Notifier le parent de la suppression réussie
       onLiveStreamDeleted(livestreamId);
-      
     } catch (err) {
-      setError(err.message);
-      setLoading(false);
+      console.error('Erreur lors de la suppression:', err);
+      setError(err.message || 'Une erreur est survenue lors de la suppression');
+      setIsDeleting(false);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
-          <h3>Confirmer la suppression</h3>
+          <h3>Supprimer le LiveThrowback</h3>
           <button 
             className={styles.closeButton}
             onClick={onClose}
-            disabled={loading}
+            disabled={isDeleting}
           >
             <i className="fas fa-times"></i>
           </button>
         </div>
         
         <div className={styles.modalBody}>
-          <div className={styles.deleteWarning}>
-            <div className={styles.warningIcon}>
-              <i className="fas fa-exclamation-triangle"></i>
+          <div className={styles.deleteConfirmation}>
+            <div className={styles.deleteIcon}>
+              <i className="fas fa-trash-alt"></i>
             </div>
-            <div className={styles.warningText}>
-              <p>Êtes-vous sûr de vouloir supprimer le direct <strong>"{livestreamTitle}"</strong> ?</p>
-              <p className={styles.warningDetails}>Cette action est irréversible et supprimera définitivement ce direct.</p>
-            </div>
+            
+            <p className={styles.deleteMessage}>
+              Êtes-vous sûr de vouloir supprimer le LiveThrowback 
+              <span className={styles.deleteTitleHighlight}>{` "${livestreamTitle}" `}</span>?
+            </p>
+            
+            <p className={styles.deleteWarning}>
+              <i className="fas fa-exclamation-triangle"></i> Cette action est irréversible
+            </p>
           </div>
           
           {error && (
-            <div className={styles.errorMessage}>
+            <div className={styles.deleteError}>
               <i className="fas fa-exclamation-circle"></i>
               <span>{error}</span>
             </div>
@@ -72,7 +92,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, livestreamId, livestreamTitle, on
           <button 
             className={styles.cancelButton}
             onClick={onClose}
-            disabled={loading}
+            disabled={isDeleting}
           >
             <i className="fas fa-times"></i> Annuler
           </button>
@@ -80,16 +100,12 @@ const DeleteConfirmModal = ({ isOpen, onClose, livestreamId, livestreamTitle, on
           <button 
             className={styles.deleteButton}
             onClick={handleDelete}
-            disabled={loading}
+            disabled={isDeleting}
           >
-            {loading ? (
-              <>
-                <i className="fas fa-spinner fa-spin"></i> Suppression...
-              </>
+            {isDeleting ? (
+              <><i className="fas fa-spinner fa-spin"></i> Suppression...</>
             ) : (
-              <>
-                <i className="fas fa-trash-alt"></i> Confirmer la suppression
-              </>
+              <><i className="fas fa-trash-alt"></i> Supprimer</>
             )}
           </button>
         </div>

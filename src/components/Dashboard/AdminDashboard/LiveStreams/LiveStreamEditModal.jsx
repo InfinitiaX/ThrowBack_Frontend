@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './LiveThrowback.module.css';
 
-const LiveStreamEditModal = ({ isOpen, onClose, livestream, onSave }) => {
+const LiveStreamEditModal = ({ isOpen, onClose, livestream, onSave, apiBaseUrl }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -57,7 +57,20 @@ const LiveStreamEditModal = ({ isOpen, onClose, livestream, onSave }) => {
   // Helper pour formater la date pour les inputs datetime-local
   function formatDateTimeForInput(date) {
     if (!date || isNaN(date.getTime())) return '';
-    return date.toISOString().slice(0, 16);
+    
+    try {
+      // Format YYYY-MM-DDThh:mm
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    } catch (e) {
+      console.error('Erreur lors du formatage de la date:', e);
+      return '';
+    }
   }
 
   // Mettre à jour le formulaire

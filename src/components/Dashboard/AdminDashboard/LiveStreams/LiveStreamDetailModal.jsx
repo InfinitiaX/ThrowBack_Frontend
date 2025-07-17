@@ -8,7 +8,8 @@ const LiveStreamDetailModal = ({
   onStartStream, 
   onEndStream, 
   onCancelStream,
-  onEditStream
+  onEditStream,
+  apiBaseUrl
 }) => {
   const [activeTab, setActiveTab] = useState('info');
   const [isPlaying, setIsPlaying] = useState(false);
@@ -16,6 +17,9 @@ const LiveStreamDetailModal = ({
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [localLivestream, setLocalLivestream] = useState(null);
+  
+  // Utiliser l'URL de base passée en prop ou l'URL par défaut
+  const baseUrl = apiBaseUrl || process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
   
   // Réinitialiser les états lorsque le livestream change
   useEffect(() => {
@@ -31,20 +35,29 @@ const LiveStreamDetailModal = ({
     try {
       setLoadingComments(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/livestreams/${localLivestream._id}/comments`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      if (!token) {
+        console.error("Token d'authentification non trouvé");
+        setLoadingComments(false);
+        return;
+      }
+      
+      const response = await fetch(`${baseUrl}/api/livestreams/${localLivestream._id}/comments`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
       
       if (response.ok) {
         const data = await response.json();
         setComments(data.data || []);
       } else {
-        const errorData = await response.json();
-        console.error('Erreur API:', errorData);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Erreur API:', errorData.message || 'Échec de la récupération des commentaires');
       }
-      setLoadingComments(false);
     } catch (error) {
       console.error('Erreur lors du chargement des commentaires:', error);
+    } finally {
       setLoadingComments(false);
     }
   };
@@ -61,14 +74,19 @@ const LiveStreamDetailModal = ({
   // Formater la date
   const formatDate = (dateString) => {
     if (!dateString) return 'Non définie';
-    const options = { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric', 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    };
-    return new Date(dateString).toLocaleDateString('fr-FR', options);
+    try {
+      const options = { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      };
+      return new Date(dateString).toLocaleDateString('fr-FR', options);
+    } catch (error) {
+      console.error('Erreur lors du formatage de la date:', error);
+      return 'Date invalide';
+    }
   };
 
   // Formater la durée totale
@@ -77,7 +95,7 @@ const LiveStreamDetailModal = ({
     
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
+    const remainingSeconds = Math.floor(seconds % 60);
     
     if (hours > 0) {
       return `${hours}h ${minutes}m ${remainingSeconds}s`;
@@ -164,16 +182,24 @@ const LiveStreamDetailModal = ({
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/livestreams/${localLivestream._id}/comments/${commentId}`, {
+      if (!token) {
+        console.error("Token d'authentification non trouvé");
+        return;
+      }
+      
+      const response = await fetch(`${baseUrl}/api/livestreams/${localLivestream._id}/comments/${commentId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
       
       if (response.ok) {
         // Mettre à jour l'UI
         setComments(prev => prev.filter(comment => comment._id !== commentId));
       } else {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ message: 'Erreur serveur' }));
         throw new Error(errorData.message || 'Échec de la suppression');
       }
     } catch (error) {
@@ -187,7 +213,12 @@ const LiveStreamDetailModal = ({
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/livestreams/${localLivestream._id}/ban-user`, {
+      if (!token) {
+        console.error("Token d'authentification non trouvé");
+        return;
+      }
+      
+      const response = await fetch(`${baseUrl}/api/livestreams/${localLivestream._id}/ban-user`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -200,11 +231,44 @@ const LiveStreamDetailModal = ({
         // Mettre à jour l'UI
         setComments(prev => prev.filter(comment => comment.userId?._id !== userId));
       } else {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ message: 'Erreur serveur' }));
         throw new Error(errorData.message || 'Échec du bannissement');
       }
     } catch (error) {
       console.error('Erreur lors du bannissement de l\'utilisateur:', error);
+    }
+  };
+
+  // Mettre à jour les paramètres du chat
+  const updateChatSettings = async (chatEnabled) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error("Token d'authentification non trouvé");
+        return;
+      }
+      
+      const response = await fetch(`${baseUrl}/api/livestreams/${localLivestream._id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ chatEnabled })
+      });
+      
+      if (response.ok) {
+        // Mise à jour locale du livestream
+        setLocalLivestream({
+          ...localLivestream,
+          chatEnabled
+        });
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Erreur serveur' }));
+        console.error('Erreur lors de la mise à jour des paramètres du chat:', errorData.message);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour des paramètres du chat:', error);
     }
   };
 
@@ -304,29 +368,7 @@ const LiveStreamDetailModal = ({
             <div className={styles.moderationControls}>
               <button 
                 className={styles.moderationButton}
-                onClick={async () => {
-                  try {
-                    const token = localStorage.getItem('token');
-                    const response = await fetch(`/api/livestreams/${localLivestream._id}`, {
-                      method: 'PUT',
-                      headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                      },
-                      body: JSON.stringify({ chatEnabled: false })
-                    });
-                    
-                    if (response.ok) {
-                      // Mise à jour locale du livestream
-                      setLocalLivestream({
-                        ...localLivestream,
-                        chatEnabled: false
-                      });
-                    }
-                  } catch (error) {
-                    console.error('Erreur lors de la désactivation du chat:', error);
-                  }
-                }}
+                onClick={() => updateChatSettings(false)}
               >
                 <i className="fas fa-comment-slash"></i> Désactiver le chat
               </button>
@@ -397,29 +439,7 @@ const LiveStreamDetailModal = ({
             <p>Le chat est actuellement désactivé</p>
             <button 
               className={styles.enableChatButton}
-              onClick={async () => {
-                try {
-                  const token = localStorage.getItem('token');
-                  const response = await fetch(`/api/livestreams/${localLivestream._id}`, {
-                    method: 'PUT',
-                    headers: {
-                      'Authorization': `Bearer ${token}`,
-                      'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ chatEnabled: true })
-                  });
-                  
-                  if (response.ok) {
-                    // Mise à jour locale du livestream
-                    setLocalLivestream({
-                      ...localLivestream,
-                      chatEnabled: true
-                    });
-                  }
-                } catch (error) {
-                  console.error('Erreur lors de l\'activation du chat:', error);
-                }
-              }}
+              onClick={() => updateChatSettings(true)}
             >
               <i className="fas fa-comment"></i> Activer le chat
             </button>
@@ -637,7 +657,7 @@ const LiveStreamDetailModal = ({
               </div>
             </div>
             
-            {localLivestream.status === 'SCHEDULED' && (
+            {localLivestream.status === 'SCHEDULED' && localLivestream.streamKey && (
               <div className={styles.streamKeySection}>
                 <h4>Clé de streaming</h4>
                 <div className={styles.streamKeyContainer}>
@@ -696,7 +716,7 @@ const LiveStreamDetailModal = ({
                 </div>
                 
                 <div className={styles.infoMetaItem}>
-                  <i className="fas fa-tag"></i> Catégorie: {localLivestream.category.replace(/_/g, ' ')}
+                  <i className="fas fa-tag"></i> Catégorie: {localLivestream.category ? localLivestream.category.replace(/_/g, ' ') : 'Non définie'}
                 </div>
                 
                 {isCompilation && (

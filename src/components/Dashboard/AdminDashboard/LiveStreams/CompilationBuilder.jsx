@@ -13,7 +13,7 @@ const CompilationBuilder = ({ selectedVideos, onRemoveVideo, onReorderVideos }) 
       selectedVideos.forEach(video => {
         // Convertir la durée en secondes
         const duration = video.duration || '0:00';
-        const parts = duration.split(':').map(part => parseInt(part));
+        const parts = duration.split(':').map(part => parseInt(part, 10) || 0);
         
         if (parts.length === 3) { // format h:m:s
           total += parts[0] * 3600 + parts[1] * 60 + parts[2];
@@ -34,7 +34,7 @@ const CompilationBuilder = ({ selectedVideos, onRemoveVideo, onReorderVideos }) 
   const formatTotalDuration = () => {
     const hours = Math.floor(totalDuration / 3600);
     const minutes = Math.floor((totalDuration % 3600) / 60);
-    const seconds = totalDuration % 60;
+    const seconds = Math.floor(totalDuration % 60);
     
     if (hours > 0) {
       return `${hours}h ${minutes}m ${seconds}s`;
@@ -51,12 +51,16 @@ const CompilationBuilder = ({ selectedVideos, onRemoveVideo, onReorderVideos }) 
     e.dataTransfer.effectAllowed = 'move';
     // Pour éviter l'apparence fantôme pendant le drag
     setTimeout(() => {
-      e.target.classList.add(styles.dragging);
+      if (e.target && e.target.classList) {
+        e.target.classList.add(styles.dragging);
+      }
     }, 0);
   };
 
   const handleDragEnd = (e) => {
-    e.target.classList.remove(styles.dragging);
+    if (e.target && e.target.classList) {
+      e.target.classList.remove(styles.dragging);
+    }
     setDraggedVideo(null);
   };
 
@@ -68,6 +72,16 @@ const CompilationBuilder = ({ selectedVideos, onRemoveVideo, onReorderVideos }) 
     if (draggedVideo !== null && draggedVideo !== index) {
       onReorderVideos(draggedVideo, index);
       setDraggedVideo(index);
+    }
+  };
+
+  // Fonction pour effacer toutes les vidéos
+  const clearAllVideos = () => {
+    if (selectedVideos.length > 0) {
+      // Confirmation avant suppression
+      if (window.confirm("Êtes-vous sûr de vouloir vider la compilation ?")) {
+        selectedVideos.forEach(v => onRemoveVideo(v.videoId));
+      }
     }
   };
 
@@ -148,7 +162,7 @@ const CompilationBuilder = ({ selectedVideos, onRemoveVideo, onReorderVideos }) 
           <div className={styles.compilationActions}>
             <button 
               className={styles.clearCompilationButton}
-              onClick={() => selectedVideos.forEach(v => onRemoveVideo(v.videoId))}
+              onClick={clearAllVideos}
             >
               <i className="fas fa-trash-alt"></i> Vider la compilation
             </button>

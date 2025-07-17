@@ -22,14 +22,19 @@ const LiveStreamList = ({
   // Formater la date pour l'affichage
   const formatDate = (dateString) => {
     if (!dateString) return 'Non définie';
-    const options = { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric', 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    };
-    return new Date(dateString).toLocaleDateString('fr-FR', options);
+    try {
+      const options = { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      };
+      return new Date(dateString).toLocaleDateString('fr-FR', options);
+    } catch (error) {
+      console.error('Erreur lors du formatage de la date:', error);
+      return 'Date invalide';
+    }
   };
   
   // Obtenir un badge coloré pour le statut
@@ -71,22 +76,27 @@ const LiveStreamList = ({
   
   // Calculer le temps restant avant le début
   const getTimeUntilStart = (startTime) => {
-    const now = new Date();
-    const start = new Date(startTime);
-    const diffMs = start - now;
-    
-    if (diffMs <= 0) return 'Maintenant';
-    
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (diffDays > 0) {
-      return `${diffDays}j ${diffHours}h`;
-    } else if (diffHours > 0) {
-      return `${diffHours}h ${diffMinutes}m`;
-    } else {
-      return `${diffMinutes}m`;
+    try {
+      const now = new Date();
+      const start = new Date(startTime);
+      const diffMs = start - now;
+      
+      if (diffMs <= 0) return 'Maintenant';
+      
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      
+      if (diffDays > 0) {
+        return `${diffDays}j ${diffHours}h`;
+      } else if (diffHours > 0) {
+        return `${diffHours}h ${diffMinutes}m`;
+      } else {
+        return `${diffMinutes}m`;
+      }
+    } catch (error) {
+      console.error('Erreur lors du calcul du temps restant:', error);
+      return 'Calcul impossible';
     }
   };
   

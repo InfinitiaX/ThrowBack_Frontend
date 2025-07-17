@@ -12,6 +12,9 @@ import VideoUrlImport from './VideoUrlImport';
 import CompilationBuilder from './CompilationBuilder';
 import LiveStreamScheduler from './LiveStreamScheduler';
 
+// Configuration des URLs
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+
 const AdminLiveThrowback = () => {
   // État principal
   const [liveStreams, setLiveStreams] = useState([]);
@@ -48,11 +51,23 @@ const AdminLiveThrowback = () => {
     categories: []
   });
 
+  // Obtenir le token d'authentification
+  const getAuthToken = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('Token d\'authentification non trouvé');
+      setError('Vous n\'êtes pas authentifié. Veuillez vous reconnecter.');
+      return null;
+    }
+    return token;
+  };
+
   // Charger les diffusions et statistiques
   const fetchLiveStreams = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
+      if (!token) return;
       
       // Construire la requête avec filtres
       const params = new URLSearchParams();
@@ -62,11 +77,17 @@ const AdminLiveThrowback = () => {
       params.append('page', currentPage);
       params.append('limit', 12);
       
-      const response = await fetch(`/api/livestreams/admin/all?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await fetch(`${API_BASE_URL}/api/livestreams/admin/all?${params.toString()}`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
       
-      if (!response.ok) throw new Error('Échec de la récupération des livestreams');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Erreur serveur' }));
+        throw new Error(errorData.message || 'Échec de la récupération des livestreams');
+      }
       
       const data = await response.json();
       setLiveStreams(data.data || []);
@@ -77,7 +98,8 @@ const AdminLiveThrowback = () => {
         fetchStats();
       }
     } catch (err) {
-      setError(err.message);
+      console.error('Erreur fetchLiveStreams:', err);
+      setError(err.message || 'Échec de la récupération des livestreams');
     } finally {
       setLoading(false);
     }
@@ -86,25 +108,34 @@ const AdminLiveThrowback = () => {
   // Charger les statistiques
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/livestreams/admin/stats', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const token = getAuthToken();
+      if (!token) return;
+      
+      const response = await fetch(`${API_BASE_URL}/api/livestreams/admin/stats`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
       
-      if (!response.ok) return;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Erreur statistiques:', errorData.message || 'Échec de la récupération des statistiques');
+        return;
+      }
       
       const data = await response.json();
       if (data.success) {
         // Formater les stats pour l'affichage
-        const liveCount = data.data.byStatus?.find(s => s._id === 'LIVE')?.count || 0;
-        const scheduledCount = data.data.byStatus?.find(s => s._id === 'SCHEDULED')?.count || 0;
+        const liveCount = data.data?.byStatus?.find(s => s._id === 'LIVE')?.count || 0;
+        const scheduledCount = data.data?.byStatus?.find(s => s._id === 'SCHEDULED')?.count || 0;
         
         setStats({
-          total: data.data.total || 0,
+          total: data.data?.total || 0,
           live: liveCount,
           scheduled: scheduledCount,
-          views: data.data.totalViews || 0,
-          categories: data.data.byCategory || []
+          views: data.data?.totalViews || 0,
+          categories: data.data?.byCategory || []
         });
       }
     } catch (err) {
@@ -159,7 +190,8 @@ const AdminLiveThrowback = () => {
     
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
+      if (!token) return;
       
       // Préparer les données pour l'API
       const compilationData = {
@@ -198,7 +230,7 @@ const AdminLiveThrowback = () => {
         }
       };
       
-      const response = await fetch('/api/livestreams', {
+      const response = await fetch(`${API_BASE_URL}/api/livestreams`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -208,7 +240,7 @@ const AdminLiveThrowback = () => {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ message: 'Erreur serveur' }));
         throw new Error(errorData.message || 'Échec de la création du LiveThrowback');
       }
       
@@ -222,7 +254,8 @@ const AdminLiveThrowback = () => {
       
       return newLiveStream.data;
     } catch (err) {
-      setError(err.message);
+      console.error('Erreur createLiveThrowback:', err);
+      setError(err.message || 'Échec de la création du LiveThrowback');
       return null;
     } finally {
       setLoading(false);
@@ -233,9 +266,10 @@ const AdminLiveThrowback = () => {
   const updateLiveStream = async (livestreamId, updatedData) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
+      if (!token) return;
       
-      const response = await fetch(`/api/livestreams/${livestreamId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/livestreams/${livestreamId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -245,7 +279,7 @@ const AdminLiveThrowback = () => {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ message: 'Erreur serveur' }));
         throw new Error(errorData.message || 'Échec de la mise à jour du LiveThrowback');
       }
       
@@ -260,6 +294,7 @@ const AdminLiveThrowback = () => {
       
       return updatedLiveStream.data;
     } catch (err) {
+      console.error('Erreur updateLiveStream:', err);
       throw err;
     } finally {
       setLoading(false);
@@ -297,8 +332,10 @@ const AdminLiveThrowback = () => {
   // Démarrer une diffusion
   const startLiveStream = async (id) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/livestreams/${id}/start`, {
+      const token = getAuthToken();
+      if (!token) return;
+      
+      const response = await fetch(`${API_BASE_URL}/api/livestreams/${id}/start`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -307,7 +344,7 @@ const AdminLiveThrowback = () => {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ message: 'Erreur serveur' }));
         throw new Error(errorData.message || 'Échec du démarrage de la diffusion');
       }
       
@@ -322,15 +359,18 @@ const AdminLiveThrowback = () => {
       
       fetchStats();
     } catch (err) {
-      setError(err.message);
+      console.error('Erreur startLiveStream:', err);
+      setError(err.message || 'Échec du démarrage de la diffusion');
     }
   };
 
   // Terminer une diffusion
   const endLiveStream = async (id) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/livestreams/${id}/end`, {
+      const token = getAuthToken();
+      if (!token) return;
+      
+      const response = await fetch(`${API_BASE_URL}/api/livestreams/${id}/end`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -339,7 +379,7 @@ const AdminLiveThrowback = () => {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ message: 'Erreur serveur' }));
         throw new Error(errorData.message || 'Échec de la fin de la diffusion');
       }
       
@@ -354,15 +394,18 @@ const AdminLiveThrowback = () => {
       
       fetchStats();
     } catch (err) {
-      setError(err.message);
+      console.error('Erreur endLiveStream:', err);
+      setError(err.message || 'Échec de la fin de la diffusion');
     }
   };
 
   // Annuler une diffusion
   const cancelLiveStream = async (id) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/livestreams/${id}/cancel`, {
+      const token = getAuthToken();
+      if (!token) return;
+      
+      const response = await fetch(`${API_BASE_URL}/api/livestreams/${id}/cancel`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -371,7 +414,7 @@ const AdminLiveThrowback = () => {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ message: 'Erreur serveur' }));
         throw new Error(errorData.message || 'Échec de l\'annulation de la diffusion');
       }
       
@@ -386,7 +429,8 @@ const AdminLiveThrowback = () => {
       
       fetchStats();
     } catch (err) {
-      setError(err.message);
+      console.error('Erreur cancelLiveStream:', err);
+      setError(err.message || 'Échec de l\'annulation de la diffusion');
     }
   };
 
@@ -399,6 +443,11 @@ const AdminLiveThrowback = () => {
   const applyFilters = (newFilters) => {
     setFilters(newFilters);
     setCurrentPage(1);
+  };
+
+  // Fonction pour fermer l'alerte d'erreur
+  const dismissError = () => {
+    setError('');
   };
 
   // Navigue entre les onglets
@@ -418,7 +467,10 @@ const AdminLiveThrowback = () => {
           
           <div className={styles.creationLayout}>
             <div className={styles.searchSection}>
-              <VideoUrlImport onVideoSelect={addVideoToCompilation} />
+              <VideoUrlImport 
+                onVideoSelect={addVideoToCompilation}
+                apiBaseUrl={API_BASE_URL}
+              />
             </div>
             
             <div className={styles.compilationSection}>
@@ -546,7 +598,7 @@ const AdminLiveThrowback = () => {
           <span>{error}</span>
           <button 
             className={styles.dismissButton}
-            onClick={() => setError('')}
+            onClick={dismissError}
           >
             <i className="fas fa-times"></i>
           </button>
@@ -566,6 +618,7 @@ const AdminLiveThrowback = () => {
           livestreamId={selectedLiveStream._id}
           livestreamTitle={selectedLiveStream.title}
           onLiveStreamDeleted={handleLiveStreamDeleted}
+          apiBaseUrl={API_BASE_URL}
         />
       )}
       
@@ -581,6 +634,7 @@ const AdminLiveThrowback = () => {
           onEndStream={endLiveStream}
           onCancelStream={cancelLiveStream}
           onEditStream={handleEdit}
+          apiBaseUrl={API_BASE_URL}
         />
       )}
       
@@ -593,6 +647,7 @@ const AdminLiveThrowback = () => {
           }}
           livestream={selectedLiveStream}
           onSave={updateLiveStream}
+          apiBaseUrl={API_BASE_URL}
         />
       )}
     </div>

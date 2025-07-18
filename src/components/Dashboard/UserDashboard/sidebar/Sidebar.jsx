@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+// Sidebar user corrigé pour iOS
+// This file contains the sidebar component for the user dashboard
+import React, { useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import Logo from '../../../../images/Logo.png';
@@ -25,17 +27,11 @@ import {
 
 // Main navigation items
 const navItems = [
-  //  { 
-  //   label: 'Home', 
-  //   to: '/dashboard/home', 
-  //   icon: faHome
-  // },
   { 
     label: 'LiveThrowBack', 
     to: '/dashboard/live', 
     icon: faBroadcastTower
   },
-
   { 
     label: 'ThrowBack Videos', 
     to: '/dashboard/videos', 
@@ -52,7 +48,6 @@ const navItems = [
     to: '/dashboard/podcast', 
     icon: faPodcast 
   },
-
   { 
     label: 'ThrowBack Wall', 
     to: '/dashboard/wall', 
@@ -63,7 +58,6 @@ const navItems = [
     to: '/dashboard/chat', 
     icon: faComments 
   },
-  
   { 
     label: 'Profile', 
     to: '/dashboard/profile', 
@@ -93,53 +87,120 @@ const libraryItems = [
     to : '/dashboard/favorites/',
     icon : faBookmark
   }
-
 ];
 
 const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const sidebarRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [internalIsOpen, setInternalIsOpen] = useState(isOpen);
 
-  // Détection des gestes de swipe
+  // Détecter si on est sur mobile
   useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Synchroniser l'état interne avec les props
+  useEffect(() => {
+    setInternalIsOpen(isOpen);
+  }, [isOpen]);
+
+  // Écouter les événements personnalisés comme le sidebar admin
+  useEffect(() => {
+    const handleMobileToggle = (event) => {
+      if (isMobile) {
+        setInternalIsOpen(event.detail.isOpen);
+      }
+    };
+
+    window.addEventListener('toggleMobileSidebar', handleMobileToggle);
+    return () => {
+      window.removeEventListener('toggleMobileSidebar', handleMobileToggle);
+    };
+  }, [isMobile]);
+
+  // Gestion des gestes swipe améliorée pour iOS
+  useEffect(() => {
+    if (!isMobile) return;
+
     let touchStartX = 0;
+    let touchStartY = 0;
     let touchEndX = 0;
+    let touchEndY = 0;
+    let isScrolling = false;
     
     const handleTouchStart = (event) => {
       touchStartX = event.touches[0].clientX;
+      touchStartY = event.touches[0].clientY;
+      isScrolling = false;
     };
     
     const handleTouchMove = (event) => {
+      if (!touchStartX || !touchStartY) return;
+      
       touchEndX = event.touches[0].clientX;
+      touchEndY = event.touches[0].clientY;
+      
+      const diffX = Math.abs(touchEndX - touchStartX);
+      const diffY = Math.abs(touchEndY - touchStartY);
+      
+      // Détecter si c'est un scroll vertical
+      if (diffY > diffX) {
+        isScrolling = true;
+        return;
+      }
+      
+      // Empêcher le comportement par défaut si c'est un swipe horizontal
+      if (diffX > 10 && !isScrolling) {
+        event.preventDefault();
+      }
     };
     
-    const handleTouchEnd = () => {
+    const handleTouchEnd = (event) => {
+      if (isScrolling) return;
+      
+      const diffX = touchStartX - touchEndX;
+      const diffY = Math.abs(touchStartY - touchEndY);
+      
+      // S'assurer que c'est un swipe horizontal
+      if (Math.abs(diffX) < 50 || diffY > 100) return;
+      
       // Swipe gauche (fermer sidebar si ouverte)
-      if (touchStartX - touchEndX > 50 && isOpen) {
-        toggleSidebar();
+      if (diffX > 0 && internalIsOpen) {
+        handleToggle();
       }
       // Swipe droit (ouvrir sidebar si fermée) - uniquement près du bord gauche
-      else if (touchEndX - touchStartX > 50 && !isOpen && touchStartX < 30) {
-        toggleSidebar();
+      else if (diffX < 0 && !internalIsOpen && touchStartX < 30) {
+        handleToggle();
       }
       
       // Réinitialiser
       touchStartX = 0;
+      touchStartY = 0;
       touchEndX = 0;
+      touchEndY = 0;
     };
 
-    // Ajouter la détection de swipe sur la sidebar
+    // Ajouter les événements avec options pour iOS
+    const options = { passive: false };
+    
     if (sidebarRef.current) {
-      sidebarRef.current.addEventListener('touchstart', handleTouchStart);
-      sidebarRef.current.addEventListener('touchmove', handleTouchMove);
-      sidebarRef.current.addEventListener('touchend', handleTouchEnd);
+      sidebarRef.current.addEventListener('touchstart', handleTouchStart, options);
+      sidebarRef.current.addEventListener('touchmove', handleTouchMove, options);
+      sidebarRef.current.addEventListener('touchend', handleTouchEnd, options);
     }
 
-    // Ajouter la détection de swipe sur le document pour l'ouverture
-    document.addEventListener('touchstart', handleTouchStart);
-    document.addEventListener('touchmove', handleTouchMove);
-    document.addEventListener('touchend', handleTouchEnd);
+    // Événements sur document pour l'ouverture depuis le bord
+    document.addEventListener('touchstart', handleTouchStart, options);
+    document.addEventListener('touchmove', handleTouchMove, options);
+    document.addEventListener('touchend', handleTouchEnd, options);
     
     return () => {
       if (sidebarRef.current) {
@@ -151,7 +212,59 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [isOpen, toggleSidebar]);
+  }, [isMobile, internalIsOpen]);
+
+  const handleToggle = () => {
+    if (isMobile) {
+      const newState = !internalIsOpen;
+      setInternalIsOpen(newState);
+      
+      // Dispatcher l'événement pour les autres composants
+      window.dispatchEvent(
+        new CustomEvent('toggleMobileSidebar', { 
+          detail: { isOpen: newState } 
+        })
+      );
+      
+      // Appeler aussi la fonction parent
+      if (toggleSidebar) {
+        toggleSidebar();
+      }
+    } else {
+      // Desktop - collapse/expand
+      if (toggleCollapse) {
+        toggleCollapse();
+      }
+    }
+  };
+
+  const handleLinkClick = () => {
+    if (isMobile && internalIsOpen) {
+      setInternalIsOpen(false);
+      window.dispatchEvent(
+        new CustomEvent('toggleMobileSidebar', { 
+          detail: { isOpen: false } 
+        })
+      );
+      if (toggleSidebar) {
+        toggleSidebar();
+      }
+    }
+  };
+
+  const handleOverlayClick = () => {
+    if (isMobile) {
+      setInternalIsOpen(false);
+      window.dispatchEvent(
+        new CustomEvent('toggleMobileSidebar', { 
+          detail: { isOpen: false } 
+        })
+      );
+      if (toggleSidebar) {
+        toggleSidebar();
+      }
+    }
+  };
 
   const isActive = (path, exact = false) => {
     if (exact) {
@@ -163,17 +276,22 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
   return (
     <>
       {/* Mobile overlay */}
-      {isOpen && (
+      {isMobile && internalIsOpen && (
         <div 
           className={styles.overlay} 
-          onClick={toggleSidebar}
+          onClick={handleOverlayClick}
           aria-hidden="true"
-        ></div>
+        />
       )}
       
       <aside 
         ref={sidebarRef}
-        className={`${styles.sidebar} ${isOpen ? styles.open : ''} ${isCollapsed ? styles.collapsed : ''}`}
+        className={`
+          ${styles.sidebar} 
+          ${internalIsOpen && isMobile ? styles.open : ''} 
+          ${isCollapsed && !isMobile ? styles.collapsed : ''}
+          ${isMobile ? styles.mobile : ''}
+        `}
       >
         <div className={styles.sidebarHeader}>
           <div className={styles.logoWrap}>
@@ -186,7 +304,7 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
           </div>
           <button 
             className={styles.closeBtn} 
-            onClick={toggleSidebar} 
+            onClick={handleToggle} 
             aria-label="Close menu"
           >
             <FontAwesomeIcon icon={faTimes} />
@@ -206,12 +324,7 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
               className={({ isActive: navIsActive }) =>
                 `${styles.navItem} ${isActive(to, exact) ? styles.active : ''}`
               }
-              onClick={() => {
-                // Ferme le sidebar sur mobile lors d'un clic sur un lien
-                if (window.innerWidth <= 768) {
-                  toggleSidebar();
-                }
-              }}
+              onClick={handleLinkClick}
             >
               <span className={styles.icon}>
                 <FontAwesomeIcon icon={icon} />
@@ -221,7 +334,7 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
           ))}
         </nav>
         
-        {/* Library Section - Affichée uniquement si des éléments existent */}
+        {/* Library Section */}
         {libraryItems.length > 0 && (
           <div className={styles.librarySection}>
             <div className={styles.sectionTitle}>
@@ -235,11 +348,7 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
                 className={({ isActive: navIsActive }) =>
                   `${styles.navItem} ${styles.libraryItem} ${isActive(to) ? styles.active : ''}`
                 }
-                onClick={() => {
-                  if (window.innerWidth <= 768) {
-                    toggleSidebar();
-                  }
-                }}
+                onClick={handleLinkClick}
               >
                 <span className={styles.icon}>
                   <FontAwesomeIcon icon={icon} />
@@ -251,13 +360,15 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
         )}
         
         {/* Toggle Button - Visible uniquement sur desktop */}
-        <button 
-          className={styles.toggleBtn}
-          onClick={toggleCollapse}
-          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          <FontAwesomeIcon icon={isCollapsed ? faChevronRight : faChevronLeft} />
-        </button>
+        {!isMobile && (
+          <button 
+            className={styles.toggleBtn}
+            onClick={handleToggle}
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <FontAwesomeIcon icon={isCollapsed ? faChevronRight : faChevronLeft} />
+          </button>
+        )}
         
         <div className={styles.sidebarFooter}>
           <p className={styles.copyright}>© {new Date().getFullYear()} ThrowBack</p>

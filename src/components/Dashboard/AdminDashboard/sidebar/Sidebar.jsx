@@ -7,7 +7,7 @@ import styles from './Sidebar.module.css';
 const Sidebar = ({ collapsed, onToggle, isMobile = false }) => {
   const location = useLocation();
   const [currentPath, setCurrentPath] = useState('');
-  const [isOpen, setIsOpen] = useState(false); // Pour mobile
+  const [isOpen, setIsOpen] = useState(false); 
   
   // Mettre à jour le chemin actuel quand la location change
   useEffect(() => {

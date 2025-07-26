@@ -16,7 +16,7 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [timeRange, setTimeRange] = useState('week'); // 'week', 'month', 'year'
+  const [timeRange, setTimeRange] = useState('week');
   const [debugInfo, setDebugInfo] = useState(null);
 
   useEffect(() => {

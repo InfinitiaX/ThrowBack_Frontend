@@ -5,6 +5,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/Common/PrivateRoute';
 import ApiRedirect from './components/Common/ApiRedirect';
 import PrivateAdminRoute from './components/Common/PrivateAdminRoute';
+import UserTempPage from './components/Common/UserTempPage';
 
 // Pages
 import Login from './components/Login';
@@ -32,7 +33,6 @@ import PlaylistForm from './components/Dashboard/UserDashboard/Playlists/Playlis
 import PlaylistPlayer from './components/Dashboard/UserDashboard/Playlists/PlaylistPlayer';
 import Search from './components/Dashboard/UserDashboard/Search/Search';
 
-
 // Admin Dashboard
 import AdminDashboard from './components/Dashboard/AdminDashboard';
 import Dashboard from './components/Dashboard/AdminDashboard/Dashboard';
@@ -46,8 +46,6 @@ import AdminLivethrowback from './components/Dashboard/AdminDashboard/LiveStream
 import Playlists from './components/Dashboard/AdminDashboard/Playlists';
 import PlaylistDetail from './components/Dashboard/AdminDashboard/Playlists/PlaylistDetail';
 import PlaylistEdit from './components/Dashboard/AdminDashboard/Playlists/PlaylistEdit';
-
-; 
 
 // Composants temporaires pour les pages admin
 const TempPage = ({ title }) => (
@@ -80,32 +78,30 @@ function App() {
               <DashboardLayout />
             </PrivateRoute>
           }>
-            {/* /dashboard affiche un Home par défaut */}
-            <Route  index element={<LiveThrowback />} />
-            {/* /dashboard/profile affiche ta page profil */}
-            {/* <Route path="live" element={<LiveThrowback />} /> */}
+            {/* /dashboard affiche LiveThrowback par défaut */}
+            <Route index element={<LiveThrowback />} />
+            
+            {/* Routes existantes */}
             <Route path="profile" element={<ProfilePage />} />
             <Route path="settings" element={<Settings />} />
             <Route path="shorts" element={<Shorts />} />
             <Route path="podcast" element={<WeeklyPodcast />} />
             <Route path="podcast/:id" element={<PodcastDetail />} />
-            
-            {/* Routes pour le module ThrowbackVideos */}
             <Route path="videos" element={<ThrowbackVideos />} />
             <Route path="videos/:id" element={<VideoDetail />} />
-
-            {/* Routes pour les playlists */}
             <Route path="playlists" element={<UserPlaylists />} />
             <Route path="playlists/:id" element={<UserPlaylistDetail />} />
             <Route path="playlists/new" element={<PlaylistForm />} />
             <Route path="playlists/:id/edit" element={<PlaylistForm />} />
             <Route path="playlists/:id/play" element={<PlaylistPlayer />} />
-
-                      {/* Ajouter la route de recherche */}
             <Route path="search" element={<Search />} />
             
-            
-            {/* tu peux ajouter d'autres sous-routes ici */}
+            {/* Ajouter les routes manquantes avec pages temporaires */}
+            <Route path="live" element={<LiveThrowback />} /> {/* Redirection vers la même page que l'index */}
+            <Route path="wall" element={<UserTempPage title="ThrowBack Wall" />} />
+            <Route path="chat" element={<UserTempPage title="ThrowBack Chat" />} />
+            <Route path="discover" element={<UserTempPage title="Discover" />} />
+            <Route path="favorites" element={<UserTempPage title="Your Favorites" />} />
           </Route>
 
           {/* Admin Dashboard */}
@@ -134,13 +130,11 @@ function App() {
             {/* Gestion des podcasts */}
             <Route path="podcasts" element={<AdminPodcasts />} />
             
-
             {/* Gestion des playlists */}
             <Route path="playlists" element={<Playlists />} />
             <Route path="playlists/:id" element={<PlaylistDetail />} />
             <Route path="playlists/:id/edit" element={<PlaylistEdit />} />
             <Route path="playlists/new" element={<PlaylistEdit />} />
-
             
             {/* Modération */}
             <Route path="comments" element={<TempPage title="Modération des Commentaires" />} />

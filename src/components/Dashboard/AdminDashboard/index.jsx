@@ -69,7 +69,7 @@ const AdminLayout = () => {
         className={styles.mainContent}
         style={{
           marginLeft: isMobile ? '0' : (sidebarCollapsed ? '60px' : '240px'),
-          marginTop: '60px' // Header height
+          marginTop: '60px' 
         }}
       >
         <div className={styles.contentWrapper}>

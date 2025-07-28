@@ -1,5 +1,5 @@
 // src/components/Dashboard/UserDashboard/Sidebar.jsx
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import Logo from '../../../../images/Logo.png';
@@ -24,7 +24,7 @@ import {
   faUserFriends,
 } from '@fortawesome/free-solid-svg-icons';
 
-// Main navigation items (sans modification)
+// Main navigation items
 const navItems = [
   { 
     label: 'LiveThrowBack', 
@@ -66,7 +66,7 @@ const navItems = [
   },
 ];
 
-// Éléments de la section Bibliothèque (sans modification)
+// Éléments de la section Bibliothèque
 const libraryItems = [
   {
     label: 'Your Playlists',
@@ -96,81 +96,45 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const sidebarRef = useRef(null);
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
-  
-  // Détection si l'appareil est tactile
-  useEffect(() => {
-    setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
-  }, []);
 
-  // Détection d'iOS
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-
-  // Détection des gestes de swipe améliorée
+  // Détection des gestes de swipe
   useEffect(() => {
-    if (!isTouchDevice) return;
-    
     let touchStartX = 0;
-    let touchStartY = 0;
     let touchEndX = 0;
-    let touchEndY = 0;
-    let isSwiping = false;
     
     const handleTouchStart = (event) => {
       touchStartX = event.touches[0].clientX;
-      touchStartY = event.touches[0].clientY;
-      isSwiping = false;
     };
     
     const handleTouchMove = (event) => {
       touchEndX = event.touches[0].clientX;
-      touchEndY = event.touches[0].clientY;
-      
-      // Détection horizontale vs verticale pour éviter les conflits avec le défilement
-      const deltaX = Math.abs(touchEndX - touchStartX);
-      const deltaY = Math.abs(touchEndY - touchStartY);
-      
-      // Si le mouvement est plus horizontal que vertical et significatif
-      if (deltaX > deltaY && deltaX > 30) {
-        isSwiping = true;
-      }
     };
     
-    const handleTouchEnd = (event) => {
-      // Seulement traiter les swipes, pas les taps
-      if (!isSwiping) return;
-      
+    const handleTouchEnd = () => {
       // Swipe gauche (fermer sidebar si ouverte)
       if (touchStartX - touchEndX > 50 && isOpen) {
         toggleSidebar();
-        // Empêcher le clic après swipe sur iOS
-        event.preventDefault();
       }
       // Swipe droit (ouvrir sidebar si fermée) - uniquement près du bord gauche
       else if (touchEndX - touchStartX > 50 && !isOpen && touchStartX < 30) {
         toggleSidebar();
-        // Empêcher le clic après swipe sur iOS
-        event.preventDefault();
       }
       
       // Réinitialiser
       touchStartX = 0;
-      touchStartY = 0;
       touchEndX = 0;
-      touchEndY = 0;
-      isSwiping = false;
     };
 
     // Ajouter la détection de swipe sur la sidebar
     if (sidebarRef.current) {
-      sidebarRef.current.addEventListener('touchstart', handleTouchStart, { passive: true });
-      sidebarRef.current.addEventListener('touchmove', handleTouchMove, { passive: true });
+      sidebarRef.current.addEventListener('touchstart', handleTouchStart);
+      sidebarRef.current.addEventListener('touchmove', handleTouchMove);
       sidebarRef.current.addEventListener('touchend', handleTouchEnd);
     }
 
     // Ajouter la détection de swipe sur le document pour l'ouverture
-    document.addEventListener('touchstart', handleTouchStart, { passive: true });
-    document.addEventListener('touchmove', handleTouchMove, { passive: true });
+    document.addEventListener('touchstart', handleTouchStart);
+    document.addEventListener('touchmove', handleTouchMove);
     document.addEventListener('touchend', handleTouchEnd);
     
     return () => {
@@ -183,30 +147,13 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [isOpen, toggleSidebar, isTouchDevice]);
+  }, [isOpen, toggleSidebar]);
 
   const isActive = (path, exact = false) => {
     if (exact) {
       return location.pathname === path;
     }
     return location.pathname.startsWith(path);
-  };
-  
-  // Gestionnaire de navigation optimisé pour iOS
-  const handleNavigation = (to) => {
-    navigate(to);
-    
-    // Ferme la sidebar sur mobile
-    if (window.innerWidth <= 768) {
-      // Délai pour iOS pour éviter les conflits d'événements
-      if (isIOS) {
-        setTimeout(() => {
-          toggleSidebar();
-        }, 50);
-      } else {
-        toggleSidebar();
-      }
-    }
   };
 
   return (
@@ -222,20 +169,15 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
       
       <aside 
         ref={sidebarRef}
-        className={`${styles.sidebar} ${isOpen ? styles.open : ''} ${isCollapsed ? styles.collapsed : ''} ${isIOS ? styles.iosFix : ''}`}
+        className={`${styles.sidebar} ${isOpen ? styles.open : ''} ${isCollapsed ? styles.collapsed : ''}`}
       >
         <div className={styles.sidebarHeader}>
-          <div 
-            className={styles.logoWrap} 
-            onClick={() => handleNavigation('/dashboard')}
-            role="button"
-            tabIndex={0}
-            aria-label="Go to dashboard"
-          >
+          <div className={styles.logoWrap}>
             <img 
               src={Logo} 
               alt="ThrowBack" 
-              className={styles.logo}
+              className={styles.logo} 
+              onClick={() => navigate('/dashboard')}
             />
           </div>
           <button 
@@ -254,22 +196,24 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
           </div>
           
           {navItems.map(({ label, to, icon, exact, inDevelopment }) => (
-            <div
+            <NavLink
               key={label}
-              className={`${styles.navItemWrapper} ${isActive(to, exact) ? styles.activeWrapper : ''} ${inDevelopment ? styles.inDevelopmentWrapper : ''}`}
-              onClick={() => handleNavigation(to)}
-              role="button"
-              tabIndex={0}
+              to={to}
+              className={({ isActive: navIsActive }) =>
+                `${styles.navItem} ${isActive(to, exact) ? styles.active : ''} ${inDevelopment ? styles.inDevelopment : ''}`
+              }
+              onClick={() => {
+                // Ferme le sidebar sur mobile lors d'un clic sur un lien
+                if (window.innerWidth <= 768) {
+                  toggleSidebar();
+                }
+              }}
             >
-              <div 
-                className={`${styles.navItem} ${isActive(to, exact) ? styles.active : ''} ${inDevelopment ? styles.inDevelopment : ''}`}
-              >
-                <span className={styles.icon}>
-                  <FontAwesomeIcon icon={icon} />
-                </span>
-                <span className={styles.label}>{label}</span>
-              </div>
-            </div>
+              <span className={styles.icon}>
+                <FontAwesomeIcon icon={icon} />
+              </span>
+              <span className={styles.label}>{label}</span>
+            </NavLink>
           ))}
         </nav>
         
@@ -281,22 +225,23 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
             </div>
             
             {libraryItems.map(({ label, to, icon, inDevelopment }) => (
-              <div
+              <NavLink
                 key={label}
-                className={`${styles.navItemWrapper} ${styles.libraryItemWrapper} ${isActive(to) ? styles.activeWrapper : ''} ${inDevelopment ? styles.inDevelopmentWrapper : ''}`}
-                onClick={() => handleNavigation(to)}
-                role="button"
-                tabIndex={0}
+                to={to}
+                className={({ isActive: navIsActive }) =>
+                  `${styles.navItem} ${styles.libraryItem} ${isActive(to) ? styles.active : ''} ${inDevelopment ? styles.inDevelopment : ''}`
+                }
+                onClick={() => {
+                  if (window.innerWidth <= 768) {
+                    toggleSidebar();
+                  }
+                }}
               >
-                <div 
-                  className={`${styles.navItem} ${styles.libraryItem} ${isActive(to) ? styles.active : ''} ${inDevelopment ? styles.inDevelopment : ''}`}
-                >
-                  <span className={styles.icon}>
-                    <FontAwesomeIcon icon={icon} />
-                  </span>
-                  <span className={styles.label}>{label}</span>
-                </div>
-              </div>
+                <span className={styles.icon}>
+                  <FontAwesomeIcon icon={icon} />
+                </span>
+                <span className={styles.label}>{label}</span>
+              </NavLink>
             ))}
           </div>
         )}

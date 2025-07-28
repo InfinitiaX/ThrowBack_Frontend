@@ -15,6 +15,14 @@
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   overscroll-behavior: contain; 
   -webkit-overflow-scrolling: touch; 
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* iOS specific fixes */
+.iosFix {
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 /* Amélioration du scroll */
@@ -72,6 +80,7 @@
   text-align: center;
   flex: 1;
   cursor: pointer; /* Indication que le logo est cliquable */
+  -webkit-tap-highlight-color: rgba(0,0,0,0); /* Supprime l'effet de tap sur iOS */
 }
 
 .logo {
@@ -93,6 +102,7 @@
   height: 36px;
   border-radius: 50%;
   transition: background-color 0.2s;
+  -webkit-tap-highlight-color: rgba(0,0,0,0); /* Supprime l'effet de tap sur iOS */
 }
 
 .closeBtn:hover {
@@ -118,23 +128,38 @@
   height: 32px;
 }
 
+/* Wrapper pour les éléments de navigation pour améliorer la zone cliquable */
+.navItemWrapper {
+  margin: 2px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(0,0,0,0); /* Supprime l'effet de tap sur iOS */
+  transition: background-color 0.2s ease;
+}
+
+.navItemWrapper:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.activeWrapper {
+  background: white;
+}
+
+.activeWrapper:hover {
+  background: white;
+}
+
 .navItem {
   display: flex;
   align-items: center;
   padding: 12px 20px;
-  margin: 2px 8px;
   color: white;
   text-decoration: none;
   font-weight: 500;
   font-size: 14px;
-  border-radius: 8px;
-  transition: all 0.2s ease;
   -webkit-tap-highlight-color: transparent; /* Supprime le highlight au tap sur mobile */
   touch-action: manipulation; /* Optimisation tactile */
-}
-
-.navItem:hover {
-  background: rgba(255, 255, 255, 0.1);
+  pointer-events: none; /* Important pour iOS - permet au parent de recevoir les clics */
 }
 
 .icon {
@@ -147,7 +172,6 @@
 }
 
 .active {
-  background: white;
   color: #8b0000;
   font-weight: 600;
 }
@@ -156,14 +180,14 @@
   color: #8b0000;
 }
 
-.active:hover {
-  background: white;
-}
-
 /* Styles pour les éléments en développement */
 .inDevelopment {
   opacity: 0.7;
   position: relative;
+}
+
+.inDevelopmentWrapper {
+  opacity: 0.7;
 }
 
 .inDevelopment::after {
@@ -175,6 +199,7 @@
   padding: 2px 6px;
   border-radius: 8px;
   color: white;
+  pointer-events: none;
 }
 
 /* Pour les écrans plus petits où il y a moins d'espace */
@@ -200,6 +225,10 @@
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.libraryItemWrapper {
+  cursor: pointer;
+}
+
 .libraryItem {
   padding: 10px 20px;
   font-size: 13px;
@@ -222,6 +251,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   z-index: 10;
+  -webkit-tap-highlight-color: rgba(0,0,0,0); /* Supprime l'effet de tap sur iOS */
 }
 
 .toggleBtn:hover {
@@ -295,6 +325,11 @@
     padding: 14px 20px;
     min-height: 44px; /* Recommandation d'accessibilité */
   }
+  
+  /* Augmenter la zone tactile pour iOS */
+  .navItemWrapper {
+    min-height: 44px;
+  }
 }
 
 /* Additional mobile styles for a more app-like experience */
@@ -311,8 +346,11 @@
   
   .navItem {
     padding: 14px 20px;
-    margin: 2px 12px;
     font-size: 16px;
+  }
+  
+  .navItemWrapper {
+    margin: 2px 12px;
   }
   
   .sectionTitle {

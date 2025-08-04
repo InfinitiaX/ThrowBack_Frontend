@@ -22,7 +22,7 @@ import {
   faUsers,
   faFilm
 } from '@fortawesome/free-solid-svg-icons';
-import Logo from '../../../../images/Logo.png';
+// import Logo from '../../../../images/Logo.png';
 import { useAuth } from '../../../../contexts/AuthContext';
 // Importer le service de recherche
 import { searchAPI } from '../../../../utils/api';
@@ -253,8 +253,8 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
         </button>
         
         <Link to="/dashboard" className={styles.logoLink}>
-          <img src={Logo} alt="ThrowBack" className={styles.logo} />
-          <span className={styles.logoText}>ThrowBack</span>
+          <img src='/images/Logo.png' alt="ThrowBack" className={styles.logo} />
+          <span className={styles.logoText}>ThrowBack Connect</span>
         </Link>
       </div>
 

@@ -335,8 +335,8 @@
 /* Additional mobile styles for a more app-like experience */
 @media (max-width: 480px) {
   .sidebar {
-    width: 85%; /* Pourcentage au lieu de pixels fixes */
-    max-width: 300px; /* Légèrement réduit */
+    width: 85%; 
+    max-width: 300px; 
     border-radius: 0 16px 16px 0;
   }
   

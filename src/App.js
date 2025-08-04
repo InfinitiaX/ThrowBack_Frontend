@@ -19,7 +19,7 @@ import LandingPage from './pages/LandingPage';
 // Dashboard
 import DashboardLayout from './components/Dashboard/UserDashboard/DashboardLayout';
 import ProfilePage from './components/Profile/Profile';          
-import DashboardHome from './components/Dashboard/UserDashboard/Home/Home'
+// import DashboardHome from './components/Dashboard/UserDashboard/Home/Home'
 import Settings from './components/Dashboard/UserDashboard/Settings/Settings';
 import Shorts from './components/Dashboard/UserDashboard/Short/Shorts';
 import WeeklyPodcast from './components/Dashboard/UserDashboard/PodCast/WeeklyPodcast';

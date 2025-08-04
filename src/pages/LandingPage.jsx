@@ -33,7 +33,7 @@ export default function LandingPage() {
           />
           
           <h1 className={styles.slogan}>
-            Throw Your Memories And Connect Through Oldies !
+            Your music. Let’s connect!
           </h1>
         </div>
         

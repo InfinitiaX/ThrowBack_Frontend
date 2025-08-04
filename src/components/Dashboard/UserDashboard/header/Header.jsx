@@ -22,7 +22,7 @@ import {
   faUsers,
   faFilm
 } from '@fortawesome/free-solid-svg-icons';
-import Logo from '../../../../images/Logo.png';
+import Logo from '../../../../../public/Logo.png';
 import { useAuth } from '../../../../contexts/AuthContext';
 // Importer le service de recherche
 import { searchAPI } from '../../../../utils/api';

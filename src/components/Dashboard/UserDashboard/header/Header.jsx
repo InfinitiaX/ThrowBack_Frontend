@@ -243,18 +243,18 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
   return (
     <header className={styles.header}>
       <div className={styles.headerLeft}>
-        <button 
+        {/* <button 
           className={`${styles.menuButton} ${isSidebarOpen ? styles.active : ''}`} 
           onClick={handleMenuButtonClick} 
           aria-label={isSidebarOpen ? "Close menu" : "Open menu"}
           title={isSidebarOpen ? "Close menu" : "Open menu"}
         >
           <FontAwesomeIcon icon={faBars} />
-        </button>
+        </button> */}
         
         <Link to="/dashboard" className={styles.logoLink}>
           <img src='/images/Logo.png' alt="ThrowBack" className={styles.logo} />
-          <span className={styles.logoText}>ThrowBack Connect</span>
+          {/* <span className={styles.logoText}>ThrowBack Connect</span> */}
         </Link>
       </div>
 

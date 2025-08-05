@@ -1,10 +1,8 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styles from './Shorts.module.css';
-import { 
-  FaHeart, FaShareAlt, FaStar, FaPlay, FaPause, FaTimes, 
-  FaVolumeUp, FaVolumeMute, FaComment, FaCloudUploadAlt,
-  FaExclamationTriangle, FaChevronDown, FaChevronLeft, FaChevronRight 
-} from 'react-icons/fa';
+import { FaHeart, FaShareAlt, FaStar, FaPlay, FaPause, FaTimes, 
+         FaVolumeUp, FaVolumeMute, FaComment, FaCloudUploadAlt, 
+         FaExclamationTriangle, FaChevronDown } from 'react-icons/fa';
 import axios from 'axios';
 
 // Configuration Axios avec intercepteurs
@@ -12,7 +10,7 @@ axios.interceptors.request.use(
   config => {
     // Ajouter l'URL de base si ce n'est pas déjà fait
     if (config.url && !config.url.startsWith('http')) {
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
       config.url = `${apiBaseUrl}${config.url}`;
     }
     
@@ -58,8 +56,11 @@ function getFullVideoUrl(path) {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   
   // Toujours utiliser une URL de base, jamais une chaîne vide
-  const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+  const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
   const fullUrl = `${backendUrl}${normalizedPath}`;
+  
+  // Pour déboguer
+  console.log("Video URL constructed:", fullUrl);
   
   return fullUrl;
 }
@@ -74,36 +75,26 @@ function formatTime(sec) {
 
 export default function Shorts() {
   // Index dynamique de la vidéo centrale (mise en avant)
-  const [centerIdx, setCenterIdx] = useState(0);
+  const [centerIdx, setCenterIdx] = useState(2);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ titre: '', artiste: '', description: '', video: null });
+  const [form, setForm] = useState({ titre: '', artiste: '', video: null });
   const [errDuree, setErrDuree] = useState('');
   const [shorts, setShorts] = useState([]);
   const videoRef = useRef();
   const centerVideoRef = useRef(null);
-  const carouselRef = useRef(null);
-  const [isCenterPaused, setIsCenterPaused] = useState(true);
+  const [isCenterPaused, setIsCenterPaused] = useState(false);
   const [isCenterPlaying, setIsCenterPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   
-  // États pour les animations et interactions
-  const [dragging, setDragging] = useState(false);
-  const [direction, setDirection] = useState(null);
-  const [transition, setTransition] = useState(false);
-  const [dragStart, setDragStart] = useState(0);
-  
-  // États pour l'upload et la pagination
+  // Nouveaux états pour gérer l'upload, pagination et commentaires
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMoreShorts, setHasMoreShorts] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isLoadingShorts, setIsLoadingShorts] = useState(true);
-  
-  // États pour les commentaires et interactions
   const [comments, setComments] = useState([]);
   const [commentInput, setCommentInput] = useState('');
   const [isCommentsVisible, setIsCommentsVisible] = useState(false);
@@ -111,109 +102,64 @@ export default function Shorts() {
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [isShareLoading, setIsShareLoading] = useState(false);
   const [feedback, setFeedback] = useState({ visible: false, message: '', type: '' });
-  const [dragActive, setDragActive] = useState(false);
 
-  // Fonction optimisée pour récupérer les shorts avec mécanisme de retry
   const fetchShorts = async () => {
     try {
       setIsLoadingShorts(true);
       
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
       
-      // Implémentation d'un mécanisme de retry
-      let attempts = 0;
-      const maxAttempts = 3;
-      let success = false;
-      let finalError;
-      let response;
+      console.log('Fetching shorts from:', `${apiBaseUrl}/api/videos`);
       
-      while (attempts < maxAttempts && !success) {
-        try {
-          attempts++;
-          console.log(`Tentative ${attempts} de récupération des shorts...`);
-          
-          response = await axios.get(`${apiBaseUrl}/api/videos`, {
-            params: {
-              type: 'short',
-              page: 1,
-              limit: 10
-            },
-            timeout: 10000 * attempts, // Augmenter le timeout à chaque tentative
-            withCredentials: true
-          });
-          
-          success = true;
-          
-        } catch (err) {
-          console.error(`Erreur tentative ${attempts}:`, err);
-          finalError = err;
-          
-          // Attendre avant de réessayer (backoff exponentiel)
-          if (attempts < maxAttempts) {
-            const delay = 1000 * Math.pow(2, attempts - 1); // 1s, 2s, 4s...
-            await new Promise(resolve => setTimeout(resolve, delay));
-          }
-        }
-      }
+      const res = await axios.get(`${apiBaseUrl}/api/videos`, {
+        params: {
+          type: 'short',
+          page: 1,
+          limit: 10
+        },
+        timeout: 30000, // 30 secondes
+        withCredentials: true // Ajouter ceci pour les cookies CORS
+      });
       
-      if (!success) {
-        throw finalError || new Error("Échec après plusieurs tentatives");
-      }
-      
-      console.log('Shorts response:', response.data);
+      console.log('Shorts response:', res.data);
       
       // Différentes possibilités de structure de réponse
       let shortsData = [];
       
-      if (response.data && Array.isArray(response.data.data)) {
+      if (res.data && Array.isArray(res.data.data)) {
         // Format 1: { data: [...] }
-        shortsData = response.data.data;
-        setHasMoreShorts(response.data.pagination?.page < response.data.pagination?.totalPages);
-      } else if (response.data && Array.isArray(response.data)) {
+        shortsData = res.data.data;
+        setHasMoreShorts(res.data.pagination?.page < res.data.pagination?.totalPages);
+      } else if (res.data && Array.isArray(res.data)) {
         // Format 2: [...] (tableau direct)
-        shortsData = response.data;
-        setHasMoreShorts(response.data.length >= 10);
-      } else if (response.data && response.data.videos && Array.isArray(response.data.videos)) {
+        shortsData = res.data;
+        setHasMoreShorts(res.data.length >= 10);
+      } else if (res.data && res.data.videos && Array.isArray(res.data.videos)) {
         // Format 3: { videos: [...] }
-        shortsData = response.data.videos;
-        setHasMoreShorts(response.data.pagination?.page < response.data.pagination?.totalPages);
+        shortsData = res.data.videos;
+        setHasMoreShorts(res.data.pagination?.page < res.data.pagination?.totalPages);
       } else {
-        console.warn('Format de réponse inattendu:', response.data);
+        console.warn('Format de réponse inattendu:', res.data);
         shortsData = [];
         setHasMoreShorts(false);
       }
       
       // Traiter les URLs de vidéos pour qu'elles soient absolues
-      shortsData = shortsData.map(short => ({
-        ...short,
-        youtubeUrl: getFullVideoUrl(short.youtubeUrl)
-      }));
+      shortsData = shortsData.map(short => {
+        const videoUrl = getFullVideoUrl(short.youtubeUrl);
+        console.log(`Short ${short._id || 'unknown'} URL:`, videoUrl);
+        
+        return {
+          ...short,
+          youtubeUrl: videoUrl
+        };
+      });
       
       setShorts(shortsData);
-      
-      // Si nous avons des shorts, mettre à jour l'ID actif
-      if (shortsData.length > 0) {
-        setActiveShortId(shortsData[0]._id);
-      }
-      
     } catch (err) {
-      // Gestion d'erreur améliorée
       console.error('Erreur détaillée lors du chargement des shorts:', err);
-      
-      // Détection d'erreurs spécifiques
-      if (err.code === 'ECONNABORTED') {
-        showFeedback('Le serveur met trop de temps à répondre. Veuillez réessayer.', 'error');
-      } else if (err.response?.status === 401) {
-        showFeedback('Votre session a expiré. Veuillez vous reconnecter.', 'error');
-        // Rediriger vers la page de connexion après un délai
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 2000);
-      } else {
-        showFeedback('Erreur lors du chargement des shorts. Veuillez réessayer.', 'error');
-      }
-      
+      showFeedback('Erreur lors du chargement des shorts', 'error');
       setShorts([]);
       setHasMoreShorts(false);
     } finally {
@@ -229,7 +175,7 @@ export default function Shorts() {
       const nextPage = page + 1;
       
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
       
       const res = await axios.get(`${apiBaseUrl}/api/videos`, {
         params: {
@@ -237,8 +183,8 @@ export default function Shorts() {
           page: nextPage,
           limit: 10
         },
-        timeout: 30000,
-        withCredentials: true
+        timeout: 30000, // 30 secondes
+        withCredentials: true // Ajouter ceci pour les cookies CORS
       });
       
       let newShorts = [];
@@ -281,14 +227,14 @@ export default function Shorts() {
     
     try {
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
       
       console.log('Fetching comments for short:', shortId);
       
       // Tentative de récupération des commentaires via l'API
       const response = await axios.get(`${apiBaseUrl}/api/videos/${shortId}/memories`, {
         timeout: 15000, // 15 secondes
-        withCredentials: true
+        withCredentials: true // Ajouter ceci pour les cookies CORS
       });
       
       console.log('Comments response:', response.data);
@@ -334,14 +280,14 @@ export default function Shorts() {
       }
       
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
       
       await axios.post(`${apiBaseUrl}/api/videos/${activeShortId}/memories`, 
         { contenu: commentInput },
         { 
           headers: { 'Authorization': `Bearer ${token}` },
-          timeout: 15000,
-          withCredentials: true
+          timeout: 15000, // 15 secondes
+          withCredentials: true // Ajouter ceci pour les cookies CORS
         }
       );
       
@@ -385,121 +331,12 @@ export default function Shorts() {
     }, 3000);
   };
 
-  // Fonction optimisée pour gérer le défilement horizontal
-  const handleHorizontalScroll = useCallback((direction) => {
-    if (shorts.length <= 1 || transition) return;
-    
-    // Pauser la vidéo actuelle
-    if (centerVideoRef.current) {
-      centerVideoRef.current.pause();
-      setIsCenterPlaying(false);
-    }
-    
-    // Calculer le nouvel index central
-    const newIndex = direction === 'right' 
-      ? Math.min(centerIdx + 1, shorts.length - 1)
-      : Math.max(centerIdx - 1, 0);
-    
-    if (newIndex !== centerIdx) {
-      setDirection(direction);
-      setTransition(true);
-      
-      // Appliquer la transition avec délai
-      setTimeout(() => {
-        setCenterIdx(newIndex);
-        
-        // Mettre à jour l'ID du short actif
-        if (shorts[newIndex]) {
-          setActiveShortId(shorts[newIndex]._id);
-        }
-        
-        // Réinitialiser après la transition
-        setTimeout(() => {
-          setDirection(null);
-          setTransition(false);
-        }, 300);
-      }, 50);
-    }
-  }, [shorts, centerIdx, transition]);
-
-  // Gérer les interactions tactiles
-  const handleTouchStart = (e) => {
-    setDragStart(e.touches[0].clientX);
-  };
-
-  const handleTouchMove = (e) => {
-    if (!dragStart) return;
-    
-    const currentPosition = e.touches[0].clientX;
-    const difference = dragStart - currentPosition;
-    
-    // Détecter la direction si le mouvement est suffisant
-    if (Math.abs(difference) > 50) {
-      setDragging(true);
-    }
-  };
-
-  const handleTouchEnd = (e) => {
-    if (!dragStart || !dragging) return;
-    
-    const currentPosition = e.changedTouches[0].clientX;
-    const difference = dragStart - currentPosition;
-    
-    // Si le mouvement est suffisamment important, changer de short
-    if (Math.abs(difference) > 80) {
-      if (difference > 0) {
-        // Swipe gauche -> short suivant
-        handleHorizontalScroll('right');
-      } else {
-        // Swipe droit -> short précédent
-        handleHorizontalScroll('left');
-      }
-    }
-    
-    setDragStart(0);
-    setDragging(false);
-  };
-
-  // Fonction optimisée pour gérer la lecture des vidéos
-  const handleVideoPlayback = useCallback(() => {
-    if (!centerVideoRef.current) return;
-    
-    if (isCenterPlaying) {
-      centerVideoRef.current.pause();
-      setIsCenterPlaying(false);
-    } else {
-      // Pause toutes les autres vidéos avant de jouer celle-ci
-      const videos = document.querySelectorAll('video');
-      videos.forEach((video) => {
-        if (video !== centerVideoRef.current) {
-          video.pause();
-        }
-      });
-      
-      // Jouer la vidéo avec gestion d'erreur
-      try {
-        const playPromise = centerVideoRef.current.play();
-        
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              setIsCenterPlaying(true);
-            })
-            .catch(err => {
-              console.error('Erreur lors de la lecture:', err);
-              // Si erreur d'autoplay par exemple
-              showFeedback('Cliquez à nouveau pour lire la vidéo', 'info');
-            });
-        }
-      } catch (err) {
-        console.error('Erreur lors de la lecture:', err);
-      }
-    }
-  }, [isCenterPlaying]);
-
   useEffect(() => {
     console.log('Initializing Shorts component');
+    console.log('API URL:', process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ');
     fetchShorts();
+    // Réinitialise le centre au milieu de la liste quand on recharge
+    setCenterIdx(2);
   }, []);
 
   // Met en pause toutes les vidéos du carousel à chaque changement de centerIdx, de shorts ou de pause
@@ -577,46 +414,40 @@ export default function Shorts() {
     };
   }, [centerIdx, shorts]);
 
-  // Utiliser l'Intersection Observer pour mettre en pause la vidéo hors écran
+  // Gérer la visibilité de l'onglet
   useEffect(() => {
-    if (!centerVideoRef.current) return;
+    const handleVisibilityChange = () => {
+      if (document.hidden && centerVideoRef.current && isCenterPlaying) {
+        centerVideoRef.current.pause();
+      }
+    };
     
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting && isCenterPlaying && centerVideoRef.current) {
-          centerVideoRef.current.pause();
-          setIsCenterPlaying(false);
-        }
-      },
-      { threshold: 0.5 }
-    );
-    
-    observer.observe(centerVideoRef.current);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
-      if (centerVideoRef.current) {
-        observer.unobserve(centerVideoRef.current);
-      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [centerVideoRef.current, isCenterPlaying]);
+  }, [isCenterPlaying]);
 
-  // Ajoute des écouteurs pour les touches de clavier
+  // Surveiller le scroll pour mettre en pause la vidéo si elle n'est plus visible
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'ArrowLeft') {
-        handleHorizontalScroll('left');
-      } else if (e.key === 'ArrowRight') {
-        handleHorizontalScroll('right');
-      } else if (e.key === ' ' || e.key === 'Spacebar') {
-        // Basculer lecture/pause sur espace
-        handleVideoPlayback();
-        e.preventDefault(); // Empêcher le défilement par défaut
+    const handleScroll = () => {
+      if (centerVideoRef.current && isCenterPlaying) {
+        const rect = centerVideoRef.current.getBoundingClientRect();
+        const isVisible = (
+          rect.top >= 0 &&
+          rect.bottom <= (window.innerHeight || document.documentElement.clientHeight)
+        );
+        
+        if (!isVisible) {
+          centerVideoRef.current.pause();
+        }
       }
     };
     
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleHorizontalScroll, handleVideoPlayback]);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isCenterPlaying]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -669,7 +500,6 @@ export default function Shorts() {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
   };
 
-  // Fonction améliorée pour l'upload avec progression
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -691,7 +521,6 @@ export default function Shorts() {
     
     try {
       setIsUploading(true);
-      setUploadProgress(0);
       setErrDuree('');
       
       const data = new FormData();
@@ -713,78 +542,66 @@ export default function Shorts() {
       }
       
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
       
-      // Configurer la requête avec rapport de progression
-      const response = await axios.post(`${apiBaseUrl}/api/videos/shorts`, data, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}`
-        },
-        timeout: 120000, // 2 minutes
-        withCredentials: true,
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          setUploadProgress(percentCompleted);
-        }
-      });
+      // Système de retry avec timeout plus long
+      let uploadSuccess = false;
+      let error = null;
       
-      showFeedback('Short ajouté avec succès !', 'success');
-      setShowModal(false);
-      setForm({ titre: '', artiste: '', video: null, description: '' });
-      setErrDuree('');
-      setUploadProgress(0);
-      
-      // Attendre un court délai avant de recharger la liste
-      setTimeout(() => {
-        fetchShorts();
-      }, 1000);
-      
-    } catch (err) {
-      console.error('Erreur lors de l\'ajout du short:', err);
-      
-      // Tenter avec un endpoint alternatif en cas d'échec
+      // Première tentative
       try {
-        const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
-        const token = localStorage.getItem('token');
-        const data = new FormData();
-        data.append('titre', form.titre);
-        data.append('artiste', form.artiste);
-        data.append('duree', form.duree || 15);
-        data.append('videoFile', form.video);
-        
-        if (form.description) {
-          data.append('description', form.description);
-        }
-        
-        const response = await axios.post(`${apiBaseUrl}/api/videos/short`, data, {
+        console.log('Tentative d\'upload sur /api/videos/shorts');
+        const response = await axios.post(`${apiBaseUrl}/api/videos/shorts`, data, {
           headers: {
             'Content-Type': 'multipart/form-data',
             'Authorization': `Bearer ${token}`
           },
-          timeout: 120000,
-          withCredentials: true,
-          onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            setUploadProgress(percentCompleted);
-          }
+          timeout: 120000, // 2 minutes
+          withCredentials: true // Ajouter ceci pour les cookies CORS
         });
+        uploadSuccess = true;
+        console.log('Upload réussi sur /api/videos/shorts:', response.data);
+      } catch (uploadError) {
+        console.error('Erreur sur /api/videos/shorts, tentative sur endpoint alternatif:', uploadError);
+        error = uploadError;
         
+        // Deuxième tentative sur endpoint alternatif
+        try {
+          console.log('Tentative d\'upload sur /api/videos/short');
+          const response = await axios.post(`${apiBaseUrl}/api/videos/short`, data, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              'Authorization': `Bearer ${token}`
+            },
+            timeout: 120000, // 2 minutes
+            withCredentials: true // Ajouter ceci pour les cookies CORS
+          });
+          uploadSuccess = true;
+          console.log('Upload réussi sur /api/videos/short:', response.data);
+        } catch (fallbackError) {
+          console.error('Erreur sur /api/videos/short également:', fallbackError);
+          error = fallbackError;
+        }
+      }
+      
+      if (uploadSuccess) {
         showFeedback('Short ajouté avec succès !', 'success');
         setShowModal(false);
         setForm({ titre: '', artiste: '', video: null, description: '' });
         setErrDuree('');
-        setUploadProgress(0);
         
+        // Attendre un court délai avant de recharger la liste
         setTimeout(() => {
           fetchShorts();
         }, 1000);
-        
-      } catch (fallbackErr) {
-        const errorMessage = err.response?.data?.message || err.message || 'Erreur lors de l\'upload';
-        setErrDuree(errorMessage);
-        showFeedback(errorMessage, 'error');
+      } else {
+        throw error || new Error('Échec de l\'upload pour une raison inconnue');
       }
+    } catch (err) {
+      console.error('Erreur lors de l\'ajout du short:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Erreur lors de l\'upload';
+      setErrDuree(errorMessage);
+      showFeedback(errorMessage, 'error');
     } finally {
       setIsUploading(false);
     }
@@ -801,6 +618,8 @@ export default function Shorts() {
       video.pause();
       video.currentTime = 0;
     });
+    
+    // On ne joue pas la vidéo centrale automatiquement !
   };
 
   // Quand on clique sur mute/unmute
@@ -825,12 +644,12 @@ export default function Shorts() {
       }
       
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
       
       const response = await axios.post(`${apiBaseUrl}/api/videos/${shortId}/like`, {}, {
         headers: { 'Authorization': `Bearer ${token}` },
-        timeout: 15000,
-        withCredentials: true
+        timeout: 15000, // 15 secondes
+        withCredentials: true // Ajouter ceci pour les cookies CORS
       });
       
       if (response.data && response.data.data) {
@@ -902,14 +721,14 @@ export default function Shorts() {
       }
       
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
       
       try {
         // Tenter d'appeler l'API de partage
         await axios.post(`${apiBaseUrl}/api/videos/${shortId}/share`, {}, {
           headers: { 'Authorization': `Bearer ${token}` },
-          timeout: 15000,
-          withCredentials: true
+          timeout: 15000, // 15 secondes
+          withCredentials: true // Ajouter ceci pour les cookies CORS
         });
       } catch (shareError) {
         // Ignorer les erreurs d'API pour cette fonction non critique
@@ -973,30 +792,17 @@ export default function Shorts() {
         {isLoadingShorts ? (
           <div className={styles.loadingContainer}>
             <div className={styles.spinner}></div>
-            <p>Loading shorts...</p>
+            <p>Chargement des shorts...</p>
           </div>
         ) : shorts.length === 0 ? (
           <div className={styles.noContent}>
-            <p>No shorts available at the moment.</p>
+            <p>Aucun short disponible pour le moment.</p>
             <button className={styles.newPostBtn} onClick={() => setShowModal(true)}>
-              Be the first to add a Short!
+              Soyez le premier à ajouter un Short !
             </button>
           </div>
         ) : (
-          <div 
-            className={`${styles.carouselRow} ${
-              direction === 'left' ? styles.swipeLeft : 
-              direction === 'right' ? styles.swipeRight : ''
-            }`} 
-            ref={carouselRef}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            style={{
-              cursor: dragging ? 'grabbing' : 'grab',
-              touchAction: 'pan-y',
-            }}
-          >
+          <div className={styles.carouselRow}>
             {(() => {
               // Calcul de la fenêtre de 5 shorts centrée sur centerIdx
               let window = [];
@@ -1034,15 +840,21 @@ export default function Shorts() {
                         <div className={styles.centerOverlay}></div>
                         <button
                           className={styles.playBtn}
-                          onClick={handleVideoPlayback}
-                          aria-label={isCenterPlaying ? "Pause" : "Play"}
+                          onClick={() => {
+                            if (centerVideoRef.current) {
+                              if (isCenterPlaying) {
+                                centerVideoRef.current.pause();
+                              } else {
+                                centerVideoRef.current.play();
+                              }
+                            }
+                          }}
                         >
                           {isCenterPlaying ? <FaPause /> : <FaPlay />}
                         </button>
                         <button
                           className={styles.muteBtn}
                           onClick={handleMuteToggle}
-                          aria-label={isMuted ? "Unmute" : "Mute"}
                         >
                           {isMuted ? 
                             <FaVolumeMute style={{color: '#b31217', fontSize: '1.5rem'}} /> : 
@@ -1100,7 +912,6 @@ export default function Shorts() {
                             className={`${styles.actionBtn} ${isLikeLoading ? styles.disabled : ''} ${short.userInteraction?.liked ? styles.active : ''}`} 
                             onClick={() => handleLike(short._id)}
                             disabled={isLikeLoading}
-                            aria-label="Like"
                           >
                             <FaHeart />
                             <span className={styles.actionCount}>{short.likes || 0}</span>
@@ -1109,14 +920,12 @@ export default function Shorts() {
                             className={`${styles.actionBtn} ${isShareLoading ? styles.disabled : ''}`}
                             onClick={() => handleShare(short._id)}
                             disabled={isShareLoading}
-                            aria-label="Share"
                           >
                             <FaShareAlt />
                           </button>
                           <button 
                             className={`${styles.actionBtn} ${isCommentsVisible ? styles.active : ''}`}
                             onClick={toggleComments}
-                            aria-label="Comments"
                           >
                             <FaComment />
                             <span className={styles.actionCount}>{short.meta?.commentCount || 0}</span>
@@ -1128,11 +937,10 @@ export default function Shorts() {
                       {isCommentsVisible && (
                         <div className={styles.commentsSection}>
                           <div className={styles.commentsHeader}>
-                            <h3>Comments</h3>
+                            <h3>Commentaires</h3>
                             <button 
                               className={styles.collapseBtn}
                               onClick={toggleComments}
-                              aria-label="Hide comments"
                             >
                               <FaChevronDown />
                             </button>
@@ -1140,7 +948,7 @@ export default function Shorts() {
                           
                           <div className={styles.commentsList}>
                             {comments.length === 0 ? (
-                              <p className={styles.noComments}>No comments yet.</p>
+                              <p className={styles.noComments}>Aucun commentaire pour le moment.</p>
                             ) : (
                               comments.map(comment => (
                                 <div key={comment.id} className={styles.commentItem}>
@@ -1150,7 +958,7 @@ export default function Shorts() {
                                     onError={(e) => {
                                       e.target.src = '/images/default-avatar.jpg';
                                     }}
-                                    crossOrigin="anonymous"
+                                    crossOrigin="anonymous" // Ajouter cet attribut
                                   />
                                   <div>
                                     <div className={styles.commentHeader}>
@@ -1177,7 +985,6 @@ export default function Shorts() {
                             <button 
                               onClick={addComment}
                               disabled={!commentInput.trim()}
-                              aria-label="Send comment"
                             >
                               Envoyer
                             </button>
@@ -1193,7 +1000,6 @@ export default function Shorts() {
                       className={styles.sideCard} 
                       key={short._id} 
                       onClick={() => handleSideCardClick(realIdx)}
-                      aria-label={`Select ${short.titre}`}
                     >
                       <video
                         src={getFullVideoUrl(short.youtubeUrl)}
@@ -1201,7 +1007,7 @@ export default function Shorts() {
                         className={styles.sideImg}
                         autoPlay={false}
                         muted
-                        crossOrigin="anonymous"
+                        crossOrigin="anonymous" // Ajouter cet attribut
                       />
                       <div className={styles.views}>
                         <FaPlay /> {short.duree || 0}s
@@ -1214,44 +1020,6 @@ export default function Shorts() {
           </div>
         )}
         
-        {/* Boutons de navigation */}
-        {shorts.length > 0 && (
-          <>
-            {centerIdx > 0 && (
-              <button 
-                className={`${styles.navButton} ${styles.leftNav}`} 
-                onClick={() => handleHorizontalScroll('left')}
-                aria-label="Previous short"
-              >
-                <FaChevronLeft />
-              </button>
-            )}
-            
-            {centerIdx < shorts.length - 1 && (
-              <button 
-                className={`${styles.navButton} ${styles.rightNav}`} 
-                onClick={() => handleHorizontalScroll('right')}
-                aria-label="Next short"
-              >
-                <FaChevronRight />
-              </button>
-            )}
-          </>
-        )}
-        
-        {/* Indicateur de position */}
-        {shorts.length > 1 && (
-          <div className={styles.positionIndicator}>
-            {shorts.map((_, index) => (
-              <span 
-                key={index} 
-                className={`${styles.positionDot} ${index === centerIdx ? styles.activeDot : ''}`}
-                onClick={() => setCenterIdx(index)}
-              />
-            ))}
-          </div>
-        )}
-        
         {/* Bouton pour charger plus de shorts */}
         {hasMoreShorts && shorts.length > 0 && (
           <div className={styles.loadMoreContainer}>
@@ -1259,12 +1027,11 @@ export default function Shorts() {
               className={styles.loadMoreBtn}
               onClick={loadMoreShorts}
               disabled={isLoadingMore}
-              aria-label="Load more shorts"
             >
               {isLoadingMore ? (
                 <>
                   <div className={styles.smallSpinner}></div>
-                  <span>Loading...</span>
+                  <span>Chargement...</span>
                 </>
               ) : 'Charger plus de shorts'}
             </button>
@@ -1277,19 +1044,15 @@ export default function Shorts() {
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
-              <h2>Add Short</h2>
-              <button 
-                className={styles.closeBtn} 
-                onClick={() => setShowModal(false)}
-                aria-label="Close"
-              >
+              <h2>Ajouter un Short</h2>
+              <button className={styles.closeBtn} onClick={() => setShowModal(false)}>
                 <FaTimes />
               </button>
             </div>
             
             <form onSubmit={handleSubmit} className={styles.modalForm}>
               <div className={styles.formGroup}>
-                <label htmlFor="titre">Title</label>
+                <label htmlFor="titre">Titre</label>
                 <input
                   id="titre"
                   name="titre"
@@ -1303,7 +1066,7 @@ export default function Shorts() {
               </div>
               
               <div className={styles.formGroup}>
-                <label htmlFor="artiste">Artist</label>
+                <label htmlFor="artiste">Artiste</label>
                 <input
                   id="artiste"
                   name="artiste"
@@ -1315,36 +1078,15 @@ export default function Shorts() {
                   placeholder="Nom de l'artiste"
                 />
               </div>
-
-              <div className={styles.formGroup}>
-                <label htmlFor="description">Description (optional)</label>
-                <input
-                  id="description"
-                  name="description"
-                  type="text"
-                  value={form.description}
-                  onChange={handleChange}
-                  disabled={isUploading}
-                  placeholder="Ajoutez une description"
-                />
-              </div>
               
               <div className={styles.formGroup}>
-                <label>Video (10–30 s)</label>
-                <div 
-                  className={`${styles.fileUploadContainer} ${dragActive ? styles.dragActive : ''}`}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setDragActive(true);
-                  }}
-                  onDragLeave={() => setDragActive(false)}
-                  onDrop={() => setDragActive(false)}
-                >
+                <label>Vidéo (10–30 s)</label>
+                <div className={styles.fileUploadContainer}>
                   <div className={styles.fileUploadIcon}>
                     <FaCloudUploadAlt />
                   </div>
                   <div className={styles.fileUploadText}>
-                    Drag and drop your video file or click to select
+                    Glissez et déposez votre fichier vidéo ou cliquez pour sélectionner
                   </div>
                   <div className={styles.fileUploadSubtext}>
                     MP4, WebM, MOV ou AVI • 10-30 secondes • 100 MB maximum
@@ -1379,17 +1121,6 @@ export default function Shorts() {
                   </div>
                 )}
               </div>
-
-              {/* Barre de progression */}
-              {isUploading && (
-                <div className={styles.uploadProgressContainer}>
-                  <div 
-                    className={styles.uploadProgressBar} 
-                    style={{ width: `${uploadProgress}%` }}
-                  ></div>
-                  <span className={styles.uploadProgressText}>{uploadProgress}% Uploading...</span>
-                </div>
-              )}
             </form>
             
             <div className={styles.modalFooter}>
@@ -1399,7 +1130,7 @@ export default function Shorts() {
                 onClick={() => setShowModal(false)}
                 disabled={isUploading}
               >
-                Cancel
+                Annuler
               </button>
               <button
                 type="button"

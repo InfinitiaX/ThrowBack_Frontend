@@ -1,8 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import styles from './Shorts.module.css';
-import { FaHeart, FaShareAlt, FaStar, FaPlay, FaPause, FaTimes, 
-         FaVolumeUp, FaVolumeMute, FaComment, FaCloudUploadAlt, 
-         FaExclamationTriangle, FaChevronDown } from 'react-icons/fa';
+import { 
+  FaHeart, FaShareAlt, FaStar, FaPlay, FaPause, FaTimes, 
+  FaVolumeUp, FaVolumeMute, FaComment, FaCloudUploadAlt, 
+  FaExclamationTriangle, FaChevronDown, FaChevronLeft, FaChevronRight 
+} from 'react-icons/fa';
 import axios from 'axios';
 
 // Configuration Axios avec intercepteurs
@@ -10,7 +12,7 @@ axios.interceptors.request.use(
   config => {
     // Ajouter l'URL de base si ce n'est pas déjà fait
     if (config.url && !config.url.startsWith('http')) {
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
       config.url = `${apiBaseUrl}${config.url}`;
     }
     
@@ -56,11 +58,8 @@ function getFullVideoUrl(path) {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   
   // Toujours utiliser une URL de base, jamais une chaîne vide
-  const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
+  const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
   const fullUrl = `${backendUrl}${normalizedPath}`;
-  
-  // Pour déboguer
-  console.log("Video URL constructed:", fullUrl);
   
   return fullUrl;
 }
@@ -75,26 +74,37 @@ function formatTime(sec) {
 
 export default function Shorts() {
   // Index dynamique de la vidéo centrale (mise en avant)
-  const [centerIdx, setCenterIdx] = useState(2);
+  const [centerIdx, setCenterIdx] = useState(0);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ titre: '', artiste: '', video: null });
+  const [form, setForm] = useState({ titre: '', artiste: '', description: '', video: null });
   const [errDuree, setErrDuree] = useState('');
   const [shorts, setShorts] = useState([]);
   const videoRef = useRef();
   const centerVideoRef = useRef(null);
-  const [isCenterPaused, setIsCenterPaused] = useState(false);
+  const carouselRef = useRef(null);
+  const [isCenterPaused, setIsCenterPaused] = useState(true);
   const [isCenterPlaying, setIsCenterPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   
-  // Nouveaux états pour gérer l'upload, pagination et commentaires
+  // États pour la navigation et les animations
+  const [dragging, setDragging] = useState(false);
+  const [direction, setDirection] = useState(null);
+  const [transition, setTransition] = useState(false);
+  
+  // États pour l'upload et la progression
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [dragActive, setDragActive] = useState(false);
+  
+  // États pour le chargement et la pagination
+  const [isLoadingShorts, setIsLoadingShorts] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMoreShorts, setHasMoreShorts] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isLoadingShorts, setIsLoadingShorts] = useState(true);
+  
+  // États pour les commentaires et interactions
   const [comments, setComments] = useState([]);
   const [commentInput, setCommentInput] = useState('');
   const [isCommentsVisible, setIsCommentsVisible] = useState(false);
@@ -103,44 +113,67 @@ export default function Shorts() {
   const [isShareLoading, setIsShareLoading] = useState(false);
   const [feedback, setFeedback] = useState({ visible: false, message: '', type: '' });
 
+  // Fonction pour charger les shorts avec mécanisme de retry
   const fetchShorts = async () => {
     try {
       setIsLoadingShorts(true);
       
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
       
-      console.log('Fetching shorts from:', `${apiBaseUrl}/api/videos`);
+      // Implémentation d'un mécanisme de retry
+      let attempts = 0;
+      const maxAttempts = 3;
+      let success = false;
+      let finalError;
+      let response;
       
-      const res = await axios.get(`${apiBaseUrl}/api/videos`, {
-        params: {
-          type: 'short',
-          page: 1,
-          limit: 10
-        },
-        timeout: 30000, // 30 secondes
-        withCredentials: true // Ajouter ceci pour les cookies CORS
-      });
+      while (attempts < maxAttempts && !success) {
+        try {
+          attempts++;
+          
+          response = await axios.get(`${apiBaseUrl}/api/videos`, {
+            params: {
+              type: 'short',
+              page: 1,
+              limit: 12
+            },
+            timeout: 10000 * attempts, // Augmenter le timeout à chaque tentative
+            withCredentials: true
+          });
+          
+          success = true;
+          
+        } catch (err) {
+          console.error(`Erreur tentative ${attempts}:`, err);
+          finalError = err;
+          
+          // Attendre avant de réessayer (backoff exponentiel)
+          if (attempts < maxAttempts) {
+            const delay = 1000 * Math.pow(2, attempts - 1); // 1s, 2s, 4s...
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
+      }
       
-      console.log('Shorts response:', res.data);
+      if (!success) {
+        throw finalError || new Error("Échec après plusieurs tentatives");
+      }
       
-      // Différentes possibilités de structure de réponse
+      // Traitement de la réponse
       let shortsData = [];
       
-      if (res.data && Array.isArray(res.data.data)) {
-        // Format 1: { data: [...] }
-        shortsData = res.data.data;
-        setHasMoreShorts(res.data.pagination?.page < res.data.pagination?.totalPages);
-      } else if (res.data && Array.isArray(res.data)) {
-        // Format 2: [...] (tableau direct)
-        shortsData = res.data;
-        setHasMoreShorts(res.data.length >= 10);
-      } else if (res.data && res.data.videos && Array.isArray(res.data.videos)) {
-        // Format 3: { videos: [...] }
-        shortsData = res.data.videos;
-        setHasMoreShorts(res.data.pagination?.page < res.data.pagination?.totalPages);
+      if (response.data && Array.isArray(response.data.data)) {
+        shortsData = response.data.data;
+        setHasMoreShorts(response.data.pagination?.page < response.data.pagination?.totalPages);
+      } else if (response.data && Array.isArray(response.data)) {
+        shortsData = response.data;
+        setHasMoreShorts(response.data.length >= 12);
+      } else if (response.data && response.data.videos && Array.isArray(response.data.videos)) {
+        shortsData = response.data.videos;
+        setHasMoreShorts(response.data.pagination?.page < response.data.pagination?.totalPages);
       } else {
-        console.warn('Format de réponse inattendu:', res.data);
+        console.warn('Format de réponse inattendu:', response.data);
         shortsData = [];
         setHasMoreShorts(false);
       }
@@ -148,8 +181,6 @@ export default function Shorts() {
       // Traiter les URLs de vidéos pour qu'elles soient absolues
       shortsData = shortsData.map(short => {
         const videoUrl = getFullVideoUrl(short.youtubeUrl);
-        console.log(`Short ${short._id || 'unknown'} URL:`, videoUrl);
-        
         return {
           ...short,
           youtubeUrl: videoUrl
@@ -157,9 +188,24 @@ export default function Shorts() {
       });
       
       setShorts(shortsData);
+      
+      // Si des shorts ont été chargés, définir le premier comme actif
+      if (shortsData.length > 0) {
+        setActiveShortId(shortsData[0]._id);
+      }
+      
     } catch (err) {
       console.error('Erreur détaillée lors du chargement des shorts:', err);
-      showFeedback('Erreur lors du chargement des shorts', 'error');
+      
+      // Détection d'erreurs spécifiques
+      if (err.code === 'ECONNABORTED') {
+        showFeedback('Le serveur met trop de temps à répondre. Veuillez réessayer.', 'error');
+      } else if (err.response?.status === 401) {
+        showFeedback('Votre session a expiré. Veuillez vous reconnecter.', 'error');
+      } else {
+        showFeedback('Erreur lors du chargement des shorts. Veuillez réessayer.', 'error');
+      }
+      
       setShorts([]);
       setHasMoreShorts(false);
     } finally {
@@ -167,6 +213,7 @@ export default function Shorts() {
     }
   };
 
+  // Charger plus de shorts
   const loadMoreShorts = async () => {
     if (!hasMoreShorts || isLoadingMore) return;
     
@@ -175,25 +222,25 @@ export default function Shorts() {
       const nextPage = page + 1;
       
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
       
-      const res = await axios.get(`${apiBaseUrl}/api/videos`, {
+      const response = await axios.get(`${apiBaseUrl}/api/videos`, {
         params: {
           type: 'short',
           page: nextPage,
           limit: 10
         },
-        timeout: 30000, // 30 secondes
-        withCredentials: true // Ajouter ceci pour les cookies CORS
+        timeout: 30000,
+        withCredentials: true
       });
       
       let newShorts = [];
-      if (res.data && Array.isArray(res.data.data)) {
-        newShorts = res.data.data;
-      } else if (res.data && Array.isArray(res.data)) {
-        newShorts = res.data;
-      } else if (res.data && res.data.videos && Array.isArray(res.data.videos)) {
-        newShorts = res.data.videos;
+      if (response.data && Array.isArray(response.data.data)) {
+        newShorts = response.data.data;
+      } else if (response.data && Array.isArray(response.data)) {
+        newShorts = response.data;
+      } else if (response.data && response.data.videos && Array.isArray(response.data.videos)) {
+        newShorts = response.data.videos;
       }
       
       // Traiter les URLs de vidéos pour qu'elles soient absolues
@@ -208,8 +255,8 @@ export default function Shorts() {
         setShorts([...shorts, ...newShorts]);
         setPage(nextPage);
         
-        if (res.data.pagination) {
-          setHasMoreShorts(nextPage < res.data.pagination.totalPages);
+        if (response.data.pagination) {
+          setHasMoreShorts(nextPage < response.data.pagination.totalPages);
         } else {
           setHasMoreShorts(newShorts.length >= 10);
         }
@@ -222,22 +269,19 @@ export default function Shorts() {
     }
   };
 
+  // Chargement des commentaires
   const fetchComments = async (shortId) => {
     if (!shortId) return;
     
     try {
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
-      
-      console.log('Fetching comments for short:', shortId);
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
       
       // Tentative de récupération des commentaires via l'API
       const response = await axios.get(`${apiBaseUrl}/api/videos/${shortId}/memories`, {
-        timeout: 15000, // 15 secondes
-        withCredentials: true // Ajouter ceci pour les cookies CORS
+        timeout: 15000,
+        withCredentials: true
       });
-      
-      console.log('Comments response:', response.data);
       
       // Vérifier si la réponse contient des données
       let commentsData = [];
@@ -269,6 +313,7 @@ export default function Shorts() {
     }
   };
 
+  // Ajout de commentaire
   const addComment = async () => {
     if (!commentInput.trim() || !activeShortId) return;
     
@@ -280,14 +325,14 @@ export default function Shorts() {
       }
       
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
       
       await axios.post(`${apiBaseUrl}/api/videos/${activeShortId}/memories`, 
         { contenu: commentInput },
         { 
           headers: { 'Authorization': `Bearer ${token}` },
-          timeout: 15000, // 15 secondes
-          withCredentials: true // Ajouter ceci pour les cookies CORS
+          timeout: 15000,
+          withCredentials: true
         }
       );
       
@@ -319,6 +364,7 @@ export default function Shorts() {
     }
   };
 
+  // Affichage du feedback
   const showFeedback = (message, type = 'info') => {
     setFeedback({
       visible: true,
@@ -331,19 +377,52 @@ export default function Shorts() {
     }, 3000);
   };
 
+  // Initialisation
   useEffect(() => {
-    console.log('Initializing Shorts component');
-    console.log('API URL:', process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ');
     fetchShorts();
-    // Réinitialise le centre au milieu de la liste quand on recharge
-    setCenterIdx(2);
   }, []);
 
-  // Met en pause toutes les vidéos du carousel à chaque changement de centerIdx, de shorts ou de pause
+  // Gestion de la navigation horizontale
+  const handleHorizontalScroll = useCallback((dir) => {
+    if (shorts.length <= 1 || transition) return;
+    
+    // Pauser la vidéo actuelle
+    if (centerVideoRef.current) {
+      centerVideoRef.current.pause();
+    }
+    
+    // Calculer le nouvel index central
+    const newIndex = dir === 'right' 
+      ? Math.min(centerIdx + 1, shorts.length - 1)
+      : Math.max(centerIdx - 1, 0);
+    
+    if (newIndex !== centerIdx) {
+      setDirection(dir);
+      setTransition(true);
+      
+      // Appliquer la transition avec délai
+      setTimeout(() => {
+        setCenterIdx(newIndex);
+        setIsCenterPlaying(false);
+        
+        // Mettre à jour l'ID du short actif
+        if (shorts[newIndex]) {
+          setActiveShortId(shorts[newIndex]._id);
+        }
+        
+        // Réinitialiser après la transition
+        setTimeout(() => {
+          setDirection(null);
+          setTransition(false);
+        }, 300);
+      }, 50);
+    }
+  }, [shorts, centerIdx, transition]);
+
+  // Mettre en pause toutes les vidéos du carousel lors des changements
   useEffect(() => {
     const videos = document.querySelectorAll(`.${styles.carouselRow} video`);
     videos.forEach((video) => {
-      // On met tout en pause
       video.pause();
       video.currentTime = 0;
     });
@@ -351,8 +430,11 @@ export default function Shorts() {
     // Si un nouveau short est au centre, mettre à jour l'ID actif
     if (shorts.length > 0 && centerIdx >= 0 && centerIdx < shorts.length) {
       setActiveShortId(shorts[centerIdx]._id);
+      
+      // Réinitialiser la visibilité des commentaires lors du changement de short
+      setIsCommentsVisible(false);
     }
-  }, [centerIdx, shorts, isCenterPaused]);
+  }, [centerIdx, shorts]);
 
   // Charger les commentaires quand un nouveau short est actif
   useEffect(() => {
@@ -361,41 +443,42 @@ export default function Shorts() {
     }
   }, [activeShortId, isCommentsVisible]);
 
-  // Ajoute un event listener pour détecter la pause sur la vidéo centrale
+  // Gestion des événements de lecture/pause
   useEffect(() => {
     const video = centerVideoRef.current;
     if (!video) return;
     
-    const handlePause = () => setIsCenterPaused(true);
-    const handlePlay = () => setIsCenterPaused(false);
+    const handlePause = () => {
+      setIsCenterPaused(true);
+      setIsCenterPlaying(false);
+    };
+    
+    const handlePlay = () => {
+      setIsCenterPaused(false);
+      setIsCenterPlaying(true);
+    };
+    
+    const handleEnded = () => {
+      setIsCenterPaused(true);
+      setIsCenterPlaying(false);
+      // Optionnel: avancer automatiquement au short suivant
+      if (centerIdx < shorts.length - 1) {
+        handleHorizontalScroll('right');
+      }
+    };
     
     video.addEventListener('pause', handlePause);
     video.addEventListener('play', handlePlay);
+    video.addEventListener('ended', handleEnded);
     
     return () => {
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('play', handlePlay);
+      video.removeEventListener('ended', handleEnded);
     };
-  }, [centerIdx, shorts]);
+  }, [centerIdx, shorts, handleHorizontalScroll]);
 
-  // Ajoute un event listener pour suivre l'état de lecture de la vidéo centrale
-  useEffect(() => {
-    const video = centerVideoRef.current;
-    if (!video) return;
-    
-    const handlePause = () => setIsCenterPlaying(false);
-    const handlePlay = () => setIsCenterPlaying(true);
-    
-    video.addEventListener('pause', handlePause);
-    video.addEventListener('play', handlePlay);
-    
-    return () => {
-      video.removeEventListener('pause', handlePause);
-      video.removeEventListener('play', handlePlay);
-    };
-  }, [centerIdx, shorts]);
-
-  // Synchronise la barre de progression avec la vidéo centrale
+  // Gestion de la progression de la vidéo
   useEffect(() => {
     const video = centerVideoRef.current;
     if (!video) return;
@@ -414,43 +497,77 @@ export default function Shorts() {
     };
   }, [centerIdx, shorts]);
 
-  // Gérer la visibilité de l'onglet
+  // Gestion de la visibilité
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden && centerVideoRef.current && isCenterPlaying) {
-        centerVideoRef.current.pause();
-      }
-    };
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // Si la vidéo n'est plus visible, la mettre en pause
+        if (!entry.isIntersecting && isCenterPlaying && centerVideoRef.current) {
+          centerVideoRef.current.pause();
+        }
+      },
+      { threshold: 0.5 } // 50% de la vidéo doit être visible
+    );
     
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    if (centerVideoRef.current) {
+      observer.observe(centerVideoRef.current);
+    }
     
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (centerVideoRef.current) {
+        observer.unobserve(centerVideoRef.current);
+      }
     };
   }, [isCenterPlaying]);
 
-  // Surveiller le scroll pour mettre en pause la vidéo si elle n'est plus visible
+  // Gestion des touches du clavier
   useEffect(() => {
-    const handleScroll = () => {
-      if (centerVideoRef.current && isCenterPlaying) {
-        const rect = centerVideoRef.current.getBoundingClientRect();
-        const isVisible = (
-          rect.top >= 0 &&
-          rect.bottom <= (window.innerHeight || document.documentElement.clientHeight)
-        );
+    const handleKeyDown = (e) => {
+      if (e.key === 'ArrowLeft') {
+        handleHorizontalScroll('left');
+      } else if (e.key === 'ArrowRight') {
+        handleHorizontalScroll('right');
+      } else if (e.key === ' ' || e.key === 'Spacebar') {
+        // Empêcher le défilement de la page sur espace
+        e.preventDefault();
         
-        if (!isVisible) {
-          centerVideoRef.current.pause();
+        // Basculer lecture/pause sur espace
+        if (centerVideoRef.current) {
+          if (isCenterPlaying) {
+            centerVideoRef.current.pause();
+          } else {
+            centerVideoRef.current.play();
+          }
         }
       }
     };
     
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [isCenterPlaying]);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleHorizontalScroll, isCenterPlaying]);
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
+  // Gestionnaire de glisser-déposer pour la vidéo
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = () => {
+    setDragActive(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragActive(false);
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFileSelected(files[0]);
+    }
+  };
+
+  // Traitement du fichier vidéo sélectionné
+  const handleFileSelected = (file) => {
     setErrDuree('');
     
     if (!file) {
@@ -496,10 +613,18 @@ export default function Shorts() {
     video.src = url;
   };
 
+  // Gestion du changement de fichier
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    handleFileSelected(file);
+  };
+
+  // Gestion des changements de formulaire
   const handleChange = (e) => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
   };
 
+  // Soumission du formulaire
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -521,6 +646,7 @@ export default function Shorts() {
     
     try {
       setIsUploading(true);
+      setUploadProgress(0);
       setErrDuree('');
       
       const data = new FormData();
@@ -529,7 +655,6 @@ export default function Shorts() {
       data.append('duree', form.duree || 15);
       data.append('videoFile', form.video);
       
-      // Optionnel : ajouter la description si présente
       if (form.description) {
         data.append('description', form.description);
       }
@@ -542,61 +667,33 @@ export default function Shorts() {
       }
       
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
       
-      // Système de retry avec timeout plus long
-      let uploadSuccess = false;
-      let error = null;
-      
-      // Première tentative
-      try {
-        console.log('Tentative d\'upload sur /api/videos/shorts');
-        const response = await axios.post(`${apiBaseUrl}/api/videos/shorts`, data, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${token}`
-          },
-          timeout: 120000, // 2 minutes
-          withCredentials: true // Ajouter ceci pour les cookies CORS
-        });
-        uploadSuccess = true;
-        console.log('Upload réussi sur /api/videos/shorts:', response.data);
-      } catch (uploadError) {
-        console.error('Erreur sur /api/videos/shorts, tentative sur endpoint alternatif:', uploadError);
-        error = uploadError;
-        
-        // Deuxième tentative sur endpoint alternatif
-        try {
-          console.log('Tentative d\'upload sur /api/videos/short');
-          const response = await axios.post(`${apiBaseUrl}/api/videos/short`, data, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-              'Authorization': `Bearer ${token}`
-            },
-            timeout: 120000, // 2 minutes
-            withCredentials: true // Ajouter ceci pour les cookies CORS
-          });
-          uploadSuccess = true;
-          console.log('Upload réussi sur /api/videos/short:', response.data);
-        } catch (fallbackError) {
-          console.error('Erreur sur /api/videos/short également:', fallbackError);
-          error = fallbackError;
+      // Configurer la requête avec rapport de progression
+      const response = await axios.post(`${apiBaseUrl}/api/videos/shorts`, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        },
+        timeout: 120000, // 2 minutes
+        withCredentials: true,
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(percentCompleted);
         }
-      }
+      });
       
-      if (uploadSuccess) {
-        showFeedback('Short ajouté avec succès !', 'success');
-        setShowModal(false);
-        setForm({ titre: '', artiste: '', video: null, description: '' });
-        setErrDuree('');
-        
-        // Attendre un court délai avant de recharger la liste
-        setTimeout(() => {
-          fetchShorts();
-        }, 1000);
-      } else {
-        throw error || new Error('Échec de l\'upload pour une raison inconnue');
-      }
+      showFeedback('Short ajouté avec succès !', 'success');
+      setShowModal(false);
+      setForm({ titre: '', artiste: '', video: null, description: '' });
+      setErrDuree('');
+      setUploadProgress(0);
+      
+      // Attendre un court délai avant de recharger la liste
+      setTimeout(() => {
+        fetchShorts();
+      }, 1000);
+      
     } catch (err) {
       console.error('Erreur lors de l\'ajout du short:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Erreur lors de l\'upload';
@@ -607,22 +704,16 @@ export default function Shorts() {
     }
   };
 
-  // Quand on clique sur une sideCard, la vidéo centrale doit être en pause et toutes les vidéos du carrousel aussi
+  // Gestion des clics sur les cartes latérales
   const handleSideCardClick = (realIdx) => {
-    setCenterIdx(realIdx);
-    setIsCenterPlaying(false);
+    if (realIdx === centerIdx) return;
     
-    // Met en pause toutes les vidéos du carrousel
-    const videos = document.querySelectorAll(`.${styles.carouselRow} video`);
-    videos.forEach((video) => {
-      video.pause();
-      video.currentTime = 0;
-    });
-    
-    // On ne joue pas la vidéo centrale automatiquement !
+    // Déterminer la direction
+    const direction = realIdx > centerIdx ? 'right' : 'left';
+    handleHorizontalScroll(direction);
   };
 
-  // Quand on clique sur mute/unmute
+  // Gestion du basculement muet/son
   const handleMuteToggle = () => {
     setIsMuted(m => !m);
     if (centerVideoRef.current) {
@@ -630,7 +721,26 @@ export default function Shorts() {
     }
   };
 
-  // Fonctions pour gérer les likes et partages
+  // Gestion de la lecture/pause
+  const handlePlayPause = () => {
+    if (!centerVideoRef.current) return;
+    
+    if (isCenterPlaying) {
+      centerVideoRef.current.pause();
+    } else {
+      // Tenter de jouer la vidéo
+      const playPromise = centerVideoRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          console.error('Erreur de lecture automatique:', err);
+          showFeedback('Cliquez à nouveau pour lire la vidéo', 'info');
+        });
+      }
+    }
+  };
+
+  // Gestion des likes
   const handleLike = async (shortId) => {
     if (isLikeLoading) return;
     
@@ -644,12 +754,12 @@ export default function Shorts() {
       }
       
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
       
       const response = await axios.post(`${apiBaseUrl}/api/videos/${shortId}/like`, {}, {
         headers: { 'Authorization': `Bearer ${token}` },
-        timeout: 15000, // 15 secondes
-        withCredentials: true // Ajouter ceci pour les cookies CORS
+        timeout: 15000,
+        withCredentials: true
       });
       
       if (response.data && response.data.data) {
@@ -708,6 +818,7 @@ export default function Shorts() {
     }
   };
 
+  // Gestion des partages
   const handleShare = async (shortId) => {
     if (isShareLoading) return;
     
@@ -721,14 +832,14 @@ export default function Shorts() {
       }
       
       // Utiliser l'URL absolue du backend
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
       
       try {
         // Tenter d'appeler l'API de partage
         await axios.post(`${apiBaseUrl}/api/videos/${shortId}/share`, {}, {
           headers: { 'Authorization': `Bearer ${token}` },
-          timeout: 15000, // 15 secondes
-          withCredentials: true // Ajouter ceci pour les cookies CORS
+          timeout: 15000,
+          withCredentials: true
         });
       } catch (shareError) {
         // Ignorer les erreurs d'API pour cette fonction non critique
@@ -773,6 +884,7 @@ export default function Shorts() {
     }
   };
 
+  // Basculer la visibilité des commentaires
   const toggleComments = () => {
     setIsCommentsVisible(!isCommentsVisible);
     if (!isCommentsVisible && activeShortId) {
@@ -785,7 +897,7 @@ export default function Shorts() {
       <div className={styles.shortsContentBg}>
         <div className={styles.headerRow}>
           <button className={styles.newPostBtn} onClick={() => setShowModal(true)}>
-            Add Short
+            <FaCloudUploadAlt /> Ajouter un Short
           </button>
         </div>
         
@@ -802,221 +914,289 @@ export default function Shorts() {
             </button>
           </div>
         ) : (
-          <div className={styles.carouselRow}>
-            {(() => {
-              // Calcul de la fenêtre de 5 shorts centrée sur centerIdx
-              let window = [];
-              for (let i = centerIdx - 2; i <= centerIdx + 2; i++) {
-                if (i < 0 || i >= shorts.length) {
-                  window.push(null);
-                } else {
-                  window.push({ short: shorts[i], realIdx: i });
+          <div className={`${styles.carouselContainer} ${direction === 'left' ? styles.swipeLeft : direction === 'right' ? styles.swipeRight : ''}`}>
+            <div 
+              className={styles.carouselRow}
+              ref={carouselRef}
+              onTouchStart={() => setDragging(false)}
+              onTouchMove={() => setDragging(true)}
+              onTouchEnd={(e) => {
+                if (dragging) {
+                  // Logique de swipe
+                  const touchEndX = e.changedTouches[0].clientX;
+                  const touchStartX = e.target.dataset.touchStartX;
+                  
+                  if (touchStartX && Math.abs(touchEndX - touchStartX) > 80) {
+                    if (touchEndX < touchStartX) {
+                      handleHorizontalScroll('right');
+                    } else {
+                      handleHorizontalScroll('left');
+                    }
+                  }
                 }
-              }
-              
-              return window.map((item, idx) => {
-                if (!item) {
-                  return <div className={styles.sideCard} key={`empty-${idx}`} style={{opacity:0.3}} />;
+              }}
+              data-touch-start-x={(e) => e.touches[0].clientX}
+            >
+              {(() => {
+                // Calcul de la fenêtre de 5 shorts centrée sur centerIdx
+                let window = [];
+                for (let i = centerIdx - 2; i <= centerIdx + 2; i++) {
+                  if (i < 0 || i >= shorts.length) {
+                    window.push(null);
+                  } else {
+                    window.push({ short: shorts[i], realIdx: i });
+                  }
                 }
                 
-                const { short, realIdx } = item;
-                
-                if (idx === 2) {
-                  // Card centrale
-                  return (
-                    <div className={styles.centerCard} key={short._id}>
-                      <div className={styles.centerImgWrap}>
-                        <video
-                          key={short._id}
-                          ref={centerVideoRef}
-                          src={getFullVideoUrl(short.youtubeUrl)}
-                          controls={false}
-                          className={styles.centerImg}
-                          autoPlay={false}
-                          muted={isMuted}
-                          loop
-                          crossOrigin="anonymous" 
-                        />
-                        <div className={styles.centerOverlay}></div>
-                        <button
-                          className={styles.playBtn}
-                          onClick={() => {
-                            if (centerVideoRef.current) {
-                              if (isCenterPlaying) {
-                                centerVideoRef.current.pause();
-                              } else {
-                                centerVideoRef.current.play();
-                              }
+                return window.map((item, idx) => {
+                  if (!item) {
+                    return <div className={styles.sideCard} key={`empty-${idx}`} style={{opacity:0.3}} />;
+                  }
+                  
+                  const { short, realIdx } = item;
+                  
+                  if (idx === 2) {
+                    // Card centrale
+                    return (
+                      <div className={styles.centerCard} key={short._id}>
+                        <div className={styles.centerImgWrap}>
+                          <video
+                            key={short._id}
+                            ref={centerVideoRef}
+                            src={short.youtubeUrl}
+                            controls={false}
+                            className={styles.centerImg}
+                            autoPlay={false}
+                            muted={isMuted}
+                            loop
+                            playsInline
+                            crossOrigin="anonymous"
+                            onError={(e) => {
+                              console.error('Erreur de chargement vidéo:', e);
+                              e.target.src = '/images/video-error.jpg';
+                            }}
+                          />
+                          <div className={styles.centerOverlay}></div>
+                          <button
+                            className={styles.playBtn}
+                            onClick={handlePlayPause}
+                            aria-label={isCenterPlaying ? "Pause" : "Play"}
+                          >
+                            {isCenterPlaying ? <FaPause /> : <FaPlay />}
+                          </button>
+                          <button
+                            className={styles.muteBtn}
+                            onClick={handleMuteToggle}
+                            aria-label={isMuted ? "Unmute" : "Mute"}
+                          >
+                            {isMuted ? 
+                              <FaVolumeMute style={{color: '#b31217', fontSize: '1.5rem'}} /> : 
+                              <FaVolumeUp style={{color: '#b31217', fontSize: '1.5rem'}} />
                             }
-                          }}
-                        >
-                          {isCenterPlaying ? <FaPause /> : <FaPlay />}
-                        </button>
-                        <button
-                          className={styles.muteBtn}
-                          onClick={handleMuteToggle}
-                        >
-                          {isMuted ? 
-                            <FaVolumeMute style={{color: '#b31217', fontSize: '1.5rem'}} /> : 
-                            <FaVolumeUp style={{color: '#b31217', fontSize: '1.5rem'}} />
-                          }
-                        </button>
-                      </div>
-                      
-                      {/* Barre de progression */}
-                      <input
-                        type="range"
-                        min={0}
-                        max={duration || 0}
-                        value={progress}
-                        step={0.1}
-                        onChange={e => {
-                          const val = Number(e.target.value);
-                          setProgress(val);
-                          if (centerVideoRef.current) {
-                            centerVideoRef.current.currentTime = val;
-                          }
-                        }}
-                        className={styles.progressBar}
-                        style={{ 
-                          width: '90%', 
-                          margin: '12px auto 0 auto', 
-                          display: 'block',
-                          ['--progress']: `${(progress / (duration || 1)) * 100}`
-                        }}
-                        disabled={duration === 0}
-                      />
-                      
-                      <div style={{
-                        width: '90%', 
-                        margin: '0 auto 8px auto', 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        fontSize: '0.98rem', 
-                        color: '#fff', 
-                        opacity: 0.85
-                      }}>
-                        <span>{formatTime(progress)}</span>
-                        <span>{formatTime(duration)}</span>
-                      </div>
-                      
-                      <div className={styles.centerInfo}>
-                        <div className={styles.centerUserRow}>
-                          <span className={styles.username}>{short.artiste || 'Artiste inconnu'}</span>
-                        </div>
-                        <div className={styles.centerDesc}>{short.description || short.titre || 'Pas de description'}</div>
-                        <div className={styles.centerMusic}>🎵 {short.artiste || 'Artiste inconnu'}</div>
-                        <div className={styles.centerActions}>
-                          <span className={styles.featured}><FaStar /> Featured</span>
-                          <button 
-                            className={`${styles.actionBtn} ${isLikeLoading ? styles.disabled : ''} ${short.userInteraction?.liked ? styles.active : ''}`} 
-                            onClick={() => handleLike(short._id)}
-                            disabled={isLikeLoading}
-                          >
-                            <FaHeart />
-                            <span className={styles.actionCount}>{short.likes || 0}</span>
-                          </button>
-                          <button 
-                            className={`${styles.actionBtn} ${isShareLoading ? styles.disabled : ''}`}
-                            onClick={() => handleShare(short._id)}
-                            disabled={isShareLoading}
-                          >
-                            <FaShareAlt />
-                          </button>
-                          <button 
-                            className={`${styles.actionBtn} ${isCommentsVisible ? styles.active : ''}`}
-                            onClick={toggleComments}
-                          >
-                            <FaComment />
-                            <span className={styles.actionCount}>{short.meta?.commentCount || 0}</span>
                           </button>
                         </div>
-                      </div>
-                      
-                      {/* Section des commentaires */}
-                      {isCommentsVisible && (
-                        <div className={styles.commentsSection}>
-                          <div className={styles.commentsHeader}>
-                            <h3>Commentaires</h3>
+                        
+                        {/* Barre de progression */}
+                        <div className={styles.progressContainer}>
+                          <input
+                            type="range"
+                            min={0}
+                            max={duration || 0}
+                            value={progress}
+                            step={0.1}
+                            onChange={e => {
+                              const val = Number(e.target.value);
+                              setProgress(val);
+                              if (centerVideoRef.current) {
+                                centerVideoRef.current.currentTime = val;
+                              }
+                            }}
+                            className={styles.progressBar}
+                            style={{ 
+                              ['--progress']: `${(progress / (duration || 1)) * 100}%`
+                            }}
+                            disabled={duration === 0}
+                            aria-label="Video progress"
+                          />
+                          
+                          <div className={styles.timeDisplay}>
+                            <span>{formatTime(progress)}</span>
+                            <span>{formatTime(duration)}</span>
+                          </div>
+                        </div>
+                        
+                        <div className={styles.centerInfo}>
+                          <div className={styles.centerUserRow}>
+                            <span className={styles.username}>{short.artiste || 'Artiste inconnu'}</span>
+                          </div>
+                          <div className={styles.centerDesc}>{short.description || short.titre || 'Pas de description'}</div>
+                          <div className={styles.centerMusic}>🎵 {short.artiste || 'Artiste inconnu'}</div>
+                          <div className={styles.centerActions}>
+                            <span className={styles.featured}><FaStar /> Featured</span>
                             <button 
-                              className={styles.collapseBtn}
+                              className={`${styles.actionBtn} ${isLikeLoading ? styles.disabled : ''} ${short.userInteraction?.liked ? styles.active : ''}`} 
+                              onClick={() => handleLike(short._id)}
+                              disabled={isLikeLoading}
+                              aria-label="Like"
+                            >
+                              <FaHeart />
+                              <span className={styles.actionCount}>{short.likes || 0}</span>
+                            </button>
+                            <button 
+                              className={`${styles.actionBtn} ${isShareLoading ? styles.disabled : ''}`}
+                              onClick={() => handleShare(short._id)}
+                              disabled={isShareLoading}
+                              aria-label="Share"
+                            >
+                              <FaShareAlt />
+                            </button>
+                            <button 
+                              className={`${styles.actionBtn} ${isCommentsVisible ? styles.active : ''}`}
                               onClick={toggleComments}
+                              aria-label="Comments"
                             >
-                              <FaChevronDown />
-                            </button>
-                          </div>
-                          
-                          <div className={styles.commentsList}>
-                            {comments.length === 0 ? (
-                              <p className={styles.noComments}>Aucun commentaire pour le moment.</p>
-                            ) : (
-                              comments.map(comment => (
-                                <div key={comment.id} className={styles.commentItem}>
-                                  <img 
-                                    src={comment.imageUrl || '/images/default-avatar.jpg'} 
-                                    alt={comment.username}
-                                    onError={(e) => {
-                                      e.target.src = '/images/default-avatar.jpg';
-                                    }}
-                                    crossOrigin="anonymous" // Ajouter cet attribut
-                                  />
-                                  <div>
-                                    <div className={styles.commentHeader}>
-                                      <span className={styles.commentAuthor}>{comment.username}</span>
-                                      <span className={styles.commentDate}>
-                                        {new Date(comment.createdAt).toLocaleDateString()}
-                                      </span>
-                                    </div>
-                                    <p className={styles.commentContent}>{comment.content}</p>
-                                  </div>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                          
-                          <div className={styles.addCommentSection}>
-                            <input
-                              type="text"
-                              value={commentInput}
-                              onChange={e => setCommentInput(e.target.value)}
-                              placeholder="Ajouter un commentaire..."
-                              onKeyPress={e => e.key === 'Enter' && addComment()}
-                            />
-                            <button 
-                              onClick={addComment}
-                              disabled={!commentInput.trim()}
-                            >
-                              Envoyer
+                              <FaComment />
+                              <span className={styles.actionCount}>{short.meta?.commentCount || 0}</span>
                             </button>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  );
-                } else {
-                  // Cards latérales, cliquables pour changer le centre
-                  return (
-                    <div 
-                      className={styles.sideCard} 
-                      key={short._id} 
-                      onClick={() => handleSideCardClick(realIdx)}
-                    >
-                      <video
-                        src={getFullVideoUrl(short.youtubeUrl)}
-                        controls={false}
-                        className={styles.sideImg}
-                        autoPlay={false}
-                        muted
-                        crossOrigin="anonymous" // Ajouter cet attribut
-                      />
-                      <div className={styles.views}>
-                        <FaPlay /> {short.duree || 0}s
+                        
+                        {/* Section des commentaires */}
+                        {isCommentsVisible && (
+                          <div className={styles.commentsSection}>
+                            <div className={styles.commentsHeader}>
+                              <h3>Commentaires</h3>
+                              <button 
+                                className={styles.collapseBtn}
+                                onClick={toggleComments}
+                                aria-label="Close comments"
+                              >
+                                <FaChevronDown />
+                              </button>
+                            </div>
+                            
+                            <div className={styles.commentsList}>
+                              {comments.length === 0 ? (
+                                <p className={styles.noComments}>Aucun commentaire pour le moment.</p>
+                              ) : (
+                                comments.map(comment => (
+                                  <div key={comment.id} className={styles.commentItem}>
+                                    <img 
+                                      src={comment.imageUrl || '/images/default-avatar.jpg'} 
+                                      alt={comment.username}
+                                      onError={(e) => {
+                                        e.target.src = '/images/default-avatar.jpg';
+                                      }}
+                                      crossOrigin="anonymous"
+                                    />
+                                    <div>
+                                      <div className={styles.commentHeader}>
+                                        <span className={styles.commentAuthor}>{comment.username}</span>
+                                        <span className={styles.commentDate}>
+                                          {new Date(comment.createdAt).toLocaleDateString()}
+                                        </span>
+                                      </div>
+                                      <p className={styles.commentContent}>{comment.content}</p>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                            
+                            <div className={styles.addCommentSection}>
+                              <input
+                                type="text"
+                                value={commentInput}
+                                onChange={e => setCommentInput(e.target.value)}
+                                placeholder="Ajouter un commentaire..."
+                                onKeyPress={e => e.key === 'Enter' && addComment()}
+                                aria-label="Add comment"
+                              />
+                              <button 
+                                onClick={addComment}
+                                disabled={!commentInput.trim()}
+                                aria-label="Send comment"
+                              >
+                                Envoyer
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  );
-                }
-              });
-            })()}
+                    );
+                  } else {
+                    // Cards latérales, cliquables pour changer le centre
+                    return (
+                      <div 
+                        className={styles.sideCard} 
+                        key={short._id} 
+                        onClick={() => handleSideCardClick(realIdx)}
+                        role="button"
+                        tabIndex="0"
+                        aria-label={`Voir le short ${short.titre}`}
+                      >
+                        <video
+                          src={short.youtubeUrl}
+                          controls={false}
+                          className={styles.sideImg}
+                          autoPlay={false}
+                          muted
+                          crossOrigin="anonymous"
+                          onError={(e) => {
+                            console.error('Erreur de chargement vidéo:', e);
+                            e.target.src = '/images/video-error.jpg';
+                          }}
+                        />
+                        <div className={styles.views}>
+                          <FaPlay /> {short.duree || 0}s
+                        </div>
+                      </div>
+                    );
+                  }
+                });
+              })()}
+            </div>
+            
+            {/* Boutons de navigation */}
+            {shorts.length > 1 && (
+              <>
+                {centerIdx > 0 && (
+                  <button 
+                    className={`${styles.navButton} ${styles.leftNav}`} 
+                    onClick={() => handleHorizontalScroll('left')}
+                    aria-label="Previous short"
+                  >
+                    <FaChevronLeft />
+                  </button>
+                )}
+                
+                {centerIdx < shorts.length - 1 && (
+                  <button 
+                    className={`${styles.navButton} ${styles.rightNav}`} 
+                    onClick={() => handleHorizontalScroll('right')}
+                    aria-label="Next short"
+                  >
+                    <FaChevronRight />
+                  </button>
+                )}
+              </>
+            )}
+            
+            {/* Indicateur de position */}
+            {shorts.length > 1 && (
+              <div className={styles.paginationIndicator}>
+                {shorts.map((_, idx) => (
+                  <span 
+                    key={idx} 
+                    className={`${styles.paginationDot} ${idx === centerIdx ? styles.activeDot : ''}`}
+                    onClick={() => setCenterIdx(idx)}
+                    role="button"
+                    tabIndex="0"
+                    aria-label={`Aller au short ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
         
@@ -1027,6 +1207,7 @@ export default function Shorts() {
               className={styles.loadMoreBtn}
               onClick={loadMoreShorts}
               disabled={isLoadingMore}
+              aria-label="Load more shorts"
             >
               {isLoadingMore ? (
                 <>
@@ -1041,11 +1222,16 @@ export default function Shorts() {
       
       {/* Modal d'ajout de short */}
       {showModal && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
+        <div className={styles.modalOverlay} onClick={() => !isUploading && setShowModal(false)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>Ajouter un Short</h2>
-              <button className={styles.closeBtn} onClick={() => setShowModal(false)}>
+              <button 
+                className={styles.closeBtn} 
+                onClick={() => !isUploading && setShowModal(false)}
+                disabled={isUploading}
+                aria-label="Close modal"
+              >
                 <FaTimes />
               </button>
             </div>
@@ -1062,6 +1248,7 @@ export default function Shorts() {
                   required
                   disabled={isUploading}
                   placeholder="Donnez un titre à votre short"
+                  aria-required="true"
                 />
               </div>
               
@@ -1076,12 +1263,31 @@ export default function Shorts() {
                   required
                   disabled={isUploading}
                   placeholder="Nom de l'artiste"
+                  aria-required="true"
+                />
+              </div>
+              
+              <div className={styles.formGroup}>
+                <label htmlFor="description">Description (optionnelle)</label>
+                <input
+                  id="description"
+                  name="description"
+                  type="text"
+                  value={form.description}
+                  onChange={handleChange}
+                  disabled={isUploading}
+                  placeholder="Décrivez votre short (optionnel)"
                 />
               </div>
               
               <div className={styles.formGroup}>
                 <label>Vidéo (10–30 s)</label>
-                <div className={styles.fileUploadContainer}>
+                <div 
+                  className={`${styles.fileUploadContainer} ${dragActive ? styles.dragActive : ''}`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
                   <div className={styles.fileUploadIcon}>
                     <FaCloudUploadAlt />
                   </div>
@@ -1100,12 +1306,18 @@ export default function Shorts() {
                     onChange={handleFileChange}
                     ref={videoRef}
                     disabled={isUploading}
+                    aria-label="Sélectionner une vidéo"
                   />
                 </div>
                 
                 {form.video && (
                   <div className={styles.filePreview}>
-                    <video src={URL.createObjectURL(form.video)} />
+                    <video 
+                      src={URL.createObjectURL(form.video)} 
+                      controls={true}
+                      muted
+                      playsInline
+                    />
                     <div className={styles.fileInfo}>
                       <div className={styles.fileName}>{form.video.name}</div>
                       <div className={styles.fileSize}>
@@ -1120,6 +1332,16 @@ export default function Shorts() {
                     <FaExclamationTriangle /> {errDuree}
                   </div>
                 )}
+                
+                {isUploading && (
+                  <div className={styles.uploadProgressContainer}>
+                    <div 
+                      className={styles.uploadProgressBar} 
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                    <span className={styles.uploadProgressText}>{uploadProgress}% Uploading...</span>
+                  </div>
+                )}
               </div>
             </form>
             
@@ -1127,8 +1349,9 @@ export default function Shorts() {
               <button
                 type="button"
                 className={styles.cancelBtn}
-                onClick={() => setShowModal(false)}
+                onClick={() => !isUploading && setShowModal(false)}
                 disabled={isUploading}
+                aria-label="Cancel"
               >
                 Annuler
               </button>
@@ -1137,6 +1360,7 @@ export default function Shorts() {
                 className={styles.uploadBtn}
                 onClick={handleSubmit}
                 disabled={isUploading || !form.video || !form.titre || !form.artiste}
+                aria-label="Upload"
               >
                 {isUploading ? (
                   <>
@@ -1152,7 +1376,7 @@ export default function Shorts() {
       
       {/* Feedback toast */}
       {feedback.visible && (
-        <div className={`${styles.feedback} ${styles[feedback.type]}`}>
+        <div className={`${styles.feedback} ${styles[feedback.type]}`} role="alert">
           {feedback.message}
         </div>
       )}

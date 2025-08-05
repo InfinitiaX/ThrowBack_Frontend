@@ -1,8 +1,6 @@
-// src/components/Dashboard/UserDashboard/Sidebar.jsx
 import React, { useEffect, useRef, useState } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './Sidebar.module.css';
-// import Logo from '../../../../images/Logo.png';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faVideo,
@@ -15,27 +13,24 @@ import {
   faTimes,
   faChevronLeft,
   faChevronRight,
-  faHome,
-  faSearch,
   faBookmark,
   faHeart,
-  faPlus,
-  faUserGroup,
+  faSearch,
   faUserFriends,
 } from '@fortawesome/free-solid-svg-icons';
 
-// Main navigation items (sans modification)
+// Définition des éléments de navigation
 const navItems = [
   { 
     label: 'LiveThrowBack', 
-    to: '/dashboard', // Chemin corrigé pour pointer vers l'index
-    icon: faBroadcastTower
+    to: '/dashboard', // Route de base
+    icon: faBroadcastTower,
+    exact: true // Important: exact match pour la route de base
   },
   { 
     label: 'ThrowBack Videos', 
     to: '/dashboard/videos', 
-    icon: faVideo,
-    exact: true
+    icon: faVideo
   },
   { 
     label: 'ThrowBack Shorts', 
@@ -51,13 +46,13 @@ const navItems = [
     label: 'ThrowBack Wall', 
     to: '/dashboard/wall', 
     icon: faStream,
-    inDevelopment: true // Marquer comme en développement
+    inDevelopment: true
   },
   { 
     label: 'ThrowBack Chat', 
     to: '/dashboard/chat', 
     icon: faComments,
-    inDevelopment: true // Marquer comme en développement
+    inDevelopment: true
   },
   { 
     label: 'Profile', 
@@ -66,7 +61,7 @@ const navItems = [
   },
 ];
 
-// Éléments de la section Bibliothèque (sans modification)
+// Éléments de la section Bibliothèque
 const libraryItems = [
   {
     label: 'Your Playlists',
@@ -77,7 +72,7 @@ const libraryItems = [
     label: 'Discover',
     to: '/dashboard/discover',
     icon: faSearch,
-    inDevelopment: true // Marquer comme en développement
+    inDevelopment: true
   },
   {
     label: 'Find friends',
@@ -88,7 +83,7 @@ const libraryItems = [
     label: 'Your favorites',
     to: '/dashboard/favorites',
     icon: faBookmark,
-    inDevelopment: true // Marquer comme en développement
+    inDevelopment: true
   }
 ];
 
@@ -98,13 +93,33 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
   const sidebarRef = useRef(null);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   
-  // Détection si l'appareil est tactile
+  // Détection des appareils tactiles
   useEffect(() => {
     setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
   }, []);
 
   // Détection d'iOS
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+  // Fonction améliorée pour déterminer si un élément est actif
+  const isActive = (path, exact = false) => {
+    // Pour la route dashboard principale
+    if (path === '/dashboard' && exact) {
+      return location.pathname === '/dashboard' || location.pathname === '/dashboard/';
+    }
+    
+    // Pour les autres routes
+    if (exact) {
+      return location.pathname === path;
+    }
+    
+    // Empêcher la route de base d'être active quand on est sur une sous-route
+    if (path === '/dashboard' && location.pathname !== '/dashboard' && location.pathname !== '/dashboard/') {
+      return false;
+    }
+    
+    return location.pathname.startsWith(path);
+  };
 
   // Détection des gestes de swipe améliorée
   useEffect(() => {
@@ -154,21 +169,16 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
       }
       
       // Réinitialiser
-      touchStartX = 0;
-      touchStartY = 0;
-      touchEndX = 0;
-      touchEndY = 0;
       isSwiping = false;
     };
 
-    // Ajouter la détection de swipe sur la sidebar
+    // Ajouter la détection de swipe
     if (sidebarRef.current) {
       sidebarRef.current.addEventListener('touchstart', handleTouchStart, { passive: true });
       sidebarRef.current.addEventListener('touchmove', handleTouchMove, { passive: true });
       sidebarRef.current.addEventListener('touchend', handleTouchEnd);
     }
 
-    // Ajouter la détection de swipe sur le document pour l'ouverture
     document.addEventListener('touchstart', handleTouchStart, { passive: true });
     document.addEventListener('touchmove', handleTouchMove, { passive: true });
     document.addEventListener('touchend', handleTouchEnd);
@@ -184,13 +194,6 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
       document.removeEventListener('touchend', handleTouchEnd);
     };
   }, [isOpen, toggleSidebar, isTouchDevice]);
-
-  const isActive = (path, exact = false) => {
-    if (exact) {
-      return location.pathname === path;
-    }
-    return location.pathname.startsWith(path);
-  };
   
   // Gestionnaire de navigation optimisé pour iOS
   const handleNavigation = (to) => {
@@ -253,7 +256,7 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
             <span>Navigation</span>
           </div>
           
-          {navItems.map(({ label, to, icon, exact, inDevelopment }) => (
+          {navItems.map(({ label, to, icon, exact = false, inDevelopment }) => (
             <div
               key={label}
               className={`${styles.navItemWrapper} ${isActive(to, exact) ? styles.activeWrapper : ''} ${inDevelopment ? styles.inDevelopmentWrapper : ''}`}
@@ -268,38 +271,46 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
                   <FontAwesomeIcon icon={icon} />
                 </span>
                 <span className={styles.label}>{label}</span>
+                
+                {/* Indicateur visuel pour l'élément actif */}
+                {isActive(to, exact) && (
+                  <span className={styles.activeIndicator}></span>
+                )}
               </div>
             </div>
           ))}
         </nav>
         
-        {/* Library Section - Affichée uniquement si des éléments existent */}
-        {libraryItems.length > 0 && (
-          <div className={styles.librarySection}>
-            <div className={styles.sectionTitle}>
-              <span>Library</span>
-            </div>
-            
-            {libraryItems.map(({ label, to, icon, inDevelopment }) => (
-              <div
-                key={label}
-                className={`${styles.navItemWrapper} ${styles.libraryItemWrapper} ${isActive(to) ? styles.activeWrapper : ''} ${inDevelopment ? styles.inDevelopmentWrapper : ''}`}
-                onClick={() => handleNavigation(to)}
-                role="button"
-                tabIndex={0}
-              >
-                <div 
-                  className={`${styles.navItem} ${styles.libraryItem} ${isActive(to) ? styles.active : ''} ${inDevelopment ? styles.inDevelopment : ''}`}
-                >
-                  <span className={styles.icon}>
-                    <FontAwesomeIcon icon={icon} />
-                  </span>
-                  <span className={styles.label}>{label}</span>
-                </div>
-              </div>
-            ))}
+        {/* Library Section */}
+        <div className={styles.librarySection}>
+          <div className={styles.sectionTitle}>
+            <span>Library</span>
           </div>
-        )}
+          
+          {libraryItems.map(({ label, to, icon, exact = false, inDevelopment }) => (
+            <div
+              key={label}
+              className={`${styles.navItemWrapper} ${styles.libraryItemWrapper} ${isActive(to, exact) ? styles.activeWrapper : ''} ${inDevelopment ? styles.inDevelopmentWrapper : ''}`}
+              onClick={() => handleNavigation(to)}
+              role="button"
+              tabIndex={0}
+            >
+              <div 
+                className={`${styles.navItem} ${styles.libraryItem} ${isActive(to, exact) ? styles.active : ''} ${inDevelopment ? styles.inDevelopment : ''}`}
+              >
+                <span className={styles.icon}>
+                  <FontAwesomeIcon icon={icon} />
+                </span>
+                <span className={styles.label}>{label}</span>
+                
+                {/* Indicateur visuel pour l'élément actif */}
+                {isActive(to, exact) && (
+                  <span className={styles.activeIndicator}></span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
         
         {/* Toggle Button - Visible uniquement sur desktop */}
         <button 

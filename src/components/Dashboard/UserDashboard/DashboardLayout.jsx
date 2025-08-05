@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../contexts/AuthContext';
 import Header from './header/Header';
 import Sidebar from './sidebar/Sidebar';
 import styles from './Layout.module.css';
@@ -8,30 +9,54 @@ const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-  const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
+  const [isTablet, setIsTablet] = useState(window.innerWidth > 768 && window.innerWidth <= 1024);
+  const [isLoading, setIsLoading] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout, user } = useAuth();
 
-  // Gère le redimensionnement de la fenêtre
+  // Vérification d'authentification intégrée au layout
+  const checkAuth = useCallback(async () => {
+    try {
+      // Logique de vérification d'authentification ici
+      setIsLoading(false);
+    } catch (e) {
+      if (e.response?.status === 401) navigate('/login');
+      setIsLoading(false);
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  // Gestion responsive améliorée
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth <= 768;
-      const portrait = window.innerHeight > window.innerWidth;
+      const width = window.innerWidth;
+      const mobile = width <= 768;
+      const tablet = width > 768 && width <= 1024;
       
       setIsMobile(mobile);
-      setIsPortrait(portrait);
+      setIsTablet(tablet);
       
-      // Si on passe de mobile à desktop, ouvrir la sidebar
-      if (!mobile && !isSidebarOpen) {
+      // Comportement intelligent selon le dispositif
+      if (mobile) {
+        setIsSidebarOpen(false);
+        setIsSidebarCollapsed(false);
+      } else if (tablet) {
         setIsSidebarOpen(true);
+        setIsSidebarCollapsed(true);
+      } else {
+        setIsSidebarOpen(true);
+        setIsSidebarCollapsed(false);
       }
     };
 
-    // Vérifier au chargement
-    handleResize();
-
+    handleResize(); // Initialisation
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [isSidebarOpen]);
+  }, []);
 
   // Fermer la sidebar lors des changements de route sur mobile
   useEffect(() => {
@@ -40,20 +65,20 @@ const DashboardLayout = () => {
     }
   }, [location.pathname, isMobile]);
 
-  // Ouvrir la sidebar par défaut sur desktop
-  useEffect(() => {
-    if (!isMobile) {
-      setIsSidebarOpen(true);
-    }
-  }, [isMobile]);
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarOpen(prev => !prev);
+  }, []);
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
+  const toggleSidebarCollapse = useCallback(() => {
+    setIsSidebarCollapsed(prev => !prev);
+  }, []);
 
-  const toggleSidebarCollapse = () => {
-    setIsSidebarCollapsed(!isSidebarCollapsed);
-  };
+  if (isLoading) {
+    return <div className={styles.loadingContainer}>
+      <div className={styles.loadingSpinner}></div>
+      <p>Chargement de votre expérience ThrowBack...</p>
+    </div>;
+  }
 
   return (
     <div className={styles.layout}>
@@ -62,6 +87,7 @@ const DashboardLayout = () => {
         toggleSidebar={toggleSidebar}
         isCollapsed={isSidebarCollapsed && !isMobile}
         toggleCollapse={toggleSidebarCollapse}
+        user={user}
       />
       
       <div 
@@ -75,19 +101,21 @@ const DashboardLayout = () => {
       >
         <Header 
           toggleSidebar={toggleSidebar} 
-          isSidebarOpen={isSidebarOpen} 
+          isSidebarOpen={isSidebarOpen}
+          user={user}
+          logout={logout}
         />
         
         <main className={styles.mainContent}>
           <Outlet />
         </main>
 
-        {/* Bouton flottant pour ouvrir la sidebar sur mobile */}
+        {/* Bouton flottant amélioré pour mobile */}
         {isMobile && !isSidebarOpen && (
           <button 
             className={styles.floatingMenuButton}
             onClick={toggleSidebar}
-            aria-label="Open menu"
+            aria-label="Ouvrir le menu"
           >
             <span className={styles.floatingMenuIcon}></span>
             <span className={styles.floatingMenuIcon}></span>

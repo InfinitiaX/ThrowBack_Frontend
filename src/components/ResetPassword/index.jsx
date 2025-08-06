@@ -1,7 +1,3 @@
-// ========================================
-// 3. FRONTEND: ResetPassword component - Version améliorée avec debug
-// ========================================
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './styles.module.css';

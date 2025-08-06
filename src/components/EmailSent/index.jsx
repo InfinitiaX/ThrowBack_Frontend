@@ -15,7 +15,7 @@ const EmailSent = () => {
     <div className={styles.auth_container}>
       <div className={styles.auth_left}>
         <div className={styles.logo_container}>
-          <p style={{color: '#b31217', fontSize: '1.5rem'}}>THROWBACK-CONNECT</p>
+          <img src="/images/Logo.png" alt='Logo Throwback' className={styles.logo}/>
         </div>
         
         <div className={styles.email_sent_content}>

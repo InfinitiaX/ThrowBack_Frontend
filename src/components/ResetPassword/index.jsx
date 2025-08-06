@@ -1,268 +1,143 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import styles from './styles.module.css';
-import axios from 'axios';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import api from '../../utils/api';
+import './ResetPassword.css'; // Assurez-vous que le fichier CSS existe
 
-const ResetPassword = () => {
-  const [formData, setFormData] = useState({
-    password: '',
-    confirmPassword: ''
-  });
+function ResetPassword() {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [token, setToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const [token, setToken] = useState('');
-  
-  const navigate = useNavigate();
+  const [success, setSuccess] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { clearError } = useAuth();
 
+  // Extraire le token de l'URL dès le chargement du composant
   useEffect(() => {
-    console.log("🔍 ResetPassword component mounted");
-    console.log("📍 Current URL:", window.location.href);
+    // Réinitialiser l'état
+    setError('');
+    clearError();
     
-    // Get token from URL - AVEC GESTION DE LA REDIRECTION GOOGLE
-    const params = new URLSearchParams(location.search);
-    let tokenParam = params.get('token');
-    const messageParam = params.get('message');
+    // Extraire le token de l'URL
+    const searchParams = new URLSearchParams(location.search);
+    const tokenFromUrl = searchParams.get('token');
     
-    console.log("📝 URL Parameters:", params.toString());
-    console.log("- Initial token:", tokenParam);
+    console.log("🔑 Token extrait de l'URL:", tokenFromUrl);
     
-    // Vérifier si c'est une redirection Google (présence du paramètre q)
-    if (!tokenParam && params.has('q')) {
-      try {
-        // Extraire l'URL originale de la redirection Google
-        const googleRedirectUrl = params.get('q');
-        console.log("📦 Détection redirection Google. URL originale:", googleRedirectUrl);
-        
-        // Décoder l'URL et extraire les paramètres
-        const originalUrl = decodeURIComponent(googleRedirectUrl);
-        console.log("📦 URL décodée:", originalUrl);
-        
-        // Utiliser URL API pour analyser l'URL et extraire les paramètres
-        const originalUrlObj = new URL(originalUrl);
-        const originalParams = new URLSearchParams(originalUrlObj.search);
-        tokenParam = originalParams.get('token');
-        
-        console.log("🔑 Token extrait de la redirection Google:", tokenParam);
-        
-        // Nettoyer l'URL en redirigeant vers l'URL correcte si token trouvé
-        if (tokenParam) {
-          const cleanUrl = `/reset-password?token=${tokenParam}`;
-          console.log("🧹 Nettoyage de l'URL:", cleanUrl);
-          window.history.replaceState({}, '', cleanUrl);
-        }
-      } catch (e) {
-        console.error("❌ Échec de l'extraction du token:", e);
-      }
-    }
-    
-    // Vérifier s'il s'agit d'une URL source (par exemple de Gmail)
-    if (!tokenParam && params.has('source') && params.has('url') && params.get('source') === 'gmail') {
-      try {
-        const encodedUrl = params.get('url');
-        const decodedUrl = decodeURIComponent(encodedUrl);
-        console.log("📦 URL décodée depuis Gmail:", decodedUrl);
-        
-        const urlObj = new URL(decodedUrl);
-        const urlParams = new URLSearchParams(urlObj.search);
-        tokenParam = urlParams.get('token');
-        
-        console.log("🔑 Token extrait de l'URL Gmail:", tokenParam);
-        
-        if (tokenParam) {
-          const cleanUrl = `/reset-password?token=${tokenParam}`;
-          window.history.replaceState({}, '', cleanUrl);
-        }
-      } catch (e) {
-        console.error("❌ Échec de l'extraction du token Gmail:", e);
-      }
-    }
-    
-    console.log("📝 Valeur finale du token:", tokenParam);
-    
-    if (tokenParam) {
-      setToken(tokenParam);
-      console.log("✅ Token défini avec succès");
-      if (messageParam) {
-        setMessage(messageParam);
-        console.log("✅ Message défini avec succès");
-      }
+    if (tokenFromUrl) {
+      setToken(tokenFromUrl);
     } else {
-      console.log("❌ Aucun token trouvé dans l'URL");
-      setError('Token manquant. Veuillez demander une nouvelle réinitialisation de mot de passe.');
-      
-      // Rediriger vers forgot-password après 3 secondes si pas de token
-      setTimeout(() => {
-        navigate('/forgot-password');
-      }, 3000);
+      setError("Aucun token de réinitialisation trouvé dans l'URL. Veuillez réessayer le processus de réinitialisation.");
     }
-  }, [location, navigate]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  }, [location.search, clearError]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    console.log("🚀 Submit password reset");
-    console.log("📝 Using token:", token);
-
-    // Check if passwords match
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
-      return;
+    
+    if (password !== confirmPassword) {
+      return setError("Les mots de passe ne correspondent pas.");
     }
-
-    // Check minimum password length
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      setLoading(false);
-      return;
+    
+    if (password.length < 6) {
+      return setError("Le mot de passe doit contenir au moins 6 caractères.");
     }
-
+    
     try {
-      const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
-      console.log("📡 API Call to:", `${backendUrl}/api/auth/reset-password`);
+      setLoading(true);
+      console.log("🔄 Envoi de la demande de réinitialisation avec token:", token);
       
-      const response = await axios.put(`${backendUrl}/api/auth/reset-password`, {
+      const response = await api.put('/api/auth/reset-password', {
         token,
-        password: formData.password
+        password
       });
       
-      console.log("✅ Password reset successful:", response.data);
+      console.log("✅ Réponse reçue:", response.data);
       
       if (response.data.success) {
-        setMessage('Password reset successfully!');
+        setSuccess(true);
+        setError('');
+        
+        // Redirection vers la page de connexion après 3 secondes
         setTimeout(() => {
-          navigate('/login?message=Password reset successfully. You can now sign in with your new password.');
-        }, 2000);
+          navigate('/login');
+        }, 3000);
       }
-    } catch (error) {
-      console.error('❌ Password reset error:', error);
-      setError(error.response?.data?.message || 'An error occurred');
+    } catch (err) {
+      console.error("❌ Erreur lors de la réinitialisation:", err);
+      setError(
+        err.response?.data?.message || 
+        "Une erreur s'est produite lors de la réinitialisation du mot de passe. Veuillez réessayer."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // Si pas de token, afficher message d'erreur et lien
-  if (!token && !loading) {
-    return (
-      <div className={styles.auth_container}>
-        <div className={styles.auth_left}>
-          <div className={styles.logo_container}>
-            <img src="/images/Logo.png" alt="ThrowBack Logo" className={styles.logo} />
-          </div>
-          
-          <div className={styles.error_state}>
-            <h1 className={styles.auth_title}>Invalid Reset Link</h1>
-            <p className={styles.error_message}>
-              This password reset link is invalid or has expired.
-            </p>
-            <p className={styles.auth_subtitle}>
-              Please request a new password reset.
-            </p>
-            
-            <a href="/forgot-password" className={`${styles.btn} ${styles.btn_primary}`}>
-              Request New Reset
-            </a>
-          </div>
-        </div>
-        
-        <div className={styles.auth_right}>
-          <img 
-            src="/images/bannière_gauche.png" 
-            alt="ThrowBack Music Experience" 
-            className={styles.music_collage} 
-          />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className={styles.auth_container}>
-      <div className={styles.auth_left}>
-        <div className={styles.logo_container}>
-          <img src="/images/Logo.png" alt="ThrowBack Logo" className={styles.logo} />
-        </div>
+    <div className="reset-password-container">
+      <div className="reset-password-form-container">
+        <h2>Réinitialisation du mot de passe</h2>
         
-        <h1 className={styles.auth_title}>Create new password</h1>
-        <p className={styles.auth_subtitle}>
-          Please enter and confirm your new password below.
-        </p>
+        {error && (
+          <div className="error-message">
+            <p>{error}</p>
+          </div>
+        )}
         
-        <form onSubmit={handleSubmit} className={styles.auth_form}>
-          {error && <div className={styles.error_message}>{error}</div>}
-          {message && <div className={styles.success_message}>{message}</div>}
-          
-          <div className={styles.form_group}>
-            <label htmlFor="password">New password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              placeholder="Enter your new password"
-              value={formData.password}
-              onChange={handleChange}
-              className={styles.form_input}
-              required
-              minLength="6"
-            />
+        {success ? (
+          <div className="success-message">
+            <p>Votre mot de passe a été réinitialisé avec succès!</p>
+            <p>Vous allez être redirigé vers la page de connexion...</p>
           </div>
-          
-          <div className={styles.form_group}>
-            <label htmlFor="confirmPassword">Confirm password</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              placeholder="Confirm your new password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              className={styles.form_input}
-              required
-            />
-          </div>
-          
-          <button
-            type="submit"
-            className={`${styles.btn} ${styles.btn_primary}`}
-            disabled={loading || !token}
-          >
-            {loading ? 'Resetting...' : 'Reset password'}
-          </button>
-          
-          {/* Debug info en mode développement */}
-          {process.env.NODE_ENV === 'development' && (
-            <div style={{ marginTop: '20px', padding: '10px', background: '#f0f0f0', fontSize: '12px' }}>
-              <strong>Debug Info:</strong><br/>
-              Token present: {token ? '✅ Yes' : '❌ No'}<br/>
-              Token value: {token || 'None'}<br/>
-              Current URL: {window.location.href}
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label htmlFor="password">Nouveau mot de passe</label>
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Entrez votre nouveau mot de passe"
+                required
+                disabled={!token || loading}
+              />
             </div>
-          )}
-        </form>
-      </div>
-      
-      <div className={styles.auth_right}>
-        <img 
-          src="/images/bannière_gauche.png" 
-          alt="ThrowBack Music Experience" 
-          className={styles.music_collage} 
-        />
+            
+            <div className="form-group">
+              <label htmlFor="confirmPassword">Confirmer le mot de passe</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirmez votre nouveau mot de passe"
+                required
+                disabled={!token || loading}
+              />
+            </div>
+            
+            <button 
+              type="submit" 
+              className="reset-button"
+              disabled={!token || loading}
+            >
+              {loading ? "Réinitialisation en cours..." : "Réinitialiser le mot de passe"}
+            </button>
+          </form>
+        )}
+        
+        <div className="form-footer">
+          <p>
+            <a href="/login">Retour à la connexion</a>
+          </p>
+        </div>
       </div>
     </div>
   );
-};
+}
 
 export default ResetPassword;

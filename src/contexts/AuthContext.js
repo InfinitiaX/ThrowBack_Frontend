@@ -94,27 +94,26 @@ export function AuthProvider({ children }) {
 
   // Vérifier si l'utilisateur est authentifié pour les routes protégées
   useEffect(() => {
-    // Ne pas rediriger si c'est une route publique ou si l'utilisateur se charge encore
-    const isPublicRoute = publicRoutes.some(route => 
-      location.pathname === route || 
-      location.pathname.startsWith('/email-verify/') ||
-      location.pathname.startsWith('/api/auth/verify/') ||
-      location.pathname.startsWith('/reset-password')
-    );
-    
-    // Vérifier si le chemin actuel est la page de réinitialisation du mot de passe
+    // CORRECTION: Vérifier explicitement si le chemin actuel est /reset-password
     const isResetPasswordPage = location.pathname === '/reset-password';
     
-    // Ne pas rediriger si c'est la page de réinitialisation du mot de passe, même avec un token
+    // Si c'est la page de réinitialisation de mot de passe, ne JAMAIS rediriger
     if (isResetPasswordPage) {
       return;
     }
+    
+    // Ne pas rediriger si c'est une route publique
+    const isPublicRoute = publicRoutes.some(route => 
+      location.pathname === route || 
+      location.pathname.startsWith('/email-verify/') ||
+      location.pathname.startsWith('/api/auth/verify/')
+    );
 
     // Ne pas rediriger si c'est une route publique ou si l'utilisateur est authentifié ou si les données se chargent encore
     if (!isPublicRoute && !state.isAuthenticated && !state.isLoading && state.token === null) {
       navigate('/login');
     }
-  }, [state.isAuthenticated, state.isLoading, state.token, location.pathname, navigate]);
+  }, [state.isAuthenticated, state.isLoading, state.token, location.pathname, navigate, publicRoutes]);
 
   // Charge le profil complet depuis /api/auth/me
   const loadUser = useCallback(async () => {

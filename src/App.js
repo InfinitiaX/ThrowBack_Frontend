@@ -64,13 +64,16 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/api/auth/verify-reset/:token" element={<ApiRedirect endpoint="/api/auth/verify-reset/:token" />} />
+
           <Route path="/email-verify/:id/:token" element={<EmailVerify />} />
           <Route path="/email-sent" element={<EmailSent />} />
 
           {/* redirections API */}
           <Route path="/api/auth/verify/:id/:token" element={<ApiRedirect endpoint="/api/auth/verify/:id/:token" />} />
-          <Route path="/api/auth/verify-reset/:token" element={<ApiRedirect endpoint="/api/auth/verify-reset/:token" />} />
+          {/* <Route path="/api/auth/verify-reset/:token" element={<ApiRedirect endpoint="/api/auth/verify-reset/:token" />} /> */}
 
           {/* Dashboard Protected + Nested Routes */}
           <Route path="/dashboard/" element={

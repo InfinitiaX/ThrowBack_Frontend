@@ -21,7 +21,7 @@ const ApiRedirect = ({ endpoint }) => {
         console.log(`🔄 Redirection API: ${apiUrl}`);
         
         // Appeler l'API backend
-        const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+        const backendUrl = process.env.REACT_APP_API_URL || 'https://api.testdevinfinitiax.fr';
         const fullUrl = `${backendUrl}${apiUrl}`;
         
         console.log(`📡 Appel API: ${fullUrl}`);
@@ -32,6 +32,8 @@ const ApiRedirect = ({ endpoint }) => {
           validateStatus: status => status >= 200 && status < 400
         });
         
+        console.log(`📡 Réponse API:`, response);
+        
         // Vérifier si la réponse contient une redirection
         if (response.request && response.request.responseURL) {
           const redirectUrl = response.request.responseURL;
@@ -41,8 +43,9 @@ const ApiRedirect = ({ endpoint }) => {
             // Analyser l'URL de redirection
             const urlObj = new URL(redirectUrl);
             const redirectPath = urlObj.pathname + urlObj.search;
+            console.log(`🔄 Chemin de redirection: ${redirectPath}`);
             
-            // Vérifier si c'est une redirection vers reset-password
+            // IMPORTANT: Vérifier si c'est une redirection vers reset-password
             if (urlObj.pathname.includes('reset-password') || urlObj.search.includes('token=')) {
               console.log(`🔑 Redirection vers reset-password détectée`);
               const token = urlObj.searchParams.get('token');
@@ -74,25 +77,42 @@ const ApiRedirect = ({ endpoint }) => {
           console.log(`🔄 Redirection ${error.response.status} vers: ${location}`);
           
           try {
-            const urlObj = new URL(location);
-            const redirectPath = urlObj.pathname + urlObj.search;
+            // Si location est une URL absolue, extraire l'URL
+            let urlObj;
+            if (location.startsWith('http')) {
+              urlObj = new URL(location);
+            } else {
+              // Pour les URLs relatives
+              const baseUrl = process.env.REACT_APP_FRONTEND_URL || 'http://localhost:3000';
+              urlObj = new URL(location, baseUrl);
+            }
             
-            // Vérifier si c'est une redirection vers reset-password
-            if (redirectPath.includes('reset-password') || urlObj.search.includes('token=')) {
+            // IMPORTANT: Vérifier spécifiquement pour reset-password
+            if (urlObj.pathname.includes('reset-password')) {
+              console.log('🔑 Redirection reset-password détectée');
               const token = urlObj.searchParams.get('token');
               
               if (token) {
+                console.log(`🔑 Token trouvé: ${token}`);
                 navigate(`/reset-password?token=${token}`);
                 return;
               }
             }
             
-            // Naviguer vers le chemin relatif
+            // Pour d'autres redirections
             if (location.startsWith('http')) {
-              // URL absolue: extraire le chemin relatif
-              navigate(redirectPath);
+              // URL absolue
+              const frontendUrl = process.env.REACT_APP_FRONTEND_URL || 'http://localhost:3000';
+              if (location.startsWith(frontendUrl)) {
+                // URL frontend, extraire le chemin relatif
+                const path = location.substring(frontendUrl.length);
+                navigate(path);
+              } else {
+                // URL externe, redirection complète
+                window.location.href = location;
+              }
             } else {
-              // URL relative: utiliser telle quelle
+              // URL relative
               navigate(location);
             }
           } catch (parseError) {
@@ -120,7 +140,9 @@ const ApiRedirect = ({ endpoint }) => {
       justifyContent: 'center', 
       height: '100vh', 
       textAlign: 'center',
-      padding: '20px'
+      padding: '20px',
+      background: 'linear-gradient(180deg, #b31217 0%, #430000 100%)',
+      color: 'white'
     }}>
       {error ? (
         <div>

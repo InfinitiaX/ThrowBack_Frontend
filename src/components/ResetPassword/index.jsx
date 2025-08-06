@@ -18,27 +18,57 @@ const ResetPassword = () => {
 
   useEffect(() => {
     console.log("🔍 ResetPassword component mounted");
-    console.log("📍 Current location:", location);
+    console.log("📍 Current URL:", window.location.href);
     
-    // Get token from URL
-    const params = new URLSearchParams(location.search);
-    const tokenParam = params.get('token');
+    // Get token from URL - AVEC GESTION DE LA REDIRECTION GOOGLE
+    const params = new URLSearchParams(window.location.search);
+    let tokenParam = params.get('token');
     const messageParam = params.get('message');
     
-    console.log("📝 URL Parameters:");
-    console.log("- Token:", tokenParam);
-    console.log("- Message:", messageParam);
-
+    console.log("📝 URL Parameters:", params.toString());
+    console.log("- Initial token:", tokenParam);
+    
+    // Vérifier si c'est une redirection Google (présence du paramètre q)
+    if (!tokenParam && params.has('q')) {
+      try {
+        // Extraire l'URL originale de la redirection Google
+        const googleRedirectUrl = params.get('q');
+        console.log("📦 Détection redirection Google. URL originale:", googleRedirectUrl);
+        
+        // Décoder l'URL et extraire les paramètres
+        const originalUrl = decodeURIComponent(googleRedirectUrl);
+        console.log("📦 URL décodée:", originalUrl);
+        
+        // Utiliser URL API pour analyser l'URL et extraire les paramètres
+        const originalUrlObj = new URL(originalUrl);
+        const originalParams = new URLSearchParams(originalUrlObj.search);
+        tokenParam = originalParams.get('token');
+        
+        console.log("🔑 Token extrait de la redirection Google:", tokenParam);
+        
+        // Nettoyer l'URL en redirigeant vers l'URL correcte si token trouvé
+        if (tokenParam) {
+          const cleanUrl = `/reset-password?token=${tokenParam}`;
+          console.log("🧹 Nettoyage de l'URL:", cleanUrl);
+          window.history.replaceState({}, '', cleanUrl);
+        }
+      } catch (e) {
+        console.error("❌ Échec de l'extraction du token:", e);
+      }
+    }
+    
+    console.log("📝 Valeur finale du token:", tokenParam);
+    
     if (tokenParam) {
       setToken(tokenParam);
-      console.log("✅ Token set successfully");
+      console.log("✅ Token défini avec succès");
       if (messageParam) {
         setMessage(messageParam);
-        console.log("✅ Message set successfully");
+        console.log("✅ Message défini avec succès");
       }
     } else {
-      console.log("❌ No token found in URL");
-      setError('Missing token. Please request a new password reset.');
+      console.log("❌ Aucun token trouvé dans l'URL");
+      setError('Token manquant. Veuillez demander une nouvelle réinitialisation de mot de passe.');
       
       // Rediriger vers forgot-password après 3 secondes si pas de token
       setTimeout(() => {

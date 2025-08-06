@@ -1,27 +1,158 @@
-// src/components/Common/ApiRedirect.jsx
-import { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const ApiRedirect = ({ endpoint }) => {
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
   const params = useParams();
+  const navigate = useNavigate();
   
   useEffect(() => {
-    let url = `${process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com '}${endpoint}`;
+    const performRedirect = async () => {
+      try {
+        setLoading(true);
+        // Construire l'URL dynamiquement en remplaçant les paramètres
+        let apiUrl = endpoint;
+        Object.keys(params).forEach(param => {
+          apiUrl = apiUrl.replace(`:${param}`, params[param]);
+        });
+        
+        console.log(`🔄 Redirection API: ${apiUrl}`);
+        
+        // Appeler l'API backend
+        const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+        const fullUrl = `${backendUrl}${apiUrl}`;
+        
+        console.log(`📡 Appel API: ${fullUrl}`);
+        
+        // Suivre manuellement les redirections avec axios
+        const response = await axios.get(fullUrl, { 
+          maxRedirects: 0,
+          validateStatus: status => status >= 200 && status < 400
+        });
+        
+        // Vérifier si la réponse contient une redirection
+        if (response.request && response.request.responseURL) {
+          const redirectUrl = response.request.responseURL;
+          console.log(`🔄 URL de redirection détectée: ${redirectUrl}`);
+          
+          try {
+            // Analyser l'URL de redirection
+            const urlObj = new URL(redirectUrl);
+            const redirectPath = urlObj.pathname + urlObj.search;
+            
+            // Vérifier si c'est une redirection vers reset-password
+            if (urlObj.pathname.includes('reset-password') || urlObj.search.includes('token=')) {
+              console.log(`🔑 Redirection vers reset-password détectée`);
+              const token = urlObj.searchParams.get('token');
+              
+              if (token) {
+                console.log(`🔑 Token trouvé: ${token}`);
+                navigate(`/reset-password?token=${token}`);
+                return;
+              }
+            }
+            
+            // Redirection générale
+            console.log(`🔄 Redirection vers: ${redirectPath}`);
+            navigate(redirectPath);
+          } catch (parseError) {
+            console.error('Erreur lors de l\'analyse de l\'URL de redirection:', parseError);
+            window.location.href = redirectUrl; // Fallback à la redirection directe
+          }
+        } else {
+          console.log('Pas de redirection détectée, retour à l\'accueil');
+          navigate('/');
+        }
+      } catch (error) {
+        console.error('Erreur de redirection API:', error);
+        
+        // Gérer les redirections HTTP 302
+        if (error.response && (error.response.status === 301 || error.response.status === 302)) {
+          const location = error.response.headers.location;
+          console.log(`🔄 Redirection ${error.response.status} vers: ${location}`);
+          
+          try {
+            const urlObj = new URL(location);
+            const redirectPath = urlObj.pathname + urlObj.search;
+            
+            // Vérifier si c'est une redirection vers reset-password
+            if (redirectPath.includes('reset-password') || urlObj.search.includes('token=')) {
+              const token = urlObj.searchParams.get('token');
+              
+              if (token) {
+                navigate(`/reset-password?token=${token}`);
+                return;
+              }
+            }
+            
+            // Naviguer vers le chemin relatif
+            if (location.startsWith('http')) {
+              // URL absolue: extraire le chemin relatif
+              navigate(redirectPath);
+            } else {
+              // URL relative: utiliser telle quelle
+              navigate(location);
+            }
+          } catch (parseError) {
+            console.error('Erreur lors de l\'analyse de l\'URL de redirection:', parseError);
+            window.location.href = location; // Fallback
+          }
+        } else {
+          setError('Une erreur est survenue lors de la redirection');
+          setTimeout(() => navigate('/'), 3000);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    // Replace placeholders with actual values
-    Object.keys(params).forEach(key => {
-      url = url.replace(`:${key}`, params[key]);
-    });
-    
-    window.location.href = url;
-  }, [endpoint, params]);
-
+    performRedirect();
+  }, [endpoint, navigate, params]);
+  
+  // Afficher un message de chargement ou d'erreur pendant la redirection
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <div style={{ textAlign: 'center' }}>
-        <h2>Redirecting...</h2>
-        <p>Please wait while we redirect you...</p>
-      </div>
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column',
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      height: '100vh', 
+      textAlign: 'center',
+      padding: '20px'
+    }}>
+      {error ? (
+        <div>
+          <h1>Erreur</h1>
+          <p>{error}</p>
+          <p>Redirection vers l'accueil...</p>
+        </div>
+      ) : (
+        <div>
+          <h1>Redirection en cours...</h1>
+          <p>Veuillez patienter pendant que nous vous redirigeons...</p>
+          {loading && (
+            <div className="loader" style={{
+              width: '48px',
+              height: '48px',
+              border: '5px solid #FFF',
+              borderBottomColor: '#b31217',
+              borderRadius: '50%',
+              display: 'inline-block',
+              boxSizing: 'border-box',
+              animation: 'rotation 1s linear infinite',
+              margin: '20px auto'
+            }}></div>
+          )}
+          <style>{`
+            @keyframes rotation {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   );
 };

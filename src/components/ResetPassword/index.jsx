@@ -21,7 +21,7 @@ const ResetPassword = () => {
     console.log("📍 Current URL:", window.location.href);
     
     // Get token from URL - AVEC GESTION DE LA REDIRECTION GOOGLE
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     let tokenParam = params.get('token');
     const messageParam = params.get('message');
     
@@ -54,6 +54,28 @@ const ResetPassword = () => {
         }
       } catch (e) {
         console.error("❌ Échec de l'extraction du token:", e);
+      }
+    }
+    
+    // Vérifier s'il s'agit d'une URL source (par exemple de Gmail)
+    if (!tokenParam && params.has('source') && params.has('url') && params.get('source') === 'gmail') {
+      try {
+        const encodedUrl = params.get('url');
+        const decodedUrl = decodeURIComponent(encodedUrl);
+        console.log("📦 URL décodée depuis Gmail:", decodedUrl);
+        
+        const urlObj = new URL(decodedUrl);
+        const urlParams = new URLSearchParams(urlObj.search);
+        tokenParam = urlParams.get('token');
+        
+        console.log("🔑 Token extrait de l'URL Gmail:", tokenParam);
+        
+        if (tokenParam) {
+          const cleanUrl = `/reset-password?token=${tokenParam}`;
+          window.history.replaceState({}, '', cleanUrl);
+        }
+      } catch (e) {
+        console.error("❌ Échec de l'extraction du token Gmail:", e);
       }
     }
     

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 
 // --- TYPES D'ACTIONS ---
@@ -73,10 +74,47 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
   const tokenRef = useRef(state.token);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Liste des routes publiques qui ne nécessitent pas d'authentification
+  const publicRoutes = [
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password', // Important: route pour réinitialiser le mot de passe
+    '/email-sent',
+    '/email-verify',
+    '/'
+  ];
 
   useEffect(() => {
     tokenRef.current = state.token;
   }, [state.token]);
+
+  // Vérifier si l'utilisateur est authentifié pour les routes protégées
+  useEffect(() => {
+    // Ne pas rediriger si c'est une route publique ou si l'utilisateur se charge encore
+    const isPublicRoute = publicRoutes.some(route => 
+      location.pathname === route || 
+      location.pathname.startsWith('/email-verify/') ||
+      location.pathname.startsWith('/api/auth/verify/') ||
+      location.pathname.startsWith('/reset-password')
+    );
+    
+    // Vérifier si le chemin actuel est la page de réinitialisation du mot de passe
+    const isResetPasswordPage = location.pathname === '/reset-password';
+    
+    // Ne pas rediriger si c'est la page de réinitialisation du mot de passe, même avec un token
+    if (isResetPasswordPage) {
+      return;
+    }
+
+    // Ne pas rediriger si c'est une route publique ou si l'utilisateur est authentifié ou si les données se chargent encore
+    if (!isPublicRoute && !state.isAuthenticated && !state.isLoading && state.token === null) {
+      navigate('/login');
+    }
+  }, [state.isAuthenticated, state.isLoading, state.token, location.pathname, navigate]);
 
   // Charge le profil complet depuis /api/auth/me
   const loadUser = useCallback(async () => {

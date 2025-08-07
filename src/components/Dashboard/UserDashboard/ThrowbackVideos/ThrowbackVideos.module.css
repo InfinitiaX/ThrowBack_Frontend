@@ -326,6 +326,8 @@
   }
 }
 
+
+
 /* Nouveaux styles pour les filtres inspirés de YouTube */
 .youtubeStyleFilters {
   width: 100%;
@@ -514,6 +516,7 @@
     padding: 0 12px;
   }
 }
+
 
 
 @keyframes ticker {

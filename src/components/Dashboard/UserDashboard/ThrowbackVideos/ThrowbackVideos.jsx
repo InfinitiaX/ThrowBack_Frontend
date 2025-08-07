@@ -601,7 +601,7 @@ const ThrowbackVideos = () => {
           >
             Musique
           </button>
-          <button 
+          {/* <button 
             className={`${styles.filterTab} ${filters.type === 'short' ? styles.active : ''}`}
             onClick={() => handleFilterChange({...filters, type: 'short'})}
           >
@@ -612,7 +612,7 @@ const ThrowbackVideos = () => {
             onClick={() => handleFilterChange({...filters, type: 'podcast'})}
           >
             Podcasts
-          </button>
+          </button> */}
         </div>
         
         {/* Filtres horizontaux */}

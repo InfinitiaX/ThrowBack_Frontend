@@ -8,14 +8,12 @@ import {
   faSpinner,
   faExclamationTriangle,
   faEye,
-  faShare,
-  faCalendarAlt
+  faTimes
 } from '@fortawesome/free-solid-svg-icons';
 import likeIcon from '../../../../assets/icons/like.png';
 import commentIcon from '../../../../assets/icons/comment.png';
 import MemoryCard from './MemoryCard';
 import VideoCard from './VideoCard';
-import VideoFilters from './VideoFilters';
 
 // Définition des données mockées pour le fallback
 const mockMemories = [
@@ -151,7 +149,6 @@ const ThrowbackVideos = () => {
     type: 'music',
     genre: 'all',
     decade: 'all',
-    search: '',
     sortBy: 'recent'
   });
   
@@ -264,7 +261,6 @@ const ThrowbackVideos = () => {
       if (filters.type && filters.type !== 'all') queryParams.append('type', filters.type);
       if (filters.genre && filters.genre !== 'all') queryParams.append('genre', filters.genre);
       if (filters.decade && filters.decade !== 'all') queryParams.append('decade', filters.decade);
-      if (filters.search) queryParams.append('search', filters.search);
       if (filters.sortBy) queryParams.append('sortBy', filters.sortBy);
       queryParams.append('page', pagination.page);
       queryParams.append('limit', pagination.limit);
@@ -330,15 +326,6 @@ const ThrowbackVideos = () => {
         
         if (filters.decade && filters.decade !== 'all') {
           filteredMockVideos = filteredMockVideos.filter(v => v.decennie === filters.decade);
-        }
-        
-        if (filters.search) {
-          const searchLower = filters.search.toLowerCase();
-          filteredMockVideos = filteredMockVideos.filter(v => 
-            v.titre.toLowerCase().includes(searchLower) || 
-            v.artiste.toLowerCase().includes(searchLower) ||
-            (v.description && v.description.toLowerCase().includes(searchLower))
-          );
         }
         
         // Tri des résultats
@@ -433,10 +420,6 @@ const ThrowbackVideos = () => {
     
     if (filters.decade && filters.decade !== 'all') {
       activeFilters.push(`Décennie: ${filters.decade}`);
-    }
-    
-    if (filters.search) {
-      activeFilters.push(`Recherche: "${filters.search}"`);
     }
     
     if (filters.sortBy && filters.sortBy !== 'recent') {
@@ -600,18 +583,111 @@ const ThrowbackVideos = () => {
     }
   };
 
+  // Composant pour les filtres style YouTube
+  const renderYoutubeStyleFilters = () => {
+    return (
+      <div className={styles.youtubeStyleFilters}>
+        {/* Onglets de types */}
+        <div className={styles.filterTabs}>
+          <button 
+            className={`${styles.filterTab} ${filters.type === 'all' ? styles.active : ''}`}
+            onClick={() => handleFilterChange({...filters, type: 'all'})}
+          >
+            Tous
+          </button>
+          <button 
+            className={`${styles.filterTab} ${filters.type === 'music' ? styles.active : ''}`}
+            onClick={() => handleFilterChange({...filters, type: 'music'})}
+          >
+            Musique
+          </button>
+          <button 
+            className={`${styles.filterTab} ${filters.type === 'short' ? styles.active : ''}`}
+            onClick={() => handleFilterChange({...filters, type: 'short'})}
+          >
+            Shorts
+          </button>
+          <button 
+            className={`${styles.filterTab} ${filters.type === 'podcast' ? styles.active : ''}`}
+            onClick={() => handleFilterChange({...filters, type: 'podcast'})}
+          >
+            Podcasts
+          </button>
+        </div>
+        
+        {/* Filtres horizontaux */}
+        <div className={styles.horizontalFilters}>
+          {/* Filtre Genre */}
+          <div className={styles.filterItem}>
+            <select 
+              value={filters.genre} 
+              onChange={(e) => handleFilterChange({...filters, genre: e.target.value})}
+              className={styles.filterSelect}
+            >
+              <option value="all">Tous les genres</option>
+              {availableFilters.availableGenres.map(genre => (
+                <option key={genre} value={genre}>{genre}</option>
+              ))}
+            </select>
+          </div>
+          
+          {/* Filtre Décennie */}
+          <div className={styles.filterItem}>
+            <select 
+              value={filters.decade} 
+              onChange={(e) => handleFilterChange({...filters, decade: e.target.value})}
+              className={styles.filterSelect}
+            >
+              <option value="all">Toutes les décennies</option>
+              {availableFilters.availableDecades.map(decade => (
+                <option key={decade} value={decade}>{decade}</option>
+              ))}
+            </select>
+          </div>
+          
+          {/* Filtre Tri */}
+          <div className={styles.filterItem}>
+            <select 
+              value={filters.sortBy} 
+              onChange={(e) => handleFilterChange({...filters, sortBy: e.target.value})}
+              className={styles.filterSelect}
+            >
+              <option value="recent">Plus récents</option>
+              <option value="popular">Plus populaires</option>
+              <option value="mostLiked">Plus aimés</option>
+              <option value="oldest">Plus anciens</option>
+              <option value="alphabetical">A-Z</option>
+            </select>
+          </div>
+          
+          {/* Bouton réinitialiser */}
+          {(filters.genre !== 'all' || filters.decade !== 'all' || filters.sortBy !== 'recent') && (
+            <button 
+              onClick={() => handleFilterChange({
+                type: filters.type,
+                genre: 'all',
+                decade: 'all',
+                sortBy: 'recent'
+              })}
+              className={styles.resetButton}
+            >
+              <FontAwesomeIcon icon={faTimes} />
+              <span>Réinitialiser les filtres</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={styles.throwbackVideosBg}>
+      {/* Filtres style YouTube au-dessus du titre */}
+      {renderYoutubeStyleFilters()}
+      
       <div className={styles.mainContentWrap}>
         <main className={styles.mainContent}>
           <h2 className={styles.sectionTitle}>Today's Pick</h2>
-          
-          {/* Composant de filtrage */}
-          <VideoFilters 
-            onFilterChange={handleFilterChange}
-            initialFilters={filters}
-            availableFilters={availableFilters}
-          />
           
           {/* Affichage des filtres actifs */}
           {renderActiveFilters()}
@@ -652,7 +728,6 @@ const ThrowbackVideos = () => {
                       type: 'all',
                       genre: 'all',
                       decade: 'all',
-                      search: '',
                       sortBy: 'recent'
                     })}
                     className={styles.resetFiltersButton}
@@ -666,39 +741,6 @@ const ThrowbackVideos = () => {
           
           {/* Pagination */}
           {renderPagination()}
-          
-          {/* Section de recommandations */}
-          <div className={styles.recommendationsSection}>
-            <h3 className={styles.recommendationsTitle}>Recommandés pour vous</h3>
-            <div className={styles.recommendationsGrid}>
-              {mockVideos.slice(0, 3).map((video) => (
-                <Link to={`/videos/${video._id}`} key={`rec-${video._id}`} className={styles.recommendationCard}>
-                  <div className={styles.recommendationImageContainer}>
-                    <img 
-                      src={`https://img.youtube.com/vi/${video.youtubeUrl.split('v=')[1]}/mqdefault.jpg`} 
-                      alt={video.titre} 
-                      className={styles.recommendationImage} 
-                    />
-                    <div className={styles.recommendationOverlay}>
-                      <FontAwesomeIcon icon={faEye} className={styles.viewIcon} />
-                    </div>
-                  </div>
-                  <div className={styles.recommendationInfo}>
-                    <span className={styles.recommendedArtist}>{video.artiste}</span>
-                    <span className={styles.recommendedTitle}>{video.titre}</span>
-                    <div className={styles.recommendationMeta}>
-                      <span className={styles.recommendationYear}>
-                        <FontAwesomeIcon icon={faCalendarAlt} /> {video.annee}
-                      </span>
-                      <span className={styles.recommendationStats}>
-                        <FontAwesomeIcon icon={faHeart} /> {video.likes}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
         </main>
         
         <aside className={styles.rightCards}>
@@ -743,15 +785,6 @@ const ThrowbackVideos = () => {
                 </>
               )}
             </div>
-          </div>
-          
-          {/* Bannière promo */}
-          <div className={styles.promoBanner}>
-            <h4>Créez votre propre playlist!</h4>
-            <p>Partagez vos souvenirs et connectez-vous avec d'autres fans</p>
-            <Link to="/playlists/create" className={styles.promoButton}>
-              Créer une playlist
-            </Link>
           </div>
         </aside>
       </div>

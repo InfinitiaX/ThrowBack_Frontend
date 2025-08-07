@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../utils/api';
-import './ResetPassword.css'; // Assurez-vous que le fichier CSS existe
+import './styles.module.css'; 
 
 function ResetPassword() {
   const [password, setPassword] = useState('');

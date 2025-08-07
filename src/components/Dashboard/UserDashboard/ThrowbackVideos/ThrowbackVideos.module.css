@@ -207,6 +207,323 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.07);
 }
 
+
+/* Ajout de style à  fichier  */
+
+.activeFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.activeFiltersLabel {
+  font-weight: 500;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.activeFilter {
+  background: #f0f0f0;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  color: #333;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.resultsInfo {
+  width: 100%;
+  text-align: left;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 32px;
+  width: 100%;
+}
+
+.pageButtons {
+  display: flex;
+  gap: 6px;
+}
+
+.paginationButton {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.paginationButton.active {
+  background: #b31217;
+  color: white;
+  border-color: #b31217;
+}
+
+.paginationButton:hover:not(:disabled) {
+  border-color: #b31217;
+  color: #b31217;
+}
+
+.paginationButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.paginationButton.navButton {
+  padding: 8px 16px;
+  font-weight: 500;
+}
+
+.paginationEllipsis {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+}
+
+.resetFiltersButton {
+  margin-top: 16px;
+  padding: 10px 16px;
+  background: #b31217;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.resetFiltersButton:hover {
+  background: #9e0f13;
+}
+
+@media (max-width: 768px) {
+  .pagination {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .pageButtons {
+    order: 1;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .paginationButton.navButton {
+    order: 2;
+    width: 100%;
+  }
+}
+
+/* Ajout de style */
+
+/* Styles additionnels pour ThrowbackVideos.module.css */
+
+.recommendationsSection {
+  width: 100%;
+  margin-top: 48px;
+  padding-top: 32px;
+  border-top: 1px solid #eee;
+}
+
+.recommendationsTitle {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 24px;
+}
+
+.recommendationsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  width: 100%;
+}
+
+.recommendationCard {
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: all 0.2s ease;
+}
+
+.recommendationCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+.recommendationImageContainer {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+}
+
+.recommendationImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.recommendationCard:hover .recommendationImage {
+  transform: scale(1.05);
+}
+
+.recommendationOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.recommendationCard:hover .recommendationOverlay {
+  opacity: 1;
+}
+
+.viewIcon {
+  color: white;
+  font-size: 2rem;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+.recommendationInfo {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.recommendedArtist {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.recommendedTitle {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.recommendationMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.recommendationYear, .recommendationStats {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.asideHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 0 12px;
+}
+
+.memoriesTitle {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #444;
+  margin: 0;
+}
+
+.viewAllLink {
+  font-size: 0.9rem;
+  color: #b31217;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.viewAllLink:hover {
+  color: #9e0f13;
+  text-decoration: underline;
+}
+
+.promoBanner {
+  margin-top: 32px;
+  background: linear-gradient(135deg, #b31217 0%, #e52d27 100%);
+  border-radius: 12px;
+  padding: 24px;
+  color: white;
+  text-align: center;
+}
+
+.promoBanner h4 {
+  font-size: 1.3rem;
+  margin: 0 0 8px 0;
+  font-weight: 600;
+}
+
+.promoBanner p {
+  font-size: 0.9rem;
+  margin: 0 0 16px 0;
+  opacity: 0.9;
+}
+
+.promoButton {
+  display: inline-block;
+  background: white;
+  color: #b31217;
+  border-radius: 24px;
+  padding: 10px 20px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.promoButton:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+@media (max-width: 1200px) {
+  .recommendationsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .recommendationsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .promoBanner {
+    display: none;
+  }
+}
+
+
+
 @keyframes ticker {
   0% {
     transform: translateY(0);

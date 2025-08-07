@@ -326,119 +326,142 @@
   }
 }
 
-/* Ajout de style */
-
-/* Styles additionnels pour ThrowbackVideos.module.css */
-
-/* .recommendationsSection {
+/* Nouveaux styles pour les filtres inspirés de YouTube */
+.youtubeStyleFilters {
   width: 100%;
-  margin-top: 48px;
-  padding-top: 32px;
-  border-top: 1px solid #eee;
+  padding: 0 20px;
+  margin-bottom: 16px;
+  position: sticky;
+  top: 70px; /* Ajustez selon votre header */
+  background: #f7f7fa;
+  z-index: 100;
+  border-bottom: 1px solid #e5e5e5;
 }
 
-.recommendationsTitle {
-  font-size: 1.6rem;
-  font-weight: 600;
-  color: #444;
-  margin-bottom: 24px;
-}
-
-.recommendationsGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  width: 100%;
-}
-
-.recommendationCard {
-  text-decoration: none;
+.filterTabs {
   display: flex;
-  flex-direction: column;
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px 0;
+  scrollbar-width: none; /* Pour Firefox */
+}
+
+.filterTabs::-webkit-scrollbar {
+  display: none; /* Pour Chrome et Safari */
+}
+
+.filterTab {
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: #f0f0f0;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #606060;
+  cursor: pointer;
+  white-space: nowrap;
   transition: all 0.2s ease;
 }
 
-.recommendationCard:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-}
-
-.recommendationImageContainer {
-  position: relative;
-  width: 100%;
-  height: 160px;
-  overflow: hidden;
-}
-
-.recommendationImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.recommendationCard:hover .recommendationImage {
-  transform: scale(1.05);
-}
-
-.recommendationOverlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.3);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.recommendationCard:hover .recommendationOverlay {
-  opacity: 1;
-}
-
-.viewIcon {
+.filterTab.active {
+  background: #b31217;
   color: white;
-  font-size: 2rem;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
 }
 
-.recommendationInfo {
-  padding: 16px;
+.filterTab:hover:not(.active) {
+  background: #e0e0e0;
+}
+
+.horizontalFilters {
   display: flex;
-  flex-direction: column;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 0 0 12px 0;
+  scrollbar-width: none;
+  align-items: center;
 }
 
-.recommendedArtist {
-  font-size: 1.1rem;
-  font-weight: 600;
+.horizontalFilters::-webkit-scrollbar {
+  display: none;
+}
+
+.filterItem {
+  min-width: fit-content;
+}
+
+.filterSelect {
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: 1px solid #ddd;
+  background: white;
+  font-size: 0.85rem;
   color: #333;
-  margin-bottom: 4px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
 }
 
-.recommendedTitle {
-  font-size: 0.9rem;
-  color: #666;
-  margin-bottom: 8px;
-}
-
-.recommendationMeta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.8rem;
-  color: #888;
-}
-
-.recommendationYear, .recommendationStats {
+.resetButton {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  background: #f0f0f0;
+  border: none;
+  font-size: 0.85rem;
+  color: #606060;
+  cursor: pointer;
+}
+
+.resetButton:hover {
+  background: #e0e0e0;
+}
+
+/* Mise à jour des styles existants */
+.mainContentWrap {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  max-width: 1800px;
+  margin: 0 auto;
+  min-height: 80vh;
+  padding-top: 12px;
+}
+
+.sectionTitle {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #444;
+  align-self: flex-start;
+}
+
+.activeFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.activeFiltersLabel {
+  font-weight: 500;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.activeFilter {
+  background: #f0f0f0;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  color: #333;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .asideHeader {
@@ -469,59 +492,28 @@
   text-decoration: underline;
 }
 
-.promoBanner {
-  margin-top: 32px;
-  background: linear-gradient(135deg, #b31217 0%, #e52d27 100%);
-  border-radius: 12px;
-  padding: 24px;
-  color: white;
-  text-align: center;
-}
-
-.promoBanner h4 {
-  font-size: 1.3rem;
-  margin: 0 0 8px 0;
-  font-weight: 600;
-}
-
-.promoBanner p {
-  font-size: 0.9rem;
-  margin: 0 0 16px 0;
-  opacity: 0.9;
-}
-
-.promoButton {
-  display: inline-block;
-  background: white;
-  color: #b31217;
-  border-radius: 24px;
-  padding: 10px 20px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.promoButton:hover {
-  transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
-
+/* Responsive adjustments */
 @media (max-width: 1200px) {
-  .recommendationsGrid {
-    grid-template-columns: repeat(2, 1fr);
+  .filterTabs {
+    overflow-x: auto;
+    justify-content: flex-start;
   }
 }
 
 @media (max-width: 768px) {
-  .recommendationsGrid {
-    grid-template-columns: 1fr;
+  .youtubeStyleFilters {
+    padding: 0 12px;
   }
   
-  .promoBanner {
-    display: none;
+  .mainContentWrap {
+    flex-direction: column;
   }
-} */
-
+  
+  .rightCards {
+    width: 100%;
+    padding: 0 12px;
+  }
+}
 
 
 @keyframes ticker {

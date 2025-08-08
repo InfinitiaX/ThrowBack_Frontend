@@ -2,13 +2,13 @@ import React from 'react';
 import styles from './VideoFilters.module.css';
 
 const VideoFilters = ({ onFilterChange, activeFilters }) => {
+
+      // Genres musicaux disponibles - regroupés par catégories pour une meilleure organisation
+  const genresLine1 = ['Tous', 'Pop', 'Rock', 'Hip-Hop', 'Rap', 'R&B', 'Soul', 'Jazz', 'Blues', 'Electronic', 'Dance', 'House',];
+  const genresLine2 = [ 'Techno', 'Country', 'Folk', 'Classical', 'Opera','Reggae', 'Latin', 'World', 'Afro','Indie',];
+  const genresLine3 = [ 'Alternative', 'Indie', 'Metal', 'Punk','Gopel','Funk','Disco','Ska', 'Salsa', 'Bachata','Merengue','Tango'];
   // Décennies disponibles
   const decades = ['Toutes', '60s', '70s', '80s', '90s', '2000s', '2010s', '2020s'];
-  
-  // Genres musicaux disponibles - regroupés par catégories pour une meilleure organisation
-  const genresLine1 = ['Tous', 'Pop', 'Rock', 'Hip-Hop', 'Rap', 'R&B', 'Soul', 'Jazz', 'Blues'];
-  const genresLine2 = ['Electronic', 'Dance', 'House', 'Techno', 'Country', 'Folk', 'Classical', 'Opera'];
-  const genresLine3 = ['Reggae', 'Reggaeton', 'Latin', 'World', 'Alternative', 'Indie', 'Metal', 'Punk'];
   
   // Options de tri
   const sortOptions = ['Plus récents', 'Plus populaires', 'Plus aimés'];

@@ -7,7 +7,6 @@ import {
   faComment,
   faSpinner,
   faExclamationTriangle,
-  faEye,
   faTimes
 } from '@fortawesome/free-solid-svg-icons';
 import likeIcon from '../../../../assets/icons/like.png';
@@ -146,7 +145,6 @@ const ThrowbackVideos = () => {
   
   // État pour les filtres et la pagination
   const [filters, setFilters] = useState({
-    type: 'music',
     genre: 'all',
     decade: 'all',
     sortBy: 'recent'
@@ -162,8 +160,7 @@ const ThrowbackVideos = () => {
   // État pour les options de filtres disponibles
   const [availableFilters, setAvailableFilters] = useState({
     availableGenres: ['Rock', 'Pop', 'Hip-Hop', 'Rap', 'R&B', 'Jazz', 'Blues', 'Electronic', 'Country', 'Folk', 'Classical', 'Reggae'],
-    availableDecades: ['60s', '70s', '80s', '90s', '2000s', '2010s', '2020s'],
-    availableTypes: ['music', 'short', 'podcast']
+    availableDecades: ['60s', '70s', '80s', '90s', '2000s', '2010s', '2020s']
   });
   
   // Construire l'URL de base en fonction de l'environnement
@@ -258,7 +255,6 @@ const ThrowbackVideos = () => {
       
       // Construire les paramètres de requête à partir des filtres
       const queryParams = new URLSearchParams();
-      if (filters.type && filters.type !== 'all') queryParams.append('type', filters.type);
       if (filters.genre && filters.genre !== 'all') queryParams.append('genre', filters.genre);
       if (filters.decade && filters.decade !== 'all') queryParams.append('decade', filters.decade);
       if (filters.sortBy) queryParams.append('sortBy', filters.sortBy);
@@ -315,10 +311,6 @@ const ThrowbackVideos = () => {
         
         // Simuler un filtrage sur les données mockées
         let filteredMockVideos = [...mockVideos];
-        
-        if (filters.type && filters.type !== 'all') {
-          filteredMockVideos = filteredMockVideos.filter(v => v.type === filters.type);
-        }
         
         if (filters.genre && filters.genre !== 'all') {
           filteredMockVideos = filteredMockVideos.filter(v => v.genre === filters.genre);
@@ -407,12 +399,6 @@ const ThrowbackVideos = () => {
   // Affichage des "filtres actifs" pour informer l'utilisateur
   const renderActiveFilters = () => {
     const activeFilters = [];
-    
-    if (filters.type && filters.type !== 'all') {
-      activeFilters.push(`Type: ${filters.type === 'music' ? 'Musique' : 
-                           filters.type === 'short' ? 'Short' : 
-                           filters.type === 'podcast' ? 'Podcast' : filters.type}`);
-    }
     
     if (filters.genre && filters.genre !== 'all') {
       activeFilters.push(`Genre: ${filters.genre}`);
@@ -583,111 +569,86 @@ const ThrowbackVideos = () => {
     }
   };
 
-  // Composant pour les filtres style YouTube
-  const renderYoutubeStyleFilters = () => {
-    return (
-      <div className={styles.youtubeStyleFilters}>
-        {/* Onglets de types */}
-        <div className={styles.filterTabs}>
-          <button 
-            className={`${styles.filterTab} ${filters.type === 'all' ? styles.active : ''}`}
-            onClick={() => handleFilterChange({...filters, type: 'all'})}
-          >
-            Tous
-          </button>
-          <button 
-            className={`${styles.filterTab} ${filters.type === 'music' ? styles.active : ''}`}
-            onClick={() => handleFilterChange({...filters, type: 'music'})}
-          >
-            Musique
-          </button>
-          {/* <button 
-            className={`${styles.filterTab} ${filters.type === 'short' ? styles.active : ''}`}
-            onClick={() => handleFilterChange({...filters, type: 'short'})}
-          >
-            Shorts
-          </button>
-          <button 
-            className={`${styles.filterTab} ${filters.type === 'podcast' ? styles.active : ''}`}
-            onClick={() => handleFilterChange({...filters, type: 'podcast'})}
-          >
-            Podcasts
-          </button> */}
-        </div>
-        
-        {/* Filtres horizontaux */}
-        <div className={styles.horizontalFilters}>
-          {/* Filtre Genre */}
-          <div className={styles.filterItem}>
-            <select 
-              value={filters.genre} 
-              onChange={(e) => handleFilterChange({...filters, genre: e.target.value})}
-              className={styles.filterSelect}
-            >
-              <option value="all">Tous les genres</option>
-              {availableFilters.availableGenres.map(genre => (
-                <option key={genre} value={genre}>{genre}</option>
-              ))}
-            </select>
-          </div>
-          
-          {/* Filtre Décennie */}
-          <div className={styles.filterItem}>
-            <select 
-              value={filters.decade} 
-              onChange={(e) => handleFilterChange({...filters, decade: e.target.value})}
-              className={styles.filterSelect}
-            >
-              <option value="all">Toutes les décennies</option>
-              {availableFilters.availableDecades.map(decade => (
-                <option key={decade} value={decade}>{decade}</option>
-              ))}
-            </select>
-          </div>
-          
-          {/* Filtre Tri */}
-          <div className={styles.filterItem}>
-            <select 
-              value={filters.sortBy} 
-              onChange={(e) => handleFilterChange({...filters, sortBy: e.target.value})}
-              className={styles.filterSelect}
-            >
-              <option value="recent">Plus récents</option>
-              <option value="popular">Plus populaires</option>
-              <option value="mostLiked">Plus aimés</option>
-              <option value="oldest">Plus anciens</option>
-              <option value="alphabetical">A-Z</option>
-            </select>
-          </div>
-          
-          {/* Bouton réinitialiser */}
-          {(filters.genre !== 'all' || filters.decade !== 'all' || filters.sortBy !== 'recent') && (
-            <button 
-              onClick={() => handleFilterChange({
-                type: filters.type,
-                genre: 'all',
-                decade: 'all',
-                sortBy: 'recent'
-              })}
-              className={styles.resetButton}
-            >
-              <FontAwesomeIcon icon={faTimes} />
-              <span>Réinitialiser les filtres</span>
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className={styles.throwbackVideosBg}>
-      {/* Filtres style YouTube au-dessus du titre */}
-      {renderYoutubeStyleFilters()}
-      
       <div className={styles.mainContentWrap}>
         <main className={styles.mainContent}>
           <h2 className={styles.sectionTitle}>Today's Pick</h2>
+          
+          {/* Filtres en carrousel horizontal sous le titre */}
+          <div className={styles.filterCarousel}>
+            <div className={styles.filterRow}>
+              {/* Filtres de genre */}
+              <button 
+                className={`${styles.filterChip} ${filters.genre === 'all' ? styles.active : ''}`}
+                onClick={() => handleFilterChange({...filters, genre: 'all'})}
+              >
+                Tous les genres
+              </button>
+              {availableFilters.availableGenres.map(genre => (
+                <button 
+                  key={genre}
+                  className={`${styles.filterChip} ${filters.genre === genre ? styles.active : ''}`}
+                  onClick={() => handleFilterChange({...filters, genre})}
+                >
+                  {genre}
+                </button>
+              ))}
+            </div>
+            
+            <div className={styles.filterRow}>
+              {/* Filtres de décennie */}
+              <button 
+                className={`${styles.filterChip} ${filters.decade === 'all' ? styles.active : ''}`}
+                onClick={() => handleFilterChange({...filters, decade: 'all'})}
+              >
+                Toutes les décennies
+              </button>
+              {availableFilters.availableDecades.map(decade => (
+                <button 
+                  key={decade}
+                  className={`${styles.filterChip} ${filters.decade === decade ? styles.active : ''}`}
+                  onClick={() => handleFilterChange({...filters, decade})}
+                >
+                  {decade}
+                </button>
+              ))}
+            </div>
+            
+            <div className={styles.filterRow}>
+              {/* Options de tri */}
+              <button 
+                className={`${styles.filterChip} ${filters.sortBy === 'recent' ? styles.active : ''}`}
+                onClick={() => handleFilterChange({...filters, sortBy: 'recent'})}
+              >
+                Plus récents
+              </button>
+              <button 
+                className={`${styles.filterChip} ${filters.sortBy === 'popular' ? styles.active : ''}`}
+                onClick={() => handleFilterChange({...filters, sortBy: 'popular'})}
+              >
+                Plus populaires
+              </button>
+              <button 
+                className={`${styles.filterChip} ${filters.sortBy === 'mostLiked' ? styles.active : ''}`}
+                onClick={() => handleFilterChange({...filters, sortBy: 'mostLiked'})}
+              >
+                Plus aimés
+              </button>
+              <button 
+                className={`${styles.filterChip} ${filters.sortBy === 'oldest' ? styles.active : ''}`}
+                onClick={() => handleFilterChange({...filters, sortBy: 'oldest'})}
+              >
+                Plus anciens
+              </button>
+              <button 
+                className={`${styles.filterChip} ${filters.sortBy === 'alphabetical' ? styles.active : ''}`}
+                onClick={() => handleFilterChange({...filters, sortBy: 'alphabetical'})}
+              >
+                A-Z
+              </button>
+            </div>
+          </div>
           
           {/* Affichage des filtres actifs */}
           {renderActiveFilters()}
@@ -725,7 +686,6 @@ const ThrowbackVideos = () => {
                   <p>Aucune vidéo ne correspond à ces critères.</p>
                   <button 
                     onClick={() => handleFilterChange({
-                      type: 'all',
                       genre: 'all',
                       decade: 'all',
                       sortBy: 'recent'
@@ -741,52 +701,36 @@ const ThrowbackVideos = () => {
           
           {/* Pagination */}
           {renderPagination()}
-        </main>
-        
-        <aside className={styles.rightCards}>
-          {/* <div className={styles.asideHeader}>
-            <h3 className={styles.memoriesTitle}>Souvenirs récents</h3>
-            <Link to="/memories" className={styles.viewAllLink}>Voir tout</Link>
-          </div> */}
           
-          <div className={styles.verticalTicker}>
-            <div className={styles.tickerContent}>
-              {memoriesLoading ? (
-                <div className={styles.loadingContainer}>
-                  <FontAwesomeIcon icon={faSpinner} spin className={styles.spinnerIcon} />
-                  <p>Chargement des souvenirs...</p>
-                </div>
-              ) : memoriesError ? (
-                <div className={styles.errorContainer}>
-                  <FontAwesomeIcon icon={faExclamationTriangle} className={styles.errorIcon} />
-                  <p>{memoriesError}</p>
-                </div>
-              ) : (
-                <>
-                  {memories.map((memory) => (
+          {/* Souvenirs en ligne horizontale */}
+          <h3 className={styles.memoriesTitle}>Souvenirs récents</h3>
+          <div className={styles.horizontalMemories}>
+            {memoriesLoading ? (
+              <div className={styles.loadingContainer}>
+                <FontAwesomeIcon icon={faSpinner} spin className={styles.spinnerIcon} />
+                <p>Chargement des souvenirs...</p>
+              </div>
+            ) : memoriesError ? (
+              <div className={styles.errorContainer}>
+                <FontAwesomeIcon icon={faExclamationTriangle} className={styles.errorIcon} />
+                <p>{memoriesError}</p>
+              </div>
+            ) : (
+              <div className={styles.memoriesCarousel}>
+                {memories.map((memory) => (
+                  <div key={memory.id || `memory-${Math.random()}`} className={styles.memoryCardHorizontal}>
                     <MemoryCard 
-                      key={memory.id || `memory-${Math.random()}`} 
                       memory={memory}
                       likeIcon={likeIcon}
                       commentIcon={commentIcon}
                       baseUrl={baseUrl}
                     />
-                  ))}
-                  {/* Duplication pour effet infini */}
-                  {memories.slice(0, 2).map((memory) => (
-                    <MemoryCard 
-                      key={`duplicate-${memory.id || Math.random()}`} 
-                      memory={memory}
-                      likeIcon={likeIcon}
-                      commentIcon={commentIcon}
-                      baseUrl={baseUrl}
-                    />
-                  ))}
-                </>
-              )}
-            </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        </aside>
+        </main>
       </div>
     </div>
   );

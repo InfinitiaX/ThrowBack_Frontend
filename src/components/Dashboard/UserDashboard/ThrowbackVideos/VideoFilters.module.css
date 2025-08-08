@@ -1,79 +1,58 @@
 .filtersContainer {
   width: 100%;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   position: relative;
   z-index: 10;
-}
-
-.horizontalFilters {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
-  flex-wrap: wrap;
-  padding: 16px 0;
 }
 
-.filterGroup {
-  position: relative;
+.filterSection {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
 }
 
-.filterSelect {
-  padding: 8px 32px 8px 12px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.4);
+.filterSection::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
+}
+
+.filterChips {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0;
+  flex-wrap: nowrap;
+  width: max-content;
+  min-width: 100%;
+}
+
+.filterChip {
+  background-color: rgba(255, 255, 255, 0.1);
   color: #fff;
-  font-size: 0.9rem;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
+  border: none;
+  border-radius: 16px;
+  padding: 6px 12px;
+  font-size: 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 150px;
-}
-
-.filterSelect:hover, .filterSelect:focus {
-  border-color: rgba(255, 255, 255, 0.4);
-  outline: none;
-}
-
-.resetButton {
-  padding: 8px 16px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(179, 18, 23, 0.6);
-  color: #fff;
-  font-size: 0.9rem;
-  cursor: pointer;
+  white-space: nowrap;
   transition: all 0.2s ease;
 }
 
-.resetButton:hover {
-  background: rgba(179, 18, 23, 0.8);
+.filterChip:hover {
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Responsive */
+.filterChip.active {
+  background-color: #b31217;
+  color: white;
+}
+
+/* Styles pour mobile */
 @media (max-width: 768px) {
-  .horizontalFilters {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    gap: 8px;
-  }
-  
-  .filterGroup {
-    flex: 1 0 calc(50% - 8px);
-    min-width: 120px;
-  }
-  
-  .resetButton {
-    margin-top: 8px;
-    width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
-  .filterGroup {
-    flex: 1 0 100%;
+  .filterChip {
+    padding: 4px 10px;
+    font-size: 13px;
   }
 }

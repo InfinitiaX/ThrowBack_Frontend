@@ -266,4 +266,108 @@
   }
 }
 
+/* Styles de filtres à ajouter à ThrowbackVideos.module.css */
+
+/* Style pour les carrousels de filtres */
+.filterCarouselContainer {
+  position: relative;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 2px 0;
+}
+
+.filterCarousel {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-behavior: smooth;
+}
+
+.filterCarousel::-webkit-scrollbar {
+  display: none;
+}
+
+.filterChip {
+  padding: 8px 16px;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 24px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #606060;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.filterChip.active {
+  background: #b31217;
+  color: white;
+  border-color: #b31217;
+}
+
+.filterChip:hover:not(.active) {
+  background: #e0e0e0;
+  border-color: #ccc;
+}
+
+.carouselNavButton {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: white;
+  border: 1px solid #ddd;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
+}
+
+.carouselNavButton:hover {
+  opacity: 1;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.leftNav {
+  left: -16px;
+}
+
+.rightNav {
+  right: -16px;
+}
+
+.resultsInfo {
+  width: 100%;
+  text-align: left;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Ajoutez ces styles responsifs si nécessaire */
+@media (max-width: 768px) {
+  .filterChip {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+  }
+  
+  .carouselNavButton {
+    display: none;
+  }
+  
+  .mainContent {
+    padding: 24px 10px;
+  }
+}
 

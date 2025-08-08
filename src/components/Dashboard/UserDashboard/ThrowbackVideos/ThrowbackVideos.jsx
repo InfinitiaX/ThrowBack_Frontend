@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './ThrowbackVideos.module.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -7,7 +7,9 @@ import {
   faComment,
   faSpinner,
   faExclamationTriangle,
-  faEye
+  faEye,
+  faChevronLeft,
+  faChevronRight
 } from '@fortawesome/free-solid-svg-icons';
 import likeIcon from '../../../../assets/icons/like.png';
 import commentIcon from '../../../../assets/icons/comment.png';
@@ -74,6 +76,21 @@ const ThrowbackVideos = () => {
   const [memoriesLoading, setMemoriesLoading] = useState(true);
   const [memoriesError, setMemoriesError] = useState(null);
   
+  // Ajout des états pour les filtres
+  const [activeGenre, setActiveGenre] = useState('all');
+  const [activeDecade, setActiveDecade] = useState('all');
+  const [activeSort, setActiveSort] = useState('recent');
+  
+  // Références pour les carrousels de filtres
+  const genreCarouselRef = useRef(null);
+  const decadeCarouselRef = useRef(null);
+  const sortCarouselRef = useRef(null);
+  
+  // Options de filtres
+  const genres = ['Tous les genres', 'Pop', 'Rock', 'Hip-Hop', 'Rap', 'R&B', 'Soul', 'Jazz', 'Blues', 'Electronic', 'Dance', 'House', 'Techno', 'Country'];
+  const decades = ['Toutes les décennies', '60s', '70s', '80s', '90s', '2000s', '2010s', '2020s'];
+  const sortOptions = ['Plus récents', 'Plus populaires', 'Plus aimés', 'Plus anciens', 'A-Z'];
+  
   // Construire l'URL de base en fonction de l'environnement
   const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
 
@@ -83,7 +100,18 @@ const ThrowbackVideos = () => {
     
     // Récupérer les souvenirs récents
     fetchRecentMemories();
-  }, []);
+  }, [activeGenre, activeDecade, activeSort]); // Rafraîchir quand les filtres changent
+
+  // Fonctions de scroll pour les carrousels
+  const scrollCarousel = (carouselRef, direction) => {
+    if (!carouselRef.current) return;
+    
+    const scrollAmount = direction === 'left' ? -300 : 300;
+    carouselRef.current.scrollBy({
+      left: scrollAmount,
+      behavior: 'smooth'
+    });
+  };
 
   const fetchRecentMemories = async () => {
     try {
@@ -164,9 +192,25 @@ const ThrowbackVideos = () => {
       setLoading(true);
       console.log('Tentative de récupération des vidéos...');
       
+      // Construire les paramètres de requête en fonction des filtres actifs
+      const params = new URLSearchParams();
+      params.append('type', 'music');
+      
+      if (activeGenre !== 'all') {
+        params.append('genre', activeGenre);
+      }
+      
+      if (activeDecade !== 'all') {
+        params.append('decade', activeDecade);
+      }
+      
+      if (activeSort !== 'recent') {
+        params.append('sortBy', activeSort);
+      }
+      
       try {
         // Tentative avec la route API publique
-        const response = await fetch(`${baseUrl}/api/public/videos?type=music`);
+        const response = await fetch(`${baseUrl}/api/public/videos?${params.toString()}`);
         
         if (response.ok) {
           const result = await response.json();
@@ -186,7 +230,7 @@ const ThrowbackVideos = () => {
         console.warn('Route publique échouée, tentative avec route standard:', primaryError);
         
         // Fallback: essayer l'ancienne route
-        const fallbackResponse = await fetch(`${baseUrl}/api/videos?type=music`);
+        const fallbackResponse = await fetch(`${baseUrl}/api/videos?${params.toString()}`);
         
         if (fallbackResponse.ok) {
           const result = await fallbackResponse.json();
@@ -229,6 +273,112 @@ const ThrowbackVideos = () => {
       <div className={styles.mainContentWrap}>
         <main className={styles.mainContent}>
           <h2 className={styles.sectionTitle}>Today's Pick</h2>
+          
+          {/* Filtres de genre */}
+          <div className={styles.filterCarouselContainer}>
+            <div className={styles.filterCarousel} ref={genreCarouselRef}>
+              {genres.map((genre, index) => (
+                <button 
+                  key={index} 
+                  className={`${styles.filterChip} ${activeGenre === (index === 0 ? 'all' : genre) ? styles.active : ''}`}
+                  onClick={() => setActiveGenre(index === 0 ? 'all' : genre)}
+                >
+                  {genre}
+                </button>
+              ))}
+            </div>
+            {genres.length > 5 && (
+              <>
+                <button 
+                  className={`${styles.carouselNavButton} ${styles.leftNav}`}
+                  onClick={() => scrollCarousel(genreCarouselRef, 'left')}
+                >
+                  <FontAwesomeIcon icon={faChevronLeft} />
+                </button>
+                <button 
+                  className={`${styles.carouselNavButton} ${styles.rightNav}`}
+                  onClick={() => scrollCarousel(genreCarouselRef, 'right')}
+                >
+                  <FontAwesomeIcon icon={faChevronRight} />
+                </button>
+              </>
+            )}
+          </div>
+          
+          {/* Filtres de décennie */}
+          <div className={styles.filterCarouselContainer}>
+            <div className={styles.filterCarousel} ref={decadeCarouselRef}>
+              {decades.map((decade, index) => (
+                <button 
+                  key={index} 
+                  className={`${styles.filterChip} ${activeDecade === (index === 0 ? 'all' : decade) ? styles.active : ''}`}
+                  onClick={() => setActiveDecade(index === 0 ? 'all' : decade)}
+                >
+                  {decade}
+                </button>
+              ))}
+            </div>
+            {decades.length > 5 && (
+              <>
+                <button 
+                  className={`${styles.carouselNavButton} ${styles.leftNav}`}
+                  onClick={() => scrollCarousel(decadeCarouselRef, 'left')}
+                >
+                  <FontAwesomeIcon icon={faChevronLeft} />
+                </button>
+                <button 
+                  className={`${styles.carouselNavButton} ${styles.rightNav}`}
+                  onClick={() => scrollCarousel(decadeCarouselRef, 'right')}
+                >
+                  <FontAwesomeIcon icon={faChevronRight} />
+                </button>
+              </>
+            )}
+          </div>
+          
+          {/* Options de tri */}
+          <div className={styles.filterCarouselContainer}>
+            <div className={styles.filterCarousel} ref={sortCarouselRef}>
+              {sortOptions.map((option, index) => {
+                const sortValue = index === 0 ? 'recent' : 
+                                  index === 1 ? 'popular' : 
+                                  index === 2 ? 'mostLiked' : 
+                                  index === 3 ? 'oldest' : 'alphabetical';
+                return (
+                  <button 
+                    key={index} 
+                    className={`${styles.filterChip} ${activeSort === sortValue ? styles.active : ''}`}
+                    onClick={() => setActiveSort(sortValue)}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+            {sortOptions.length > 5 && (
+              <>
+                <button 
+                  className={`${styles.carouselNavButton} ${styles.leftNav}`}
+                  onClick={() => scrollCarousel(sortCarouselRef, 'left')}
+                >
+                  <FontAwesomeIcon icon={faChevronLeft} />
+                </button>
+                <button 
+                  className={`${styles.carouselNavButton} ${styles.rightNav}`}
+                  onClick={() => scrollCarousel(sortCarouselRef, 'right')}
+                >
+                  <FontAwesomeIcon icon={faChevronRight} />
+                </button>
+              </>
+            )}
+          </div>
+          
+          {/* Affichage du nombre de vidéos trouvées */}
+          {!loading && !error && videos.length > 0 && (
+            <div className={styles.resultsInfo}>
+              <span>{videos.length} vidéos trouvées</span>
+            </div>
+          )}
           
           {loading ? (
             <div className={styles.loadingContainer}>

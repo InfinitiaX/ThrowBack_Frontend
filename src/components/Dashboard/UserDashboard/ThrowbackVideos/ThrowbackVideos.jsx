@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './ThrowbackVideos.module.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -7,9 +7,7 @@ import {
   faComment,
   faSpinner,
   faExclamationTriangle,
-  faTimes,
-  faChevronLeft,
-  faChevronRight
+  faEye
 } from '@fortawesome/free-solid-svg-icons';
 import likeIcon from '../../../../assets/icons/like.png';
 import commentIcon from '../../../../assets/icons/comment.png';
@@ -20,39 +18,27 @@ import VideoCard from './VideoCard';
 const mockMemories = [
   {
     id: 'mock1',
-    username: 'Martin Doe',
+    username: 'User Demo',
     type: 'posted',
-    videoTitle: 'Bohemian Rhapsody',
-    videoArtist: 'Queen',
-    videoYear: '1975',
+    videoTitle: 'Sample Video',
+    videoArtist: 'Artist',
+    videoYear: '2000',
     imageUrl: '/images/default-avatar.jpg',
-    content: "Ce morceau me rappelle mes années lycée. On l'écoutait en boucle!",
-    likes: 25,
-    comments: 8
+    content: 'This is a sample memory',
+    likes: 5,
+    comments: 2
   },
   {
     id: 'mock2',
-    username: 'Sophie Martin',
+    username: 'Another User',
     type: 'shared',
-    videoTitle: 'Thriller',
-    videoArtist: 'Michael Jackson',
-    videoYear: '1982',
+    videoTitle: 'Another Video',
+    videoArtist: 'Another Artist',
+    videoYear: '1990',
     imageUrl: '/images/default-avatar.jpg',
-    content: "Mon premier concert! Des souvenirs incroyables avec ce tube qui a révolutionné la musique.",
-    likes: 42,
-    comments: 15
-  },
-  {
-    id: 'mock3',
-    username: 'Jean Dupont',
-    type: 'posted',
-    videoTitle: 'Like a Rolling Stone',
-    videoArtist: 'Bob Dylan',
-    videoYear: '1965',
-    imageUrl: '/images/default-avatar.jpg',
-    content: "Mon père me faisait écouter ce morceau quand j'étais petit. Aujourd'hui je comprends sa poésie.",
-    likes: 18,
-    comments: 5
+    content: 'This is another sample memory',
+    likes: 10,
+    comments: 3
   }
 ];
 
@@ -62,78 +48,21 @@ const mockVideos = [
     titre: 'Bohemian Rhapsody',
     artiste: 'Queen',
     annee: '1975',
-    youtubeUrl: 'https://www.youtube.com/watch?v=fJ9rUzIMcZQ',
-    genre: 'Rock',
-    decennie: '70s',
-    vues: 3452,
-    likes: 278,
-    type: 'music',
-    description: 'Chef-d\'œuvre du rock progressif considéré comme l\'une des plus grandes chansons de tous les temps.'
+    youtubeUrl: 'https://www.youtube.com/watch?v=fJ9rUzIMcZQ'
   },
   {
     _id: 'mock-video-2',
     titre: 'Thriller',
     artiste: 'Michael Jackson',
     annee: '1982',
-    youtubeUrl: 'https://www.youtube.com/watch?v=sOnqjkJTMaA',
-    genre: 'Pop',
-    decennie: '80s',
-    vues: 4218,
-    likes: 356,
-    type: 'music',
-    description: 'Chanson emblématique avec l\'un des clips les plus influents de l\'histoire de la musique.'
+    youtubeUrl: 'https://www.youtube.com/watch?v=sOnqjkJTMaA'
   },
   {
     _id: 'mock-video-3',
     titre: 'Hotel California',
     artiste: 'Eagles',
     annee: '1976',
-    youtubeUrl: 'https://www.youtube.com/watch?v=EqPtz5qN7HM',
-    genre: 'Rock',
-    decennie: '70s',
-    vues: 2873,
-    likes: 201,
-    type: 'music',
-    description: 'Une chanson mythique des Eagles, célèbre pour son solo de guitare final.'
-  },
-  {
-    _id: 'mock-video-4',
-    titre: 'Billie Jean',
-    artiste: 'Michael Jackson',
-    annee: '1983',
-    youtubeUrl: 'https://www.youtube.com/watch?v=Zi_XLOBDo_Y',
-    genre: 'Pop',
-    decennie: '80s',
-    vues: 3921,
-    likes: 287,
-    type: 'music',
-    description: 'Tube planétaire connu pour son rythme implacable et le moonwalk de Michael Jackson.'
-  },
-  {
-    _id: 'mock-video-5',
-    titre: 'Imagine',
-    artiste: 'John Lennon',
-    annee: '1971',
-    youtubeUrl: 'https://www.youtube.com/watch?v=VOgFZfRVaww',
-    genre: 'Pop',
-    decennie: '70s',
-    vues: 2651,
-    likes: 198,
-    type: 'music',
-    description: 'Hymne pacifiste devenu un classique intemporel.'
-  },
-  {
-    _id: 'mock-video-6',
-    titre: 'Sweet Child O\' Mine',
-    artiste: 'Guns N\' Roses',
-    annee: '1987',
-    youtubeUrl: 'https://www.youtube.com/watch?v=1w7OgIMMRc4',
-    genre: 'Rock',
-    decennie: '80s',
-    vues: 3107,
-    likes: 243,
-    type: 'music',
-    description: 'Rock emblématique des années 80 avec un riff d\'introduction mythique.'
+    youtubeUrl: 'https://www.youtube.com/watch?v=EqPtz5qN7HM'
   }
 ];
 
@@ -145,61 +74,16 @@ const ThrowbackVideos = () => {
   const [memoriesLoading, setMemoriesLoading] = useState(true);
   const [memoriesError, setMemoriesError] = useState(null);
   
-  // État pour les filtres et la pagination
-  const [filters, setFilters] = useState({
-    genre: 'all',
-    decade: 'all',
-    sortBy: 'recent'
-  });
-  
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 12,
-    total: 0,
-    totalPages: 0
-  });
-  
-  // Références pour les carrousels de filtres
-  const genreCarouselRef = useRef(null);
-  const decadeCarouselRef = useRef(null);
-  const sortCarouselRef = useRef(null);
-  
-  // État pour les options de filtres disponibles
-  const [availableFilters, setAvailableFilters] = useState({
-    availableGenres: ['Pop', 'Rock', 'Hip-Hop', 'Rap', 'R&B', 'Soul', 'Jazz', 'Blues', 'Electronic', 'Dance', 'House', 'Techno', 'Country'],
-    availableDecades: ['60s', '70s', '80s', '90s', '2000s', '2010s', '2020s']
-  });
-  
-  // Options de tri
-  const sortOptions = [
-    { id: 'recent', label: 'Plus récents' },
-    { id: 'popular', label: 'Plus populaires' },
-    { id: 'mostLiked', label: 'Plus aimés' },
-    { id: 'oldest', label: 'Plus anciens' },
-    { id: 'alphabetical', label: 'A-Z' }
-  ];
-  
   // Construire l'URL de base en fonction de l'environnement
-  const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
 
   useEffect(() => {
-    // Récupérer les vidéos avec les filtres actuels
+    // Récupérer les vidéos
     fetchVideos();
     
     // Récupérer les souvenirs récents
     fetchRecentMemories();
-  }, [filters, pagination.page]); // Recharger quand les filtres ou la page changent
-
-  // Fonctions de scroll pour les carrousels
-  const scrollCarousel = (carouselRef, direction) => {
-    if (!carouselRef.current) return;
-    
-    const scrollAmount = direction === 'left' ? -300 : 300;
-    carouselRef.current.scrollBy({
-      left: scrollAmount,
-      behavior: 'smooth'
-    });
-  };
+  }, []);
 
   const fetchRecentMemories = async () => {
     try {
@@ -278,35 +162,17 @@ const ThrowbackVideos = () => {
   const fetchVideos = async () => {
     try {
       setLoading(true);
-      console.log('Tentative de récupération des vidéos avec filtres:', filters);
-      
-      // Construire les paramètres de requête à partir des filtres
-      const queryParams = new URLSearchParams();
-      if (filters.genre && filters.genre !== 'all') queryParams.append('genre', filters.genre);
-      if (filters.decade && filters.decade !== 'all') queryParams.append('decade', filters.decade);
-      if (filters.sortBy) queryParams.append('sortBy', filters.sortBy);
-      queryParams.append('page', pagination.page);
-      queryParams.append('limit', pagination.limit);
+      console.log('Tentative de récupération des vidéos...');
       
       try {
         // Tentative avec la route API publique
-        const response = await fetch(`${baseUrl}/api/public/videos?${queryParams.toString()}`);
+        const response = await fetch(`${baseUrl}/api/public/videos?type=music`);
         
         if (response.ok) {
           const result = await response.json();
           const videosData = result.data || result.videos || [];
           
           console.log('Vidéos récupérées avec succès:', videosData);
-          
-          // Mettre à jour les filtres disponibles
-          if (result.filters) {
-            setAvailableFilters(result.filters);
-          }
-          
-          // Mettre à jour la pagination
-          if (result.pagination) {
-            setPagination(result.pagination);
-          }
           
           if (videosData.length > 0) {
             setVideos(videosData);
@@ -320,7 +186,7 @@ const ThrowbackVideos = () => {
         console.warn('Route publique échouée, tentative avec route standard:', primaryError);
         
         // Fallback: essayer l'ancienne route
-        const fallbackResponse = await fetch(`${baseUrl}/api/videos?${queryParams.toString()}`);
+        const fallbackResponse = await fetch(`${baseUrl}/api/videos?type=music`);
         
         if (fallbackResponse.ok) {
           const result = await fallbackResponse.json();
@@ -335,46 +201,7 @@ const ThrowbackVideos = () => {
         
         // Si les deux routes échouent, utiliser les données mockées
         console.warn('Aucune route ne fonctionne, utilisation des données mockées');
-        
-        // Simuler un filtrage sur les données mockées
-        let filteredMockVideos = [...mockVideos];
-        
-        if (filters.genre && filters.genre !== 'all') {
-          filteredMockVideos = filteredMockVideos.filter(v => v.genre === filters.genre);
-        }
-        
-        if (filters.decade && filters.decade !== 'all') {
-          filteredMockVideos = filteredMockVideos.filter(v => v.decennie === filters.decade);
-        }
-        
-        // Tri des résultats
-        if (filters.sortBy) {
-          switch (filters.sortBy) {
-            case 'popular':
-              filteredMockVideos.sort((a, b) => (b.vues || 0) - (a.vues || 0));
-              break;
-            case 'mostLiked':
-              filteredMockVideos.sort((a, b) => (b.likes || 0) - (a.likes || 0));
-              break;
-            case 'oldest':
-              filteredMockVideos.sort((a, b) => (a.annee || 0) - (b.annee || 0));
-              break;
-            case 'alphabetical':
-              filteredMockVideos.sort((a, b) => a.titre.localeCompare(b.titre));
-              break;
-            case 'recent':
-            default:
-              // Garder l'ordre actuel (les plus récents en premier)
-              break;
-          }
-        }
-        
-        setVideos(filteredMockVideos);
-        setPagination({
-          ...pagination,
-          total: filteredMockVideos.length,
-          totalPages: Math.ceil(filteredMockVideos.length / pagination.limit)
-        });
+        setVideos(mockVideos);
         setError('Données temporaires affichées - Connexion au serveur impossible');
       }
     } catch (err) {
@@ -386,27 +213,6 @@ const ThrowbackVideos = () => {
     }
   };
   
-  // Gestionnaire de changement de page
-  const handlePageChange = (newPage) => {
-    setPagination({
-      ...pagination,
-      page: newPage
-    });
-    // Remonter en haut de la page
-    window.scrollTo(0, 0);
-  };
-  
-  // Gestionnaire de changement de filtres
-  const handleFilterChange = (newFilters) => {
-    console.log('Nouveaux filtres appliqués:', newFilters);
-    // Réinitialiser la page à 1 lors du changement de filtres
-    setPagination({
-      ...pagination,
-      page: 1
-    });
-    setFilters(newFilters);
-  };
-  
   // Fonction pour construire des URLs complètes pour les images
   const getImageUrl = (path) => {
     if (!path) return '/images/default-avatar.jpg';
@@ -414,186 +220,8 @@ const ThrowbackVideos = () => {
     // Si c'est déjà une URL absolue
     if (path.startsWith('http')) return path;
     
-    // Si c'est un chemin relatif commençant par /
-    if (path.startsWith('/')) {
-      return `${baseUrl}${path}`;
-    }
-    
     // Sinon, construire l'URL complète
-    return `${baseUrl}/${path}`;
-  };
-
-  // Affichage des "filtres actifs" pour informer l'utilisateur
-  const renderActiveFilters = () => {
-    const activeFilters = [];
-    
-    if (filters.genre && filters.genre !== 'all') {
-      activeFilters.push(`Genre: ${filters.genre}`);
-    }
-    
-    if (filters.decade && filters.decade !== 'all') {
-      activeFilters.push(`Décennie: ${filters.decade}`);
-    }
-    
-    if (filters.sortBy && filters.sortBy !== 'recent') {
-      const sortLabel = {
-        'popular': 'Plus populaires',
-        'mostLiked': 'Plus aimés',
-        'oldest': 'Plus anciens',
-        'alphabetical': 'A-Z'
-      }[filters.sortBy] || filters.sortBy;
-      
-      activeFilters.push(`Tri: ${sortLabel}`);
-    }
-    
-    if (activeFilters.length === 0) {
-      return null;
-    }
-    
-    return (
-      <div className={styles.activeFilters}>
-        <span className={styles.activeFiltersLabel}>Filtres actifs:</span>
-        {activeFilters.map((filter, index) => (
-          <span key={index} className={styles.activeFilter}>{filter}</span>
-        ))}
-      </div>
-    );
-  };
-
-  // Affichage de la pagination
-  const renderPagination = () => {
-    if (!pagination.totalPages || pagination.totalPages <= 1) {
-      return null;
-    }
-    
-    const pages = [];
-    const maxButtons = 5; // Nombre maximum de boutons de page à afficher
-    
-    let startPage = Math.max(1, pagination.page - Math.floor(maxButtons / 2));
-    let endPage = Math.min(pagination.totalPages, startPage + maxButtons - 1);
-    
-    // Ajuster startPage si on est proche de la fin
-    if (endPage - startPage + 1 < maxButtons) {
-      startPage = Math.max(1, endPage - maxButtons + 1);
-    }
-    
-    // Premier bouton
-    if (startPage > 1) {
-      pages.push(
-        <button 
-          key="first" 
-          onClick={() => handlePageChange(1)}
-          className={styles.paginationButton}
-        >
-          1
-        </button>
-      );
-      
-      if (startPage > 2) {
-        pages.push(<span key="ellipsis1" className={styles.paginationEllipsis}>...</span>);
-      }
-    }
-    
-    // Pages centrales
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(
-        <button 
-          key={i} 
-          onClick={() => handlePageChange(i)}
-          className={`${styles.paginationButton} ${pagination.page === i ? styles.active : ''}`}
-        >
-          {i}
-        </button>
-      );
-    }
-    
-    // Dernier bouton
-    if (endPage < pagination.totalPages) {
-      if (endPage < pagination.totalPages - 1) {
-        pages.push(<span key="ellipsis2" className={styles.paginationEllipsis}>...</span>);
-      }
-      
-      pages.push(
-        <button 
-          key="last" 
-          onClick={() => handlePageChange(pagination.totalPages)}
-          className={styles.paginationButton}
-        >
-          {pagination.totalPages}
-        </button>
-      );
-    }
-    
-    return (
-      <div className={styles.pagination}>
-        <button 
-          onClick={() => handlePageChange(pagination.page - 1)}
-          disabled={pagination.page === 1}
-          className={`${styles.paginationButton} ${styles.navButton}`}
-        >
-          &laquo; Précédent
-        </button>
-        
-        <div className={styles.pageButtons}>
-          {pages}
-        </div>
-        
-        <button 
-          onClick={() => handlePageChange(pagination.page + 1)}
-          disabled={pagination.page === pagination.totalPages}
-          className={`${styles.paginationButton} ${styles.navButton}`}
-        >
-          Suivant &raquo;
-        </button>
-      </div>
-    );
-  };
-
-  // Fonction pour gérer un like sur une vidéo
-  const handleLikeVideo = async (videoId) => {
-    try {
-      // Vérifier si l'utilisateur est connecté (à implémenter selon votre système d'authentification)
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        // Rediriger vers la page de connexion ou afficher un message
-        alert("Veuillez vous connecter pour aimer cette vidéo");
-        return;
-      }
-      
-      const response = await fetch(`${baseUrl}/api/public/videos/${videoId}/like`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Like enregistré:', result);
-        
-        // Mettre à jour l'état local des vidéos pour refléter le nouveau like
-        setVideos(videos.map(video => {
-          if (video._id === videoId) {
-            return {
-              ...video,
-              likes: result.data.likes,
-              userInteraction: {
-                ...video.userInteraction,
-                liked: result.data.liked,
-                disliked: result.data.disliked
-              }
-            };
-          }
-          return video;
-        }));
-      } else {
-        console.error('Erreur lors du like:', await response.text());
-      }
-    } catch (error) {
-      console.error('Erreur lors du like:', error);
-    }
+    return `${baseUrl}${path}`;
   };
 
   return (
@@ -602,125 +230,10 @@ const ThrowbackVideos = () => {
         <main className={styles.mainContent}>
           <h2 className={styles.sectionTitle}>Today's Pick</h2>
           
-          {/* Carrousel de filtres de genre */}
-          <div className={styles.filterCarouselContainer}>
-            <div className={styles.filterCarousel} ref={genreCarouselRef}>
-              <button 
-                className={`${styles.filterChip} ${filters.genre === 'all' ? styles.active : ''}`}
-                onClick={() => handleFilterChange({...filters, genre: 'all'})}
-              >
-                Tous les genres
-              </button>
-              {availableFilters.availableGenres.map(genre => (
-                <button 
-                  key={genre}
-                  className={`${styles.filterChip} ${filters.genre === genre ? styles.active : ''}`}
-                  onClick={() => handleFilterChange({...filters, genre})}
-                >
-                  {genre}
-                </button>
-              ))}
-            </div>
-            {availableFilters.availableGenres.length > 5 && (
-              <>
-                <button 
-                  className={`${styles.carouselNavButton} ${styles.leftNav}`}
-                  onClick={() => scrollCarousel(genreCarouselRef, 'left')}
-                >
-                  <FontAwesomeIcon icon={faChevronLeft} />
-                </button>
-                <button 
-                  className={`${styles.carouselNavButton} ${styles.rightNav}`}
-                  onClick={() => scrollCarousel(genreCarouselRef, 'right')}
-                >
-                  <FontAwesomeIcon icon={faChevronRight} />
-                </button>
-              </>
-            )}
-          </div>
-          
-          {/* Carrousel de filtres de décennie */}
-          <div className={styles.filterCarouselContainer}>
-            <div className={styles.filterCarousel} ref={decadeCarouselRef}>
-              <button 
-                className={`${styles.filterChip} ${filters.decade === 'all' ? styles.active : ''}`}
-                onClick={() => handleFilterChange({...filters, decade: 'all'})}
-              >
-                Toutes les décennies
-              </button>
-              {availableFilters.availableDecades.map(decade => (
-                <button 
-                  key={decade}
-                  className={`${styles.filterChip} ${filters.decade === decade ? styles.active : ''}`}
-                  onClick={() => handleFilterChange({...filters, decade})}
-                >
-                  {decade}
-                </button>
-              ))}
-            </div>
-            {availableFilters.availableDecades.length > 5 && (
-              <>
-                <button 
-                  className={`${styles.carouselNavButton} ${styles.leftNav}`}
-                  onClick={() => scrollCarousel(decadeCarouselRef, 'left')}
-                >
-                  <FontAwesomeIcon icon={faChevronLeft} />
-                </button>
-                <button 
-                  className={`${styles.carouselNavButton} ${styles.rightNav}`}
-                  onClick={() => scrollCarousel(decadeCarouselRef, 'right')}
-                >
-                  <FontAwesomeIcon icon={faChevronRight} />
-                </button>
-              </>
-            )}
-          </div>
-          
-          {/* Carrousel de filtres de tri */}
-          <div className={styles.filterCarouselContainer}>
-            <div className={styles.filterCarousel} ref={sortCarouselRef}>
-              {sortOptions.map(option => (
-                <button 
-                  key={option.id}
-                  className={`${styles.filterChip} ${filters.sortBy === option.id ? styles.active : ''}`}
-                  onClick={() => handleFilterChange({...filters, sortBy: option.id})}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            {sortOptions.length > 5 && (
-              <>
-                <button 
-                  className={`${styles.carouselNavButton} ${styles.leftNav}`}
-                  onClick={() => scrollCarousel(sortCarouselRef, 'left')}
-                >
-                  <FontAwesomeIcon icon={faChevronLeft} />
-                </button>
-                <button 
-                  className={`${styles.carouselNavButton} ${styles.rightNav}`}
-                  onClick={() => scrollCarousel(sortCarouselRef, 'right')}
-                >
-                  <FontAwesomeIcon icon={faChevronRight} />
-                </button>
-              </>
-            )}
-          </div>
-          
-          {/* Affichage des filtres actifs */}
-          {renderActiveFilters()}
-          
-          {/* Message de résultats */}
-          {!loading && !error && (
-            <div className={styles.resultsInfo}>
-              <span>{pagination.total} vidéos trouvées</span>
-            </div>
-          )}
-          
           {loading ? (
             <div className={styles.loadingContainer}>
               <FontAwesomeIcon icon={faSpinner} spin className={styles.spinnerIcon} />
-              <p>Chargement des vidéos...</p>
+              <p>Loading videos...</p>
             </div>
           ) : error ? (
             <div className={styles.errorContainer}>
@@ -735,49 +248,29 @@ const ThrowbackVideos = () => {
                     key={video._id || `video-${Math.random()}`} 
                     video={video} 
                     baseUrl={baseUrl}
-                    onLike={() => handleLikeVideo(video._id)}
                   />
                 ))
               ) : (
                 <div className={styles.noVideosMessage}>
-                  <p>Aucune vidéo ne correspond à ces critères.</p>
-                  <button 
-                    onClick={() => handleFilterChange({
-                      genre: 'all',
-                      decade: 'all',
-                      sortBy: 'recent'
-                    })}
-                    className={styles.resetFiltersButton}
-                  >
-                    Réinitialiser les filtres
-                  </button>
+                  <p>No videos available at the moment.</p>
                 </div>
               )}
             </div>
           )}
-          
-          {/* Pagination */}
-          {renderPagination()}
         </main>
         
-        {/* Souvenirs sur le côté (colonne de droite) */}
         <aside className={styles.rightCards}>
-          <div className={styles.asideHeader}>
-            <h3 className={styles.memoriesTitle}>Souvenirs récents</h3>
-            <Link to="/memories" className={styles.viewAllLink}>Voir tout</Link>
-          </div>
-          
           <div className={styles.verticalTicker}>
             <div className={styles.tickerContent}>
               {memoriesLoading ? (
                 <div className={styles.loadingContainer}>
                   <FontAwesomeIcon icon={faSpinner} spin className={styles.spinnerIcon} />
-                  <p>Chargement des souvenirs...</p>
+                  <p>Loading memories...</p>
                 </div>
               ) : memoriesError ? (
                 <div className={styles.errorContainer}>
                   <FontAwesomeIcon icon={faExclamationTriangle} className={styles.errorIcon} />
-                  <p>{memoriesError}</p>
+                  <p>Error loading memories</p>
                 </div>
               ) : (
                 <>

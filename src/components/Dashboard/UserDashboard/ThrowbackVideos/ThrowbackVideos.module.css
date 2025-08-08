@@ -266,29 +266,29 @@
   }
 }
 
-/* Styles de filtres à ajouter à ThrowbackVideos.module.css */
-
-/* Style pour les carrousels de filtres */
-.filterCarouselContainer {
+/* Ajout des styles pour les filtres */
+.filterRow {
   position: relative;
   width: 100%;
   margin-bottom: 12px;
-  padding: 2px 0;
+  display: flex;
+  align-items: center;
 }
 
-.filterCarousel {
+.filterScroll {
   display: flex;
   flex-wrap: nowrap;
   gap: 8px;
   overflow-x: auto;
   padding: 4px 0;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
   scroll-behavior: smooth;
+  width: 100%;
 }
 
-.filterCarousel::-webkit-scrollbar {
-  display: none;
+.filterScroll::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
 }
 
 .filterChip {
@@ -315,59 +315,74 @@
   border-color: #ccc;
 }
 
-.carouselNavButton {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background: white;
-  border: 1px solid #ddd;
+.scrollButtons {
+  display: flex;
+  gap: 8px;
+  margin-left: 12px;
+}
+
+.scrollButton {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 50%;
   cursor: pointer;
-  z-index: 10;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  opacity: 0.9;
-  transition: opacity 0.2s ease;
+  transition: all 0.2s ease;
 }
 
-.carouselNavButton:hover {
-  opacity: 1;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+.scrollButton:hover {
+  background: #f5f5f5;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-.leftNav {
-  left: -16px;
-}
-
-.rightNav {
-  right: -16px;
-}
-
-.resultsInfo {
+.resultsCount {
   width: 100%;
-  text-align: left;
-  margin-bottom: 16px;
   font-size: 0.9rem;
   color: #666;
+  margin: 8px 0 16px 0;
 }
 
-/* Ajoutez ces styles responsifs si nécessaire */
+.asideHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 0 4px;
+}
+
+.memoriesTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #444;
+  margin: 0;
+}
+
+.viewAllLink {
+  font-size: 0.9rem;
+  color: #b31217;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.viewAllLink:hover {
+  color: #9e0f13;
+  text-decoration: underline;
+}
+
+/* Responsive styling for filters */
 @media (max-width: 768px) {
   .filterChip {
     font-size: 0.8rem;
     padding: 6px 12px;
   }
   
-  .carouselNavButton {
-    display: none;
-  }
-  
-  .mainContent {
-    padding: 24px 10px;
+  .scrollButtons {
+    display: none; /* Hide scroll buttons on mobile */
   }
 }
 

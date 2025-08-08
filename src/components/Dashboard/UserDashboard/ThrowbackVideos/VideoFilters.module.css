@@ -13,6 +13,7 @@
   overflow-x: auto;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge */
+  margin-bottom: 8px;
 }
 
 .filterSection::-webkit-scrollbar {
@@ -29,7 +30,7 @@
 }
 
 .filterChip {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.85);
   color: black;
   border: none;
   border-radius: 16px;
@@ -38,15 +39,19 @@
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s ease;
+  font-weight: 500;
 }
 
 .filterChip:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .filterChip.active {
   background-color: #b31217;
   color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Styles pour mobile */
@@ -54,5 +59,9 @@
   .filterChip {
     padding: 4px 10px;
     font-size: 13px;
+  }
+  
+  .filterSection {
+    margin-bottom: 4px;
   }
 }

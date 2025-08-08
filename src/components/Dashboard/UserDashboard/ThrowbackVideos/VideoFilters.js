@@ -5,12 +5,10 @@ const VideoFilters = ({ onFilterChange, activeFilters }) => {
   // Décennies disponibles
   const decades = ['Toutes', '60s', '70s', '80s', '90s', '2000s', '2010s', '2020s'];
   
-  // Genres musicaux disponibles
-  const genres = ['Tous',   'Pop', 'Rock', 'Hip-Hop', 'Rap', 'R&B', 'Soul', 'Jazz', 'Blues', 
-  'Electronic', 'Dance', 'House', 'Techno', 'Country', 'Folk', 
-  'Classical', 'Opera', 'Reggae', 'Reggaeton', 'Latin', 'World', 
-  'Alternative', 'Indie', 'Metal', 'Punk', 'Funk', 'Disco', 
-  'Gospel', 'Soundtrack',];
+  // Genres musicaux disponibles - regroupés par catégories pour une meilleure organisation
+  const genresLine1 = ['Tous', 'Pop', 'Rock', 'Hip-Hop', 'Rap', 'R&B', 'Soul', 'Jazz', 'Blues'];
+  const genresLine2 = ['Electronic', 'Dance', 'House', 'Techno', 'Country', 'Folk', 'Classical', 'Opera'];
+  const genresLine3 = ['Reggae', 'Reggaeton', 'Latin', 'World', 'Alternative', 'Indie', 'Metal', 'Punk'];
   
   // Options de tri
   const sortOptions = ['Plus récents', 'Plus populaires', 'Plus aimés'];
@@ -47,10 +45,40 @@ const VideoFilters = ({ onFilterChange, activeFilters }) => {
         </div>
       </div>
       
-      {/* Filtres par genre */}
+      {/* Filtres par genre - Ligne 1 */}
       <div className={styles.filterSection}>
         <div className={styles.filterChips}>
-          {genres.map((genre) => (
+          {genresLine1.map((genre) => (
+            <button
+              key={`genre-${genre}`}
+              className={`${styles.filterChip} ${activeFilters.genre === genre ? styles.active : ''}`}
+              onClick={() => handleFilterClick('genre', genre)}
+            >
+              {genre}
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      {/* Filtres par genre - Ligne 2 */}
+      <div className={styles.filterSection}>
+        <div className={styles.filterChips}>
+          {genresLine2.map((genre) => (
+            <button
+              key={`genre-${genre}`}
+              className={`${styles.filterChip} ${activeFilters.genre === genre ? styles.active : ''}`}
+              onClick={() => handleFilterClick('genre', genre)}
+            >
+              {genre}
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      {/* Filtres par genre - Ligne 3 */}
+      <div className={styles.filterSection}>
+        <div className={styles.filterChips}>
+          {genresLine3.map((genre) => (
             <button
               key={`genre-${genre}`}
               className={`${styles.filterChip} ${activeFilters.genre === genre ? styles.active : ''}`}

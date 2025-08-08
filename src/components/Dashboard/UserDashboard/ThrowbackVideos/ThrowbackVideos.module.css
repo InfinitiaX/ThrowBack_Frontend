@@ -286,36 +286,3 @@
   gap: 24px;
 }
 
-/* Style personnalisé pour le fond */
-.throwbackVideosBg {
-  background: linear-gradient(180deg, #b31217 0%, #430000 100%);
-  padding: 24px;
-  min-height: 100vh;
-}
-
-.mainContentWrap {
-  display: flex;
-  gap: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.mainContent {
-  flex: 1;
-  min-width: 0; /* Pour éviter les débordements */
-}
-
-.rightCards {
-  width: 320px;
-  flex-shrink: 0;
-}
-
-@media (max-width: 1024px) {
-  .mainContentWrap {
-    flex-direction: column;
-  }
-  
-  .rightCards {
-    width: 100%;
-  }
-}

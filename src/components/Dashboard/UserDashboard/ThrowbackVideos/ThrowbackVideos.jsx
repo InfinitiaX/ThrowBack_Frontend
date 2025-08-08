@@ -49,6 +49,7 @@ const mockVideos = [
     titre: 'Bohemian Rhapsody',
     artiste: 'Queen',
     annee: '1975',
+    type: 'music',
     youtubeUrl: 'https://www.youtube.com/watch?v=fJ9rUzIMcZQ'
   },
   {
@@ -56,6 +57,7 @@ const mockVideos = [
     titre: 'Thriller',
     artiste: 'Michael Jackson',
     annee: '1982',
+    type: 'music',
     youtubeUrl: 'https://www.youtube.com/watch?v=sOnqjkJTMaA'
   },
   {
@@ -63,6 +65,7 @@ const mockVideos = [
     titre: 'Hotel California',
     artiste: 'Eagles',
     annee: '1976',
+    type: 'music',
     youtubeUrl: 'https://www.youtube.com/watch?v=EqPtz5qN7HM'
   }
 ];
@@ -76,10 +79,8 @@ const ThrowbackVideos = () => {
   const [memoriesLoading, setMemoriesLoading] = useState(true);
   const [memoriesError, setMemoriesError] = useState(null);
   const [filters, setFilters] = useState({
-    type: 'all',
     genre: 'all',
     decade: 'all',
-    search: '',
     sortBy: 'recent'
   });
   const [availableFilters, setAvailableFilters] = useState(null);
@@ -88,7 +89,7 @@ const ThrowbackVideos = () => {
   const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
   useEffect(() => {
-    // Récupérer les vidéos
+    // Récupérer les vidéos de musique uniquement
     fetchVideos();
     
     // Récupérer les souvenirs récents
@@ -208,15 +209,14 @@ const ThrowbackVideos = () => {
   const fetchVideos = async () => {
     try {
       setLoading(true);
-      console.log('Tentative de récupération des vidéos...');
+      console.log('Tentative de récupération des vidéos musicales...');
       
       // Construire les paramètres de requête en fonction des filtres
-      let queryParams = `?`;
-      if (filters.type !== 'all') queryParams += `type=${filters.type}&`;
-      if (filters.genre !== 'all') queryParams += `genre=${filters.genre}&`;
-      if (filters.decade !== 'all') queryParams += `decade=${filters.decade}&`;
-      if (filters.search) queryParams += `search=${encodeURIComponent(filters.search)}&`;
-      if (filters.sortBy) queryParams += `sortBy=${filters.sortBy}&`;
+      // Type est toujours 'music' car c'est le module ThrowbackVideos
+      let queryParams = `?type=music`;
+      if (filters.genre !== 'all') queryParams += `&genre=${filters.genre}`;
+      if (filters.decade !== 'all') queryParams += `&decade=${filters.decade}`;
+      if (filters.sortBy) queryParams += `&sortBy=${filters.sortBy}`;
       
       try {
         // Tentative avec la route API publique
@@ -226,7 +226,7 @@ const ThrowbackVideos = () => {
           const result = await response.json();
           const videosData = result.data || result.videos || [];
           
-          console.log('Vidéos récupérées avec succès:', videosData);
+          console.log('Vidéos musicales récupérées avec succès:', videosData);
           
           if (videosData.length > 0) {
             setVideos(videosData);
@@ -277,11 +277,6 @@ const ThrowbackVideos = () => {
     
     let result = [...videos];
     
-    // Filtre par type
-    if (filters.type !== 'all') {
-      result = result.filter(video => video.type === filters.type);
-    }
-    
     // Filtre par genre (si disponible dans les données)
     if (filters.genre !== 'all') {
       result = result.filter(video => {
@@ -292,23 +287,16 @@ const ThrowbackVideos = () => {
     
     // Filtre par décennie
     if (filters.decade !== 'all') {
-      const decadeStart = parseInt(filters.decade);
+      // Convertir '80s' en 1980, etc.
+      const decadeStart = parseInt(filters.decade) || 
+                          parseInt(filters.decade.replace('s', '')) * 10;
+      
       result = result.filter(video => {
         const year = parseInt(video.annee);
         return !isNaN(year) && 
                year >= decadeStart && 
                year < decadeStart + 10;
       });
-    }
-    
-    // Filtre par recherche
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      result = result.filter(video => 
-        video.titre?.toLowerCase().includes(searchLower) || 
-        video.artiste?.toLowerCase().includes(searchLower) ||
-        video.description?.toLowerCase().includes(searchLower)
-      );
     }
     
     // Tri
@@ -351,19 +339,13 @@ const ThrowbackVideos = () => {
     console.log('Nouveaux filtres appliqués:', newFilters);
     setFilters(newFilters);
     
-    // Si les filtres type, genre, decade ou sortBy changent, ou si la recherche est substantiellement différente,
+    // Si les filtres genre, decade ou sortBy changent
     // refaire une requête au serveur pour de meilleurs résultats
-    const shouldRefetch = 
-      newFilters.type !== filters.type ||
+    if (
       newFilters.genre !== filters.genre ||
       newFilters.decade !== filters.decade ||
-      newFilters.sortBy !== filters.sortBy ||
-      (newFilters.search !== filters.search && 
-       (newFilters.search.length === 0 || 
-        filters.search.length === 0 ||
-        !newFilters.search.includes(filters.search)));
-    
-    if (shouldRefetch) {
+      newFilters.sortBy !== filters.sortBy
+    ) {
       fetchVideos();
     }
   };
@@ -372,14 +354,16 @@ const ThrowbackVideos = () => {
     <div className={styles.throwbackVideosBg}>
       <div className={styles.mainContentWrap}>
         <main className={styles.mainContent}>
-          <h2 className={styles.sectionTitle}>Today's Pick</h2>
-          
-          {/* Intégration du composant VideoFilters */}
-          <VideoFilters 
-            onFilterChange={handleFilterChange}
-            initialFilters={filters}
-            availableFilters={availableFilters}
-          />
+          <div className={styles.headerSection}>
+            <h2 className={styles.sectionTitle}>Music Videos</h2>
+            
+            {/* Intégration du composant VideoFilters */}
+            <VideoFilters 
+              onFilterChange={handleFilterChange}
+              currentFilters={filters}
+              availableFilters={availableFilters}
+            />
+          </div>
           
           {loading ? (
             <div className={styles.loadingContainer}>
@@ -435,7 +419,7 @@ const ThrowbackVideos = () => {
                     />
                   ))}
                   {/* Duplication pour effet infini */}
-                  {memories.slice(0, 2).map((memory) => (
+                  {memories.slice(0, 4).map((memory) => (
                     <MemoryCard 
                       key={`duplicate-${memory.id || Math.random()}`} 
                       memory={memory}

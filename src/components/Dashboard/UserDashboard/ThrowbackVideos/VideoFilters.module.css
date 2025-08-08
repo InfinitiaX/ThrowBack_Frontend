@@ -5,319 +5,75 @@
   z-index: 10;
 }
 
-.searchForm {
+.horizontalFilters {
   display: flex;
   align-items: center;
   gap: 12px;
-  width: 100%;
-  margin-bottom: 16px;
-}
-
-.searchInputContainer {
-  display: flex;
-  flex: 1;
-  position: relative;
-}
-
-.searchInput {
-  flex: 1;
-  padding: 12px 16px;
-  border-radius: 24px;
-  border: 1px solid #ddd;
-  font-size: 1rem;
-  padding-right: 48px;
-  width: 100%;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  transition: all 0.2s ease;
-}
-
-.searchInput:focus {
-  outline: none;
-  border-color: #b31217;
-  box-shadow: 0 2px 8px rgba(179, 18, 23, 0.15);
-}
-
-.searchButton {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: #b31217;
-  font-size: 1.2rem;
-  padding: 8px 12px;
-  cursor: pointer;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.searchButton:hover {
-  background: rgba(179, 18, 23, 0.1);
-}
-
-.expandFiltersButton {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 24px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #444;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.expandFiltersButton:hover {
-  background: #f5f5f5;
-  border-color: #ccc;
-}
-
-.expandFiltersButton .rotated {
-  transform: rotate(180deg);
-  transition: transform 0.3s ease;
-}
-
-.mobileFiltersButton {
-  display: none;
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  justify-content: center;
-  align-items: center;
-  color: #b31217;
-  cursor: pointer;
-}
-
-.advancedFilters {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  padding: 0;
-  max-height: 0;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  opacity: 0;
-}
-
-.advancedFilters.expanded {
-  padding: 16px;
-  max-height: 500px;
-  opacity: 1;
-  margin-bottom: 16px;
-}
-
-.filterRow {
-  display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  align-items: flex-end;
+  padding: 16px 0;
 }
 
 .filterGroup {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 140px;
-}
-
-.filterLabel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #555;
+  position: relative;
 }
 
 .filterSelect {
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  background: #fff;
+  padding: 8px 32px 8px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
   font-size: 0.9rem;
-  color: #333;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
-  padding-right: 32px;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-width: 150px;
 }
 
-.filterSelect:focus {
+.filterSelect:hover, .filterSelect:focus {
+  border-color: rgba(255, 255, 255, 0.4);
   outline: none;
-  border-color: #b31217;
-  box-shadow: 0 2px 8px rgba(179, 18, 23, 0.15);
 }
 
 .resetButton {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: #f5f5f5;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(179, 18, 23, 0.6);
+  color: #fff;
   font-size: 0.9rem;
-  font-weight: 500;
-  color: #666;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-top: auto;
-  white-space: nowrap;
 }
 
 .resetButton:hover {
-  background: #eee;
-  color: #b31217;
-}
-
-/* Styles pour mobile */
-.mobileFiltersModal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-}
-
-.mobileFiltersModal.open {
-  opacity: 1;
-  pointer-events: all;
-}
-
-.mobileFiltersContent {
-  background: #fff;
-  border-radius: 16px;
-  width: 90%;
-  max-width: 400px;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 24px;
-  transform: translateY(20px);
-  transition: transform 0.3s ease;
-}
-
-.mobileFiltersModal.open .mobileFiltersContent {
-  transform: translateY(0);
-}
-
-.mobileHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.mobileHeader h3 {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #333;
-  margin: 0;
-}
-
-.closeButton {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  color: #666;
-  cursor: pointer;
-}
-
-.mobileFilterGroup {
-  margin-bottom: 20px;
-}
-
-.mobileFilterGroup label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #444;
-}
-
-.mobileFilterGroup select {
-  width: 100%;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  font-size: 1rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 32px;
-  appearance: none;
-}
-
-.mobileFilterActions {
-  display: flex;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.mobileResetButton, .mobileApplyButton {
-  flex: 1;
-  padding: 12px;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.mobileResetButton {
-  background: #f5f5f5;
-  border: 1px solid #ddd;
-  color: #666;
-}
-
-.mobileApplyButton {
-  background: #b31217;
-  border: 1px solid #b31217;
-  color: white;
-}
-
-.mobileApplyButton:hover {
-  background: #9e0f13;
-}
-
-.mobileResetButton:hover {
-  background: #eee;
+  background: rgba(179, 18, 23, 0.8);
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .expandFiltersButton span {
-    display: none;
+  .horizontalFilters {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px;
   }
   
-  .expandFiltersButton {
-    padding: 10px;
+  .filterGroup {
+    flex: 1 0 calc(50% - 8px);
+    min-width: 120px;
   }
   
-  .mobileFiltersButton {
-    display: flex;
+  .resetButton {
+    margin-top: 8px;
+    width: 100%;
   }
-  
-  .expandFiltersButton {
-    display: none;
-  }
-  
-  .advancedFilters {
-    display: none;
+}
+
+@media (max-width: 480px) {
+  .filterGroup {
+    flex: 1 0 100%;
   }
 }

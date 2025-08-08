@@ -51,7 +51,8 @@ const mockVideos = [
     annee: '1975',
     youtubeUrl: 'https://www.youtube.com/watch?v=fJ9rUzIMcZQ',
     vues: 1200,
-    likes: 450
+    likes: 450,
+    type: 'music'
   },
   {
     _id: 'mock-video-2',
@@ -60,7 +61,8 @@ const mockVideos = [
     annee: '1982',
     youtubeUrl: 'https://www.youtube.com/watch?v=sOnqjkJTMaA',
     vues: 980,
-    likes: 320
+    likes: 320,
+    type: 'music'
   },
   {
     _id: 'mock-video-3',
@@ -69,7 +71,8 @@ const mockVideos = [
     annee: '1976',
     youtubeUrl: 'https://www.youtube.com/watch?v=EqPtz5qN7HM',
     vues: 750,
-    likes: 280
+    likes: 280,
+    type: 'music'
   }
 ];
 
@@ -82,8 +85,9 @@ const ThrowbackVideos = () => {
   const [memoriesLoading, setMemoriesLoading] = useState(true);
   const [memoriesError, setMemoriesError] = useState(null);
   const [activeFilters, setActiveFilters] = useState({
-    decade: 'Toutes',
-    genre: 'Tous',
+    type: 'all',         // Nouvelle valeur par défaut pour le type
+    genre: 'all',        // Changé de 'Tous' à 'all'
+    decade: 'all',       // Changé de 'Toutes' à 'all'
     sortBy: 'Plus récents'
   });
   
@@ -91,8 +95,8 @@ const ThrowbackVideos = () => {
   const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
   useEffect(() => {
-    // Récupérer uniquement les vidéos de type "music"
-    fetchMusicVideos();
+    // Récupérer les vidéos
+    fetchVideos();
     
     // Récupérer les souvenirs récents
     fetchRecentMemories();
@@ -103,20 +107,21 @@ const ThrowbackVideos = () => {
     applyFilters();
   }, [activeFilters, videos]);
 
-  const fetchMusicVideos = async () => {
+  const fetchVideos = async () => {
     try {
       setLoading(true);
-      console.log('Chargement des vidéos musicales...');
+      console.log('Chargement des vidéos...');
       
       try {
-        // Spécifier le type "music" explicitement
-        const response = await fetch(`${baseUrl}/api/public/videos?type=music`);
+        // Type filtré par les filtres actifs si spécifié
+        const typeParam = activeFilters.type !== 'all' ? `?type=${activeFilters.type}` : '';
+        const response = await fetch(`${baseUrl}/api/public/videos${typeParam}`);
         
         if (response.ok) {
           const result = await response.json();
           const videosData = result.data || result.videos || [];
           
-          console.log('Vidéos musicales récupérées:', videosData);
+          console.log('Vidéos récupérées:', videosData);
           
           if (videosData.length > 0) {
             setVideos(videosData);
@@ -131,7 +136,8 @@ const ThrowbackVideos = () => {
         console.warn('Route publique échouée, tentative avec route standard:', primaryError);
         
         // Fallback: essayer l'ancienne route
-        const fallbackResponse = await fetch(`${baseUrl}/api/videos?type=music`);
+        const typeParam = activeFilters.type !== 'all' ? `?type=${activeFilters.type}` : '';
+        const fallbackResponse = await fetch(`${baseUrl}/api/videos${typeParam}`);
         
         if (fallbackResponse.ok) {
           const result = await fallbackResponse.json();
@@ -241,8 +247,13 @@ const ThrowbackVideos = () => {
     
     let result = [...videos];
     
+    // Filtre par type
+    if (activeFilters.type !== 'all') {
+      result = result.filter(video => video.type && video.type.toLowerCase() === activeFilters.type.toLowerCase());
+    }
+    
     // Filtre par décennie
-    if (activeFilters.decade !== 'Toutes') {
+    if (activeFilters.decade !== 'all') {
       const decade = activeFilters.decade.replace('s', ''); // Convertir "80s" en "80"
       const decadeStart = parseInt(decade);
       const decadeEnd = decadeStart + 9;
@@ -254,7 +265,7 @@ const ThrowbackVideos = () => {
     }
     
     // Filtre par genre
-    if (activeFilters.genre !== 'Tous') {
+    if (activeFilters.genre !== 'all') {
       result = result.filter(video => {
         return video.genre === activeFilters.genre || 
                video.genres?.includes(activeFilters.genre);
@@ -294,6 +305,11 @@ const ThrowbackVideos = () => {
   const handleFilterChange = (newFilters) => {
     console.log('Nouveaux filtres appliqués:', newFilters);
     setActiveFilters(newFilters);
+    
+    // Si le type a changé, refaire une requête au serveur
+    if (newFilters.type !== activeFilters.type) {
+      fetchVideos();
+    }
   };
 
   return (
@@ -302,10 +318,11 @@ const ThrowbackVideos = () => {
         <main className={styles.mainContent}>
           <h2 className={styles.sectionTitle}>Today's Pick</h2>
           
-          {/* Composant VideoFilters simplifié et horizontal */}
+          {/* Composant VideoFilters avec menus déroulants */}
           <VideoFilters 
             onFilterChange={handleFilterChange}
             activeFilters={activeFilters}
+            videoCount={filteredVideos.length}
           />
           
           {loading ? (

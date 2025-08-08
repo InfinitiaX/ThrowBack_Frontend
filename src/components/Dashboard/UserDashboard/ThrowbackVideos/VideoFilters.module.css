@@ -3,65 +3,128 @@
   margin-bottom: 20px;
   position: relative;
   z-index: 10;
+  background-color: #f8f8f8;
+  border-radius: 6px;
+  padding: 12px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.filtersContent {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
 }
 
-.filterSection {
-  width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
-  margin-bottom: 8px;
-}
-
-.filterSection::-webkit-scrollbar {
-  display: none; /* Chrome/Safari/Opera */
-}
-
-.filterChips {
+.filterGroup {
   display: flex;
+  align-items: center;
   gap: 8px;
-  padding: 4px 0;
-  flex-wrap: nowrap;
-  width: max-content;
-  min-width: 100%;
 }
 
-.filterChip {
-  background-color: rgba(255, 255, 255, 0.85);
-  color: black;
-  border: none;
-  border-radius: 16px;
-  padding: 6px 12px;
-  font-size: 14px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s ease;
+.filterLabel {
   font-weight: 500;
+  color: #333;
+  font-size: 14px;
+  white-space: nowrap;
 }
 
-.filterChip:hover {
-  background-color: rgba(255, 255, 255, 1);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.selectWrapper {
+  position: relative;
+  min-width: 160px;
 }
 
-.filterChip.active {
-  background-color: #b31217;
-  color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+.selectWrapper::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid #666;
+  pointer-events: none;
 }
 
-/* Styles pour mobile */
-@media (max-width: 768px) {
-  .filterChip {
-    padding: 4px 10px;
-    font-size: 13px;
+.filterSelect {
+  width: 100%;
+  padding: 8px 12px;
+  padding-right: 30px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 14px;
+  color: #333;
+  appearance: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filterSelect:hover {
+  border-color: #b31217;
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: #b31217;
+  box-shadow: 0 0 0 2px rgba(179, 18, 23, 0.2);
+}
+
+.videoCount {
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+  white-space: nowrap;
+}
+
+/* Styles responsifs */
+@media (max-width: 992px) {
+  .filtersContent {
+    flex-wrap: wrap;
+    gap: 12px;
   }
   
-  .filterSection {
-    margin-bottom: 4px;
+  .filterGroup {
+    flex: 1;
+    min-width: 160px;
+  }
+  
+  .videoCount {
+    margin-left: 0;
+    width: 100%;
+    text-align: right;
+  }
+}
+
+@media (max-width: 768px) {
+  .filtersContent {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filterGroup {
+    width: 100%;
+  }
+  
+  .selectWrapper {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .videoCount {
+    text-align: left;
+  }
+}
+
+@media (max-width: 480px) {
+  .filtersContainer {
+    padding: 10px;
+  }
+  
+  .filterLabel {
+    width: 70px;
   }
 }

@@ -744,10 +744,10 @@ const ThrowbackVideos = () => {
         </main>
         
         <aside className={styles.rightCards}>
-          <div className={styles.asideHeader}>
+          {/* <div className={styles.asideHeader}>
             <h3 className={styles.memoriesTitle}>Souvenirs récents</h3>
             <Link to="/memories" className={styles.viewAllLink}>Voir tout</Link>
-          </div>
+          </div> */}
           
           <div className={styles.verticalTicker}>
             <div className={styles.tickerContent}>

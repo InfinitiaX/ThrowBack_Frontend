@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './ThrowbackVideos.module.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -7,9 +7,7 @@ import {
   faComment,
   faSpinner,
   faExclamationTriangle,
-  faEye,
-  faChevronLeft,
-  faChevronRight
+  faEye
 } from '@fortawesome/free-solid-svg-icons';
 import likeIcon from '../../../../assets/icons/like.png';
 import commentIcon from '../../../../assets/icons/comment.png';
@@ -76,23 +74,6 @@ const ThrowbackVideos = () => {
   const [memoriesLoading, setMemoriesLoading] = useState(true);
   const [memoriesError, setMemoriesError] = useState(null);
   
-  // État pour les filtres
-  const [filters, setFilters] = useState({
-    genre: 'all',
-    decade: 'all',
-    sortBy: 'recent'
-  });
-  
-  // Référence pour les carrousels de filtres
-  const genreScrollRef = useRef(null);
-  const decadeScrollRef = useRef(null);
-  const sortScrollRef = useRef(null);
-  
-  // Options de filtres disponibles
-  const genres = ['Tous les genres', 'Pop', 'Rock', 'Hip-Hop', 'Rap', 'R&B', 'Soul', 'Jazz', 'Blues', 'Electronic', 'Dance', 'House', 'Techno', 'Country'];
-  const decades = ['Toutes les décennies', '60s', '70s', '80s', '90s', '2000s', '2010s', '2020s'];
-  const sortOptions = ['Plus récents', 'Plus populaires', 'Plus aimés', 'Plus anciens', 'A-Z'];
-  
   // Construire l'URL de base en fonction de l'environnement
   const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
 
@@ -102,18 +83,7 @@ const ThrowbackVideos = () => {
     
     // Récupérer les souvenirs récents
     fetchRecentMemories();
-  }, [filters]); // Refetch quand les filtres changent
-
-  // Fonction pour faire défiler les filtres
-  const scrollFilters = (ref, direction) => {
-    if (ref.current) {
-      const scrollAmount = direction === 'left' ? -200 : 200;
-      ref.current.scrollBy({
-        left: scrollAmount,
-        behavior: 'smooth'
-      });
-    }
-  };
+  }, []);
 
   const fetchRecentMemories = async () => {
     try {
@@ -192,17 +162,11 @@ const ThrowbackVideos = () => {
   const fetchVideos = async () => {
     try {
       setLoading(true);
-      console.log('Tentative de récupération des vidéos avec filtres:', filters);
-      
-      // Construction de l'URL avec les filtres
-      let url = `${baseUrl}/api/public/videos?type=music`;
-      if (filters.genre !== 'all') url += `&genre=${filters.genre}`;
-      if (filters.decade !== 'all') url += `&decade=${filters.decade}`;
-      if (filters.sortBy !== 'recent') url += `&sort=${filters.sortBy}`;
+      console.log('Tentative de récupération des vidéos...');
       
       try {
         // Tentative avec la route API publique
-        const response = await fetch(url);
+        const response = await fetch(`${baseUrl}/api/public/videos?type=music`);
         
         if (response.ok) {
           const result = await response.json();
@@ -222,7 +186,7 @@ const ThrowbackVideos = () => {
         console.warn('Route publique échouée, tentative avec route standard:', primaryError);
         
         // Fallback: essayer l'ancienne route
-        const fallbackResponse = await fetch(url.replace('/public', ''));
+        const fallbackResponse = await fetch(`${baseUrl}/api/videos?type=music`);
         
         if (fallbackResponse.ok) {
           const result = await fallbackResponse.json();
@@ -259,120 +223,12 @@ const ThrowbackVideos = () => {
     // Sinon, construire l'URL complète
     return `${baseUrl}${path}`;
   };
-  
-  // Fonction pour gérer le changement de filtre
-  const handleFilterChange = (type, value) => {
-    setFilters(prevFilters => ({
-      ...prevFilters,
-      [type]: value
-    }));
-  };
 
   return (
     <div className={styles.throwbackVideosBg}>
       <div className={styles.mainContentWrap}>
         <main className={styles.mainContent}>
           <h2 className={styles.sectionTitle}>Today's Pick</h2>
-          
-          {/* Filtres de genre */}
-          <div className={styles.filterRow}>
-            <div className={styles.filterScroll} ref={genreScrollRef}>
-              {genres.map((genre, index) => (
-                <button 
-                  key={`genre-${index}`}
-                  className={`${styles.filterChip} ${filters.genre === (index === 0 ? 'all' : genre) ? styles.active : ''}`}
-                  onClick={() => handleFilterChange('genre', index === 0 ? 'all' : genre)}
-                >
-                  {genre}
-                </button>
-              ))}
-            </div>
-            {genres.length > 6 && (
-              <div className={styles.scrollButtons}>
-                <button 
-                  className={styles.scrollButton} 
-                  onClick={() => scrollFilters(genreScrollRef, 'left')}
-                >
-                  <FontAwesomeIcon icon={faChevronLeft} />
-                </button>
-                <button 
-                  className={styles.scrollButton} 
-                  onClick={() => scrollFilters(genreScrollRef, 'right')}
-                >
-                  <FontAwesomeIcon icon={faChevronRight} />
-                </button>
-              </div>
-            )}
-          </div>
-          
-          {/* Filtres de décennie */}
-          <div className={styles.filterRow}>
-            <div className={styles.filterScroll} ref={decadeScrollRef}>
-              {decades.map((decade, index) => (
-                <button 
-                  key={`decade-${index}`}
-                  className={`${styles.filterChip} ${filters.decade === (index === 0 ? 'all' : decade) ? styles.active : ''}`}
-                  onClick={() => handleFilterChange('decade', index === 0 ? 'all' : decade)}
-                >
-                  {decade}
-                </button>
-              ))}
-            </div>
-            {decades.length > 6 && (
-              <div className={styles.scrollButtons}>
-                <button 
-                  className={styles.scrollButton} 
-                  onClick={() => scrollFilters(decadeScrollRef, 'left')}
-                >
-                  <FontAwesomeIcon icon={faChevronLeft} />
-                </button>
-                <button 
-                  className={styles.scrollButton} 
-                  onClick={() => scrollFilters(decadeScrollRef, 'right')}
-                >
-                  <FontAwesomeIcon icon={faChevronRight} />
-                </button>
-              </div>
-            )}
-          </div>
-          
-          {/* Options de tri */}
-          <div className={styles.filterRow}>
-            <div className={styles.filterScroll} ref={sortScrollRef}>
-              {sortOptions.map((option, index) => (
-                <button 
-                  key={`sort-${index}`}
-                  className={`${styles.filterChip} ${filters.sortBy === (index === 0 ? 'recent' : option.toLowerCase().replace(' ', '_')) ? styles.active : ''}`}
-                  onClick={() => handleFilterChange('sortBy', index === 0 ? 'recent' : option.toLowerCase().replace(' ', '_'))}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-            {sortOptions.length > 6 && (
-              <div className={styles.scrollButtons}>
-                <button 
-                  className={styles.scrollButton} 
-                  onClick={() => scrollFilters(sortScrollRef, 'left')}
-                >
-                  <FontAwesomeIcon icon={faChevronLeft} />
-                </button>
-                <button 
-                  className={styles.scrollButton} 
-                  onClick={() => scrollFilters(sortScrollRef, 'right')}
-                >
-                  <FontAwesomeIcon icon={faChevronRight} />
-                </button>
-              </div>
-            )}
-          </div>
-          
-          {/* Affichage du nombre de vidéos trouvées */}
-          {!loading && !error && videos.length > 0 && (
-            <div className={styles.resultsCount}>
-              {videos.length} vidéos trouvées
-            </div>
-          )}
           
           {loading ? (
             <div className={styles.loadingContainer}>
@@ -404,11 +260,6 @@ const ThrowbackVideos = () => {
         </main>
         
         <aside className={styles.rightCards}>
-          <div className={styles.asideHeader}>
-            <h3 className={styles.memoriesTitle}>Souvenirs récents</h3>
-            <Link to="/memories" className={styles.viewAllLink}>Voir tout</Link>
-          </div>
-          
           <div className={styles.verticalTicker}>
             <div className={styles.tickerContent}>
               {memoriesLoading ? (

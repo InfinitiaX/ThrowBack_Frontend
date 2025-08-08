@@ -13,6 +13,7 @@ import likeIcon from '../../../../assets/icons/like.png';
 import commentIcon from '../../../../assets/icons/comment.png';
 import MemoryCard from './MemoryCard';
 import VideoCard from './VideoCard';
+import VideoFilters from './VideoFilters';
 
 // Définition des données mockées pour le fallback
 const mockMemories = [
@@ -68,14 +69,23 @@ const mockVideos = [
 
 const ThrowbackVideos = () => {
   const [videos, setVideos] = useState([]);
+  const [filteredVideos, setFilteredVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [memories, setMemories] = useState([]);
   const [memoriesLoading, setMemoriesLoading] = useState(true);
   const [memoriesError, setMemoriesError] = useState(null);
+  const [filters, setFilters] = useState({
+    type: 'all',
+    genre: 'all',
+    decade: 'all',
+    search: '',
+    sortBy: 'recent'
+  });
+  const [availableFilters, setAvailableFilters] = useState(null);
   
   // Construire l'URL de base en fonction de l'environnement
-  const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
   useEffect(() => {
     // Récupérer les vidéos
@@ -83,7 +93,43 @@ const ThrowbackVideos = () => {
     
     // Récupérer les souvenirs récents
     fetchRecentMemories();
+    
+    // Récupérer les filtres disponibles
+    fetchAvailableFilters();
   }, []);
+  
+  useEffect(() => {
+    // Appliquer les filtres aux vidéos chaque fois que les filtres changent
+    applyFilters();
+  }, [filters, videos]);
+
+  // Fonction pour récupérer les filtres disponibles (genres, décennies, etc.)
+  const fetchAvailableFilters = async () => {
+    try {
+      // Tentative de récupération des filtres disponibles
+      const response = await fetch(`${baseUrl}/api/public/filters`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        setAvailableFilters(result.data);
+      } else {
+        // Utiliser des filtres par défaut si l'API n'est pas disponible
+        setAvailableFilters({
+          availableGenres: ['Rock', 'Pop', 'Hip-Hop', 'R&B', 'Jazz', 'Blues', 'Electronic'],
+          availableDecades: ['60s', '70s', '80s', '90s', '2000s', '2010s', '2020s'],
+          availableTypes: ['music', 'short', 'podcast']
+        });
+      }
+    } catch (err) {
+      console.warn('Erreur lors de la récupération des filtres disponibles:', err);
+      // Utiliser des filtres par défaut
+      setAvailableFilters({
+        availableGenres: ['Rock', 'Pop', 'Hip-Hop', 'R&B', 'Jazz', 'Blues', 'Electronic'],
+        availableDecades: ['60s', '70s', '80s', '90s', '2000s', '2010s', '2020s'],
+        availableTypes: ['music', 'short', 'podcast']
+      });
+    }
+  };
 
   const fetchRecentMemories = async () => {
     try {
@@ -164,9 +210,17 @@ const ThrowbackVideos = () => {
       setLoading(true);
       console.log('Tentative de récupération des vidéos...');
       
+      // Construire les paramètres de requête en fonction des filtres
+      let queryParams = `?`;
+      if (filters.type !== 'all') queryParams += `type=${filters.type}&`;
+      if (filters.genre !== 'all') queryParams += `genre=${filters.genre}&`;
+      if (filters.decade !== 'all') queryParams += `decade=${filters.decade}&`;
+      if (filters.search) queryParams += `search=${encodeURIComponent(filters.search)}&`;
+      if (filters.sortBy) queryParams += `sortBy=${filters.sortBy}&`;
+      
       try {
         // Tentative avec la route API publique
-        const response = await fetch(`${baseUrl}/api/public/videos?type=music`);
+        const response = await fetch(`${baseUrl}/api/public/videos${queryParams}`);
         
         if (response.ok) {
           const result = await response.json();
@@ -176,6 +230,7 @@ const ThrowbackVideos = () => {
           
           if (videosData.length > 0) {
             setVideos(videosData);
+            setFilteredVideos(videosData);
             setError(null);
             return;
           }
@@ -186,7 +241,7 @@ const ThrowbackVideos = () => {
         console.warn('Route publique échouée, tentative avec route standard:', primaryError);
         
         // Fallback: essayer l'ancienne route
-        const fallbackResponse = await fetch(`${baseUrl}/api/videos?type=music`);
+        const fallbackResponse = await fetch(`${baseUrl}/api/videos${queryParams}`);
         
         if (fallbackResponse.ok) {
           const result = await fallbackResponse.json();
@@ -194,6 +249,7 @@ const ThrowbackVideos = () => {
           
           if (videosData.length > 0) {
             setVideos(videosData);
+            setFilteredVideos(videosData);
             setError(null);
             return;
           }
@@ -202,15 +258,81 @@ const ThrowbackVideos = () => {
         // Si les deux routes échouent, utiliser les données mockées
         console.warn('Aucune route ne fonctionne, utilisation des données mockées');
         setVideos(mockVideos);
+        setFilteredVideos(mockVideos);
         setError('Données temporaires affichées - Connexion au serveur impossible');
       }
     } catch (err) {
       console.error('Exception lors du chargement des vidéos:', err);
       setVideos(mockVideos);
+      setFilteredVideos(mockVideos);
       setError(`Données temporaires affichées - ${err.message}`);
     } finally {
       setLoading(false);
     }
+  };
+  
+  // Appliquer les filtres aux vidéos côté client
+  const applyFilters = () => {
+    if (!videos.length) return;
+    
+    let result = [...videos];
+    
+    // Filtre par type
+    if (filters.type !== 'all') {
+      result = result.filter(video => video.type === filters.type);
+    }
+    
+    // Filtre par genre (si disponible dans les données)
+    if (filters.genre !== 'all') {
+      result = result.filter(video => {
+        return video.genre === filters.genre || 
+               video.genres?.includes(filters.genre);
+      });
+    }
+    
+    // Filtre par décennie
+    if (filters.decade !== 'all') {
+      const decadeStart = parseInt(filters.decade);
+      result = result.filter(video => {
+        const year = parseInt(video.annee);
+        return !isNaN(year) && 
+               year >= decadeStart && 
+               year < decadeStart + 10;
+      });
+    }
+    
+    // Filtre par recherche
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      result = result.filter(video => 
+        video.titre?.toLowerCase().includes(searchLower) || 
+        video.artiste?.toLowerCase().includes(searchLower) ||
+        video.description?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Tri
+    switch(filters.sortBy) {
+      case 'recent':
+        result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        break;
+      case 'oldest':
+        result.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+        break;
+      case 'popular':
+        result.sort((a, b) => (b.vues || 0) - (a.vues || 0));
+        break;
+      case 'mostLiked':
+        result.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+        break;
+      case 'alphabetical':
+        result.sort((a, b) => a.titre.localeCompare(b.titre));
+        break;
+      default:
+        break;
+    }
+    
+    setFilteredVideos(result);
   };
   
   // Fonction pour construire des URLs complètes pour les images
@@ -223,12 +345,41 @@ const ThrowbackVideos = () => {
     // Sinon, construire l'URL complète
     return `${baseUrl}${path}`;
   };
+  
+  // Gestionnaire de changement de filtres
+  const handleFilterChange = (newFilters) => {
+    console.log('Nouveaux filtres appliqués:', newFilters);
+    setFilters(newFilters);
+    
+    // Si les filtres type, genre, decade ou sortBy changent, ou si la recherche est substantiellement différente,
+    // refaire une requête au serveur pour de meilleurs résultats
+    const shouldRefetch = 
+      newFilters.type !== filters.type ||
+      newFilters.genre !== filters.genre ||
+      newFilters.decade !== filters.decade ||
+      newFilters.sortBy !== filters.sortBy ||
+      (newFilters.search !== filters.search && 
+       (newFilters.search.length === 0 || 
+        filters.search.length === 0 ||
+        !newFilters.search.includes(filters.search)));
+    
+    if (shouldRefetch) {
+      fetchVideos();
+    }
+  };
 
   return (
     <div className={styles.throwbackVideosBg}>
       <div className={styles.mainContentWrap}>
         <main className={styles.mainContent}>
           <h2 className={styles.sectionTitle}>Today's Pick</h2>
+          
+          {/* Intégration du composant VideoFilters */}
+          <VideoFilters 
+            onFilterChange={handleFilterChange}
+            initialFilters={filters}
+            availableFilters={availableFilters}
+          />
           
           {loading ? (
             <div className={styles.loadingContainer}>
@@ -242,8 +393,8 @@ const ThrowbackVideos = () => {
             </div>
           ) : (
             <div className={styles.videosGrid}>
-              {videos && videos.length > 0 ? (
-                videos.map((video) => (
+              {filteredVideos && filteredVideos.length > 0 ? (
+                filteredVideos.map((video) => (
                   <VideoCard 
                     key={video._id || `video-${Math.random()}`} 
                     video={video} 
@@ -252,7 +403,7 @@ const ThrowbackVideos = () => {
                 ))
               ) : (
                 <div className={styles.noVideosMessage}>
-                  <p>No videos available at the moment.</p>
+                  <p>No videos found matching your criteria. Try adjusting your filters.</p>
                 </div>
               )}
             </div>

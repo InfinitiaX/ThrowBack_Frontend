@@ -6,7 +6,11 @@ const VideoFilters = ({ onFilterChange, activeFilters }) => {
   const decades = ['Toutes', '60s', '70s', '80s', '90s', '2000s', '2010s', '2020s'];
   
   // Genres musicaux disponibles
-  const genres = ['Tous', 'Rock', 'Pop', 'Hip-Hop', 'R&B', 'Jazz', 'Soul', 'Disco', 'Reggae', 'Metal', 'Electronic'];
+  const genres = ['Tous',   'Pop', 'Rock', 'Hip-Hop', 'Rap', 'R&B', 'Soul', 'Jazz', 'Blues', 
+  'Electronic', 'Dance', 'House', 'Techno', 'Country', 'Folk', 
+  'Classical', 'Opera', 'Reggae', 'Reggaeton', 'Latin', 'World', 
+  'Alternative', 'Indie', 'Metal', 'Punk', 'Funk', 'Disco', 
+  'Gospel', 'Soundtrack',];
   
   // Options de tri
   const sortOptions = ['Plus récents', 'Plus populaires', 'Plus aimés'];

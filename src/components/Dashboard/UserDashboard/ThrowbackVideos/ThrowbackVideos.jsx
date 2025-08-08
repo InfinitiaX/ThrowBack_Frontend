@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './ThrowbackVideos.module.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -7,7 +7,9 @@ import {
   faComment,
   faSpinner,
   faExclamationTriangle,
-  faTimes
+  faTimes,
+  faChevronLeft,
+  faChevronRight
 } from '@fortawesome/free-solid-svg-icons';
 import likeIcon from '../../../../assets/icons/like.png';
 import commentIcon from '../../../../assets/icons/comment.png';
@@ -157,11 +159,25 @@ const ThrowbackVideos = () => {
     totalPages: 0
   });
   
+  // Références pour les carrousels de filtres
+  const genreCarouselRef = useRef(null);
+  const decadeCarouselRef = useRef(null);
+  const sortCarouselRef = useRef(null);
+  
   // État pour les options de filtres disponibles
   const [availableFilters, setAvailableFilters] = useState({
-    availableGenres: ['Rock', 'Pop', 'Hip-Hop', 'Rap', 'R&B', 'Jazz', 'Blues', 'Electronic', 'Country', 'Folk', 'Classical', 'Reggae'],
+    availableGenres: ['Pop', 'Rock', 'Hip-Hop', 'Rap', 'R&B', 'Soul', 'Jazz', 'Blues', 'Electronic', 'Dance', 'House', 'Techno', 'Country'],
     availableDecades: ['60s', '70s', '80s', '90s', '2000s', '2010s', '2020s']
   });
+  
+  // Options de tri
+  const sortOptions = [
+    { id: 'recent', label: 'Plus récents' },
+    { id: 'popular', label: 'Plus populaires' },
+    { id: 'mostLiked', label: 'Plus aimés' },
+    { id: 'oldest', label: 'Plus anciens' },
+    { id: 'alphabetical', label: 'A-Z' }
+  ];
   
   // Construire l'URL de base en fonction de l'environnement
   const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
@@ -173,6 +189,17 @@ const ThrowbackVideos = () => {
     // Récupérer les souvenirs récents
     fetchRecentMemories();
   }, [filters, pagination.page]); // Recharger quand les filtres ou la page changent
+
+  // Fonctions de scroll pour les carrousels
+  const scrollCarousel = (carouselRef, direction) => {
+    if (!carouselRef.current) return;
+    
+    const scrollAmount = direction === 'left' ? -300 : 300;
+    carouselRef.current.scrollBy({
+      left: scrollAmount,
+      behavior: 'smooth'
+    });
+  };
 
   const fetchRecentMemories = async () => {
     try {
@@ -575,10 +602,9 @@ const ThrowbackVideos = () => {
         <main className={styles.mainContent}>
           <h2 className={styles.sectionTitle}>Today's Pick</h2>
           
-          {/* Filtres en carrousel horizontal sous le titre */}
-          <div className={styles.filterCarousel}>
-            <div className={styles.filterRow}>
-              {/* Filtres de genre */}
+          {/* Carrousel de filtres de genre */}
+          <div className={styles.filterCarouselContainer}>
+            <div className={styles.filterCarousel} ref={genreCarouselRef}>
               <button 
                 className={`${styles.filterChip} ${filters.genre === 'all' ? styles.active : ''}`}
                 onClick={() => handleFilterChange({...filters, genre: 'all'})}
@@ -595,9 +621,27 @@ const ThrowbackVideos = () => {
                 </button>
               ))}
             </div>
-            
-            <div className={styles.filterRow}>
-              {/* Filtres de décennie */}
+            {availableFilters.availableGenres.length > 5 && (
+              <>
+                <button 
+                  className={`${styles.carouselNavButton} ${styles.leftNav}`}
+                  onClick={() => scrollCarousel(genreCarouselRef, 'left')}
+                >
+                  <FontAwesomeIcon icon={faChevronLeft} />
+                </button>
+                <button 
+                  className={`${styles.carouselNavButton} ${styles.rightNav}`}
+                  onClick={() => scrollCarousel(genreCarouselRef, 'right')}
+                >
+                  <FontAwesomeIcon icon={faChevronRight} />
+                </button>
+              </>
+            )}
+          </div>
+          
+          {/* Carrousel de filtres de décennie */}
+          <div className={styles.filterCarouselContainer}>
+            <div className={styles.filterCarousel} ref={decadeCarouselRef}>
               <button 
                 className={`${styles.filterChip} ${filters.decade === 'all' ? styles.active : ''}`}
                 onClick={() => handleFilterChange({...filters, decade: 'all'})}
@@ -614,40 +658,53 @@ const ThrowbackVideos = () => {
                 </button>
               ))}
             </div>
-            
-            <div className={styles.filterRow}>
-              {/* Options de tri */}
-              <button 
-                className={`${styles.filterChip} ${filters.sortBy === 'recent' ? styles.active : ''}`}
-                onClick={() => handleFilterChange({...filters, sortBy: 'recent'})}
-              >
-                Plus récents
-              </button>
-              <button 
-                className={`${styles.filterChip} ${filters.sortBy === 'popular' ? styles.active : ''}`}
-                onClick={() => handleFilterChange({...filters, sortBy: 'popular'})}
-              >
-                Plus populaires
-              </button>
-              <button 
-                className={`${styles.filterChip} ${filters.sortBy === 'mostLiked' ? styles.active : ''}`}
-                onClick={() => handleFilterChange({...filters, sortBy: 'mostLiked'})}
-              >
-                Plus aimés
-              </button>
-              <button 
-                className={`${styles.filterChip} ${filters.sortBy === 'oldest' ? styles.active : ''}`}
-                onClick={() => handleFilterChange({...filters, sortBy: 'oldest'})}
-              >
-                Plus anciens
-              </button>
-              <button 
-                className={`${styles.filterChip} ${filters.sortBy === 'alphabetical' ? styles.active : ''}`}
-                onClick={() => handleFilterChange({...filters, sortBy: 'alphabetical'})}
-              >
-                A-Z
-              </button>
+            {availableFilters.availableDecades.length > 5 && (
+              <>
+                <button 
+                  className={`${styles.carouselNavButton} ${styles.leftNav}`}
+                  onClick={() => scrollCarousel(decadeCarouselRef, 'left')}
+                >
+                  <FontAwesomeIcon icon={faChevronLeft} />
+                </button>
+                <button 
+                  className={`${styles.carouselNavButton} ${styles.rightNav}`}
+                  onClick={() => scrollCarousel(decadeCarouselRef, 'right')}
+                >
+                  <FontAwesomeIcon icon={faChevronRight} />
+                </button>
+              </>
+            )}
+          </div>
+          
+          {/* Carrousel de filtres de tri */}
+          <div className={styles.filterCarouselContainer}>
+            <div className={styles.filterCarousel} ref={sortCarouselRef}>
+              {sortOptions.map(option => (
+                <button 
+                  key={option.id}
+                  className={`${styles.filterChip} ${filters.sortBy === option.id ? styles.active : ''}`}
+                  onClick={() => handleFilterChange({...filters, sortBy: option.id})}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
+            {sortOptions.length > 5 && (
+              <>
+                <button 
+                  className={`${styles.carouselNavButton} ${styles.leftNav}`}
+                  onClick={() => scrollCarousel(sortCarouselRef, 'left')}
+                >
+                  <FontAwesomeIcon icon={faChevronLeft} />
+                </button>
+                <button 
+                  className={`${styles.carouselNavButton} ${styles.rightNav}`}
+                  onClick={() => scrollCarousel(sortCarouselRef, 'right')}
+                >
+                  <FontAwesomeIcon icon={faChevronRight} />
+                </button>
+              </>
+            )}
           </div>
           
           {/* Affichage des filtres actifs */}
@@ -701,36 +758,53 @@ const ThrowbackVideos = () => {
           
           {/* Pagination */}
           {renderPagination()}
+        </main>
+        
+        {/* Souvenirs sur le côté (colonne de droite) */}
+        <aside className={styles.rightCards}>
+          <div className={styles.asideHeader}>
+            <h3 className={styles.memoriesTitle}>Souvenirs récents</h3>
+            <Link to="/memories" className={styles.viewAllLink}>Voir tout</Link>
+          </div>
           
-          {/* Souvenirs en ligne horizontale */}
-          <h3 className={styles.memoriesTitle}>Souvenirs récents</h3>
-          <div className={styles.horizontalMemories}>
-            {memoriesLoading ? (
-              <div className={styles.loadingContainer}>
-                <FontAwesomeIcon icon={faSpinner} spin className={styles.spinnerIcon} />
-                <p>Chargement des souvenirs...</p>
-              </div>
-            ) : memoriesError ? (
-              <div className={styles.errorContainer}>
-                <FontAwesomeIcon icon={faExclamationTriangle} className={styles.errorIcon} />
-                <p>{memoriesError}</p>
-              </div>
-            ) : (
-              <div className={styles.memoriesCarousel}>
-                {memories.map((memory) => (
-                  <div key={memory.id || `memory-${Math.random()}`} className={styles.memoryCardHorizontal}>
+          <div className={styles.verticalTicker}>
+            <div className={styles.tickerContent}>
+              {memoriesLoading ? (
+                <div className={styles.loadingContainer}>
+                  <FontAwesomeIcon icon={faSpinner} spin className={styles.spinnerIcon} />
+                  <p>Chargement des souvenirs...</p>
+                </div>
+              ) : memoriesError ? (
+                <div className={styles.errorContainer}>
+                  <FontAwesomeIcon icon={faExclamationTriangle} className={styles.errorIcon} />
+                  <p>{memoriesError}</p>
+                </div>
+              ) : (
+                <>
+                  {memories.map((memory) => (
                     <MemoryCard 
+                      key={memory.id || `memory-${Math.random()}`} 
                       memory={memory}
                       likeIcon={likeIcon}
                       commentIcon={commentIcon}
                       baseUrl={baseUrl}
                     />
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                  {/* Duplication pour effet infini */}
+                  {memories.slice(0, 2).map((memory) => (
+                    <MemoryCard 
+                      key={`duplicate-${memory.id || Math.random()}`} 
+                      memory={memory}
+                      likeIcon={likeIcon}
+                      commentIcon={commentIcon}
+                      baseUrl={baseUrl}
+                    />
+                  ))}
+                </>
+              )}
+            </div>
           </div>
-        </main>
+        </aside>
       </div>
     </div>
   );

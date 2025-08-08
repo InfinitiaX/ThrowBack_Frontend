@@ -1,4 +1,4 @@
-/* ThrowbackVideos.module.css - Mise à jour */
+/* ThrowbackVideos.module.css */
 .throwbackVideosBg {
   min-height: 100vh;
   background: #f7f7fa;
@@ -7,16 +7,18 @@
 }
 
 .mainContentWrap {
+  display: flex;
+  flex-direction: row;
   width: 100%;
   max-width: 1800px;
   margin: 0 auto;
   min-height: 80vh;
-  padding: 0 16px;
+  padding: 0 20px;
 }
 
 .mainContent {
-  width: 100%;
-  padding: 16px 0;
+  flex: 1;
+  padding: 24px 16px 32px 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -30,25 +32,27 @@
   align-self: flex-start;
 }
 
-/* Nouveau style pour le carrousel de filtres */
-.filterCarousel {
+/* Style pour les carrousels de filtres */
+.filterCarouselContainer {
+  position: relative;
   width: 100%;
-  margin-bottom: 20px;
-  overflow-x: auto;
-  scrollbar-width: none; /* Firefox */
+  margin-bottom: 12px;
+  padding: 2px 0;
 }
 
-.filterCarousel::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Edge */
-}
-
-.filterRow {
+.filterCarousel {
   display: flex;
   flex-wrap: nowrap;
   gap: 8px;
-  margin-bottom: 12px;
-  padding-bottom: 4px;
-  white-space: nowrap;
+  overflow-x: auto;
+  padding: 4px 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-behavior: smooth;
+}
+
+.filterCarousel::-webkit-scrollbar {
+  display: none;
 }
 
 .filterChip {
@@ -61,6 +65,7 @@
   color: #606060;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .filterChip.active {
@@ -74,12 +79,44 @@
   border-color: #ccc;
 }
 
+.carouselNavButton {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: white;
+  border: 1px solid #ddd;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
+}
+
+.carouselNavButton:hover {
+  opacity: 1;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.leftNav {
+  left: -16px;
+}
+
+.rightNav {
+  right: -16px;
+}
+
 .activeFilters {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  margin-bottom: 16px;
+  margin: 16px 0;
   width: 100%;
 }
 
@@ -108,7 +145,7 @@
 
 .videosGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
   margin-bottom: 32px;
   width: 100%;
@@ -158,47 +195,63 @@
   display: inline;
 }
 
-/* Souvenirs horizontaux */
-.memoriesTitle {
-  font-size: 1.6rem;
-  font-weight: 600;
-  margin: 40px 0 20px 0;
-  color: #444;
-}
-
-.horizontalMemories {
-  width: 100%;
-  margin-bottom: 40px;
-}
-
-.memoriesCarousel {
+/* Colonne de droite (mémoires) */
+.rightCards {
+  width: 320px;
+  padding: 24px 0 0 12px;
   display: flex;
-  flex-wrap: nowrap;
-  gap: 16px;
-  overflow-x: auto;
-  padding-bottom: 20px;
-  scrollbar-width: thin;
-  scrollbar-color: #b31217 #f0f0f0;
+  flex-direction: column;
+  gap: 24px;
+  max-height: 100vh;
+  overflow-y: auto;
 }
 
-.memoriesCarousel::-webkit-scrollbar {
-  height: 8px;
+.asideHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
 }
 
-.memoriesCarousel::-webkit-scrollbar-track {
-  background: #f0f0f0;
-  border-radius: 4px;
+.memoriesTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #444;
+  margin: 0;
 }
 
-.memoriesCarousel::-webkit-scrollbar-thumb {
-  background-color: #b31217;
-  border-radius: 4px;
-  border: 2px solid #f0f0f0;
+.viewAllLink {
+  font-size: 0.9rem;
+  color: #b31217;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
 }
 
-.memoryCardHorizontal {
-  min-width: 300px;
-  max-width: 300px;
+.viewAllLink:hover {
+  color: #9e0f13;
+  text-decoration: underline;
+}
+
+.verticalTicker {
+  height: calc(100vh - 100px);
+  overflow: hidden;
+}
+
+.tickerContent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: ticker 30s linear infinite;
+}
+
+@keyframes ticker {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
 }
 
 .loadingContainer {
@@ -207,7 +260,7 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 200px;
+  padding: 40px 0;
 }
 
 .spinnerIcon {
@@ -310,23 +363,47 @@
 /* Responsive design */
 @media (max-width: 1200px) {
   .videosGrid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 992px) {
-  .videosGrid {
     grid-template-columns: repeat(2, 1fr);
   }
-}
-
-@media (max-width: 576px) {
-  .videosGrid {
-    grid-template-columns: 1fr;
+  
+  .mainContentWrap {
+    flex-direction: column;
   }
   
+  .rightCards {
+    width: 100%;
+    max-width: 100%;
+    padding: 24px 0;
+  }
+  
+  .verticalTicker {
+    height: auto;
+    max-height: 600px;
+  }
+  
+  .tickerContent {
+    animation: none;
+  }
+}
+
+@media (max-width: 768px) {
   .mainContent {
-    padding: 16px 8px;
+    padding: 16px 0;
+  }
+  
+  .filterChip {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+  }
+  
+  .carouselNavButton {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .videosGrid {
+    grid-template-columns: 1fr;
   }
   
   .sectionTitle {
@@ -339,13 +416,11 @@
   }
   
   .pageButtons {
-    order: 1;
     flex-wrap: wrap;
     justify-content: center;
   }
   
   .paginationButton.navButton {
-    order: 2;
     width: 100%;
   }
 }

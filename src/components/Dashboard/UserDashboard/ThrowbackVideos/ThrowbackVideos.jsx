@@ -366,7 +366,7 @@ const ThrowbackVideos = () => {
                     />
                   ))}
                   {/* Duplication pour effet infini */}
-                  {memories.slice(0, 4).map((memory) => (
+                  {memories.slice(0, 2).map((memory) => (
                     <MemoryCard 
                       key={`duplicate-${memory.id || Math.random()}`} 
                       memory={memory}

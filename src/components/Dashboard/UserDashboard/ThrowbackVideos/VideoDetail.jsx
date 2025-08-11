@@ -1,7 +1,6 @@
-// VideoDetail.jsx - CORRECTION DES IMPORTS ET UTILISATION COHÉRENTE DU MEMORY CARD
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import api, { videoAPI } from '../../../../utils/api'; 
+import api, { videoAPI } from '../../../../utils/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFacebook, faTwitter, faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import { 
@@ -16,7 +15,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './VideoDetail.module.css';
 import PlaylistModal from './PlaylistModal';
-import MemoryCard from './MemoryCard'; // Importation du composant MemoryCard harmonisé
+import MemoryCard from './MemoryCard';
 
 const VideoDetail = () => {
   const { id } = useParams();
@@ -44,7 +43,7 @@ const VideoDetail = () => {
   const [shareMessage, setShareMessage] = useState('');
 
   // Construire l'URL de base en fonction de l'environnement
-  const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
   // Charger toutes les vidéos au montage du composant
   useEffect(() => {
@@ -64,7 +63,7 @@ const VideoDetail = () => {
   const fetchAllVideos = async () => {
     try {
       setVideosLoading(true);
-      console.log(' Chargement de toutes les vidéos...');
+      console.log('Chargement de toutes les vidéos...');
       
       const videosData = await videoAPI.getAllVideos({
         type: 'music',
@@ -73,13 +72,13 @@ const VideoDetail = () => {
       
       if (Array.isArray(videosData) && videosData.length > 0) {
         setAllVideos(videosData);
-        console.log(` ${videosData.length} vidéos chargées`);
+        console.log(`${videosData.length} vidéos chargées`);
       } else {
-        console.warn(' Aucune vidéo trouvée');
+        console.warn('Aucune vidéo trouvée');
         setAllVideos([]);
       }
     } catch (err) {
-      console.error(' Erreur lors du chargement des vidéos:', err);
+      console.error('Erreur lors du chargement des vidéos:', err);
       setAllVideos([]);
     } finally {
       setVideosLoading(false);
@@ -105,12 +104,12 @@ const VideoDetail = () => {
         setViewCount(videoData.vues || 0);
         setLikeCount(videoData.likes || 0);
         
-        console.log(' Vidéo chargée:', videoData.titre);
+        console.log('Vidéo chargée:', videoData.titre);
       } else {
         setError('Impossible de charger les détails de la vidéo');
       }
     } catch (err) {
-      console.error(' Erreur lors du chargement de la vidéo:', err);
+      console.error('Erreur lors du chargement de la vidéo:', err);
       setError('Erreur lors du chargement de la vidéo');
     } finally {
       setLoading(false);
@@ -120,7 +119,7 @@ const VideoDetail = () => {
   // Récupérer les souvenirs d'une vidéo
   const fetchVideoMemories = async (videoId) => {
     try {
-      console.log(' Chargement des souvenirs pour la vidéo:', videoId);
+      console.log('Chargement des souvenirs pour la vidéo:', videoId);
       
       const memoriesData = await videoAPI.getVideoMemories(videoId);
       
@@ -128,9 +127,9 @@ const VideoDetail = () => {
       const formattedMemories = formatMemories(memoriesData || []);
       setMemories(formattedMemories);
       
-      console.log(` ${memoriesData?.length || 0} souvenirs chargés`);
+      console.log(`${memoriesData?.length || 0} souvenirs chargés`);
     } catch (err) {
-      console.error(' Erreur lors du chargement des souvenirs:', err);
+      console.error('Erreur lors du chargement des souvenirs:', err);
       // Ne pas bloquer l'affichage de la vidéo
       setMemories([]);
     }
@@ -152,10 +151,46 @@ const VideoDetail = () => {
       videoArtist: memory.video?.artiste || memory.videoArtist || video?.artiste || 'Artiste inconnu',
       videoYear: memory.video?.annee || memory.videoYear || video?.annee || '----',
       imageUrl: memory.auteur?.photo_profil || memory.imageUrl || '/images/default-avatar.jpg',
-      content: memory.contenu || memory.content || 'Pas de contenu',
+      content: memory.contenu || memory.content || '',
       likes: memory.likes || 0,
-      comments: memory.nb_commentaires || memory.comments || 0
+      comments: memory.nb_commentaires || memory.comments || 0,
+      // Conserver les références originales pour les interactions
+      auteur: memory.auteur,
+      video: memory.video
     }));
+  };
+
+  // Gérer le like d'une mémoire
+  const handleLikeMemory = async (memoryId) => {
+    try {
+      console.log('Tentative de like de la mémoire:', memoryId);
+      
+      // Mise à jour optimiste
+      const updatedMemories = memories.map(memory => {
+        if (memory.id === memoryId) {
+          return {
+            ...memory,
+            likes: memory.likes + 1
+          };
+        }
+        return memory;
+      });
+      
+      setMemories(updatedMemories);
+      
+      // Appel API
+      await videoAPI.likeMemory(memoryId);
+      
+    } catch (err) {
+      console.error('Erreur lors du like de la mémoire:', err);
+      
+      // Revenir à l'état précédent en cas d'erreur
+      fetchVideoMemories(id);
+      
+      if (err.response?.status === 401) {
+        alert('Veuillez vous connecter pour aimer ce souvenir');
+      }
+    }
   };
 
   // Gérer le like d'une vidéo
@@ -172,7 +207,7 @@ const VideoDetail = () => {
       setUserLiked(newLikedState);
       setLikeCount(newLikeCount);
       
-      console.log(' Tentative de like/unlike...');
+      console.log('Tentative de like/unlike...');
       
       // Appel API
       const response = await videoAPI.likeVideo(id);
@@ -183,19 +218,19 @@ const VideoDetail = () => {
           setUserLiked(response.data.liked);
           setLikeCount(response.data.likes);
         }
-        console.log(' Like/unlike réussi');
+        console.log('Like/unlike réussi');
       } else {
         // Revenir à l'état précédent en cas d'échec
         setUserLiked(!newLikedState);
         setLikeCount(likeCount);
-        console.warn(' Échec du like:', response.message);
+        console.warn('Échec du like:', response.message);
       }
     } catch (err) {
       // Revenir à l'état précédent en cas d'erreur
       setUserLiked(!userLiked);
       setLikeCount(likeCount);
       
-      console.error(' Erreur lors du like:', err);
+      console.error('Erreur lors du like:', err);
       
       if (err.response?.status === 401) {
         alert('Veuillez vous connecter pour aimer cette vidéo');
@@ -238,11 +273,11 @@ const VideoDetail = () => {
       
       // Log le partage via l'API (non bloquant)
       videoAPI.shareVideo(id).catch(err => 
-        console.warn(' Échec du logging de partage:', err)
+        console.warn('Échec du logging de partage:', err)
       );
       
     } catch (err) {
-      console.error(' Erreur lors du partage:', err);
+      console.error('Erreur lors du partage:', err);
       setShareMessage('Erreur lors du partage.');
       setTimeout(() => setShareMessage(''), 3000);
     }
@@ -263,7 +298,7 @@ const VideoDetail = () => {
     
     try {
       setIsAddingMemory(true);
-      console.log(' Ajout d\'un souvenir...');
+      console.log('Ajout d\'un souvenir...');
       
       const response = await videoAPI.addMemory(id, memoryText.trim());
       
@@ -275,7 +310,7 @@ const VideoDetail = () => {
         }
         setMemoryText('');
         
-        console.log(' Souvenir ajouté avec succès');
+        console.log('Souvenir ajouté avec succès');
         
         // Notification de succès discrète
         setShareMessage('Souvenir ajouté avec succès!');
@@ -284,7 +319,7 @@ const VideoDetail = () => {
         alert(response.message || 'Erreur lors de l\'ajout du souvenir');
       }
     } catch (err) {
-      console.error(' Erreur lors de l\'ajout du souvenir:', err);
+      console.error('Erreur lors de l\'ajout du souvenir:', err);
       
       if (err.response?.status === 401) {
         alert('Veuillez vous connecter pour partager un souvenir');
@@ -323,7 +358,7 @@ const VideoDetail = () => {
         return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
       }
     } catch (error) {
-      console.error(' Erreur de parsing URL YouTube:', error);
+      console.error('Erreur de parsing URL YouTube:', error);
     }
     
     return url;
@@ -366,6 +401,8 @@ const VideoDetail = () => {
 
   // Composant pour les vidéos recommandées
   const RecommendedVideo = ({ video: recommendedVideo }) => {
+    if (!recommendedVideo) return null;
+    
     const isCurrentVideo = video && recommendedVideo._id === video._id;
     
     const handleClick = (e) => {
@@ -381,15 +418,15 @@ const VideoDetail = () => {
       >
         <img 
           src={getYouTubeThumbnail(recommendedVideo.youtubeUrl)} 
-          alt={`${recommendedVideo.artiste} - ${recommendedVideo.titre}`} 
+          alt={`${recommendedVideo.artiste || 'Artiste'} - ${recommendedVideo.titre || 'Titre'}`} 
           className={styles.recommendedImg}
           onError={(e) => {
             e.target.src = '/images/video-placeholder.jpg';
           }}
         />
         <div className={styles.recommendedInfo}>
-          <div className={styles.recommendedArtist}>{recommendedVideo.artiste}</div>
-          <div className={styles.recommendedTitle}>: {recommendedVideo.titre} ({recommendedVideo.annee})</div>
+          <div className={styles.recommendedArtist}>{recommendedVideo.artiste || 'Artiste'}</div>
+          <div className={styles.recommendedTitle}>: {recommendedVideo.titre || 'Titre'} ({recommendedVideo.annee || '----'})</div>
         </div>
         {isCurrentVideo && <div className={styles.currentlyPlaying}>▶ Now Playing</div>}
       </a>
@@ -454,6 +491,9 @@ const VideoDetail = () => {
                   src={getYouTubeThumbnail(video.youtubeUrl)} 
                   alt={`${video.artiste} - ${video.titre}`} 
                   className={styles.thumbnailImg}
+                  onError={(e) => {
+                    e.target.src = '/images/video-placeholder.jpg';
+                  }}
                 />
                 <div className={styles.playButton}>▶</div>
               </div>
@@ -463,7 +503,7 @@ const VideoDetail = () => {
           {/* Video Title and Stats */}
           <div className={styles.videoInfoBar}>
             <h1 className={styles.videoTitle}>
-              {video.artiste} : <span style={{ fontWeight: 300, fontSize: 18 }}>{video.titre} ({video.annee})</span>
+              {video.artiste || 'Artiste'} : <span style={{ fontWeight: 300, fontSize: 18 }}>{video.titre || 'Titre'} ({video.annee || '----'})</span>
             </h1>
             <div className={styles.videoStats}>
               <div className={styles.statItem}>
@@ -547,8 +587,8 @@ const VideoDetail = () => {
                   <span>Loading videos...</span>
                 </div>
               ) : allVideos.length > 0 ? (
-                allVideos.map(videoItem => (
-                  <RecommendedVideo key={videoItem._id} video={videoItem} />
+                allVideos.map((videoItem) => (
+                  <RecommendedVideo key={videoItem._id || `video-${Math.random()}`} video={videoItem} />
                 ))
               ) : (
                 <div className={styles.emptyRecommendations}>
@@ -562,11 +602,12 @@ const VideoDetail = () => {
         {/* Memories Sidebar */}
         <aside className={styles.rightCards}>
           {memories.length > 0 ? (
-            memories.map((memory, index) => (
+            memories.map((memory) => (
               <MemoryCard 
-                key={memory.id || index} 
+                key={memory.id || `memory-${Math.random()}`} 
                 memory={memory}
                 baseUrl={baseUrl}
+                onLike={handleLikeMemory}
               />
             ))
           ) : (

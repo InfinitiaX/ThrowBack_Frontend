@@ -231,8 +231,43 @@ getVideoMemories: async (videoId) => {
     }
   },
 
-  // Liker une vidéo
-// Ajouter cette fonction à videoAPI si elle n'existe pas
+
+
+  // Récupérer tous les souvenirs de la plateforme
+getAllMemories: async () => {
+  try {
+    console.log('🔍 Récupération de tous les souvenirs...');
+    
+    try {
+      // Route publique
+      const response = await api.get('/api/public/memories');
+      if (response.data && Array.isArray(response.data.data)) {
+        console.log(`✅ ${response.data.data.length} souvenirs récupérés via API publique`);
+        return response.data.data;
+      }
+    } catch (err) {
+      console.warn('⚠️ Échec de la route publique, tentative avec route classique');
+    }
+    
+    try {
+      // Route classique
+      const fallbackResponse = await api.get('/api/memories');
+      if (fallbackResponse.data && Array.isArray(fallbackResponse.data.data)) {
+        console.log(`✅ ${fallbackResponse.data.data.length} souvenirs récupérés via route classique`);
+        return fallbackResponse.data.data;
+      }
+    } catch (fallbackErr) {
+      console.error('❌ Toutes les routes ont échoué');
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('❌ Erreur lors de la récupération des souvenirs:', error);
+    return [];
+  }
+},
+
+// Liker un souvenir
 likeMemory: async (memoryId) => {
   try {
     console.log('❤️ Tentative de like du souvenir:', memoryId);
@@ -263,6 +298,39 @@ likeMemory: async (memoryId) => {
     throw error;
   }
 },
+
+//   // Liker une vidéo
+// // Ajouter cette fonction à videoAPI si elle n'existe pas
+// likeMemory: async (memoryId) => {
+//   try {
+//     console.log('❤️ Tentative de like du souvenir:', memoryId);
+    
+//     const response = await api.post(`/api/public/memories/${memoryId}/like`);
+    
+//     if (response.data.success) {
+//       console.log('✅ Like réussi');
+//       return response.data;
+//     } else {
+//       console.warn('⚠️ Échec du like (erreur côté serveur)');
+//       throw new Error(response.data.message || 'Erreur côté serveur');
+//     }
+//   } catch (error) {
+//     console.error('❌ Erreur lors du like du souvenir:', error);
+    
+//     // Fallback: essayer l'ancienne route
+//     try {
+//       const fallbackResponse = await api.post(`/api/memories/${memoryId}/like`);
+//       if (fallbackResponse.data.success) {
+//         console.log('✅ Like réussi (via route fallback)');
+//         return fallbackResponse.data;
+//       }
+//     } catch (fallbackError) {
+//       console.error('❌ Fallback également échoué:', fallbackError);
+//     }
+    
+//     throw error;
+//   }
+// },
 
   // Partager une vidéo
   shareVideo: async (videoId) => {

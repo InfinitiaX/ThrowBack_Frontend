@@ -63,7 +63,7 @@ const VideoDetail = () => {
   const fetchAllVideos = async () => {
     try {
       setVideosLoading(true);
-      console.log('Chargement de toutes les vidéos...');
+      console.log('🎬 Chargement de toutes les vidéos...');
       
       const videosData = await videoAPI.getAllVideos({
         type: 'music',
@@ -72,13 +72,13 @@ const VideoDetail = () => {
       
       if (Array.isArray(videosData) && videosData.length > 0) {
         setAllVideos(videosData);
-        console.log(`${videosData.length} vidéos chargées`);
+        console.log(`✅ ${videosData.length} vidéos chargées`);
       } else {
-        console.warn('Aucune vidéo trouvée');
+        console.warn('⚠️ Aucune vidéo trouvée');
         setAllVideos([]);
       }
     } catch (err) {
-      console.error('Erreur lors du chargement des vidéos:', err);
+      console.error('❌ Erreur lors du chargement des vidéos:', err);
       setAllVideos([]);
     } finally {
       setVideosLoading(false);
@@ -104,12 +104,12 @@ const VideoDetail = () => {
         setViewCount(videoData.vues || 0);
         setLikeCount(videoData.likes || 0);
         
-        console.log('Vidéo chargée:', videoData.titre);
+        console.log('✅ Vidéo chargée:', videoData.titre);
       } else {
         setError('Impossible de charger les détails de la vidéo');
       }
     } catch (err) {
-      console.error('Erreur lors du chargement de la vidéo:', err);
+      console.error('❌ Erreur lors du chargement de la vidéo:', err);
       setError('Erreur lors du chargement de la vidéo');
     } finally {
       setLoading(false);
@@ -119,18 +119,42 @@ const VideoDetail = () => {
   // Récupérer les souvenirs d'une vidéo
   const fetchVideoMemories = async (videoId) => {
     try {
-      console.log('Chargement des souvenirs pour la vidéo:', videoId);
+      console.log('🔍 Chargement des souvenirs pour la vidéo:', videoId);
+      
+      // S'assurer que videoId est valide
+      if (!videoId) {
+        console.warn('⚠️ ID de vidéo manquant pour la récupération des souvenirs');
+        setMemories([]);
+        return;
+      }
       
       const memoriesData = await videoAPI.getVideoMemories(videoId);
       
-      // Formater les souvenirs pour correspondre à l'attente du composant MemoryCard
-      const formattedMemories = formatMemories(memoriesData || []);
-      setMemories(formattedMemories);
+      // Vérifier les données reçues
+      if (!Array.isArray(memoriesData)) {
+        console.warn('⚠️ Format de données incorrect pour les souvenirs:', memoriesData);
+        setMemories([]);
+        return;
+      }
       
-      console.log(`${memoriesData?.length || 0} souvenirs chargés`);
+      // Filtrer les souvenirs pour cette vidéo uniquement
+      const filteredMemories = memoriesData.filter(memory => {
+        // Vérifier si le souvenir est lié à cette vidéo
+        const memoryVideoId = 
+          (memory.video && memory.video._id) || 
+          (memory.video && typeof memory.video === 'string' ? memory.video : null) ||
+          memory.videoId;
+        
+        return memoryVideoId && memoryVideoId === videoId;
+      });
+      
+      console.log(`✅ ${filteredMemories.length} souvenirs filtrés (sur ${memoriesData.length} récupérés)`);
+      
+      // Formater les souvenirs pour l'affichage
+      const formattedMemories = formatMemories(filteredMemories);
+      setMemories(formattedMemories);
     } catch (err) {
-      console.error('Erreur lors du chargement des souvenirs:', err);
-      // Ne pas bloquer l'affichage de la vidéo
+      console.error('❌ Erreur lors du chargement des souvenirs:', err);
       setMemories([]);
     }
   };
@@ -141,29 +165,65 @@ const VideoDetail = () => {
       return [];
     }
     
-    return memoriesData.map(memory => ({
-      id: memory._id || memory.id || `memory-${Math.random()}`,
-      username: memory.auteur ? 
-        `${memory.auteur.prenom || ''} ${memory.auteur.nom || ''}`.trim() || 'Utilisateur' : 
-        'Utilisateur',
-      type: memory.type || 'posted',
-      videoTitle: memory.video?.titre || memory.videoTitle || video?.titre || 'Vidéo sans titre',
-      videoArtist: memory.video?.artiste || memory.videoArtist || video?.artiste || 'Artiste inconnu',
-      videoYear: memory.video?.annee || memory.videoYear || video?.annee || '----',
-      imageUrl: memory.auteur?.photo_profil || memory.imageUrl || '/images/default-avatar.jpg',
-      content: memory.contenu || memory.content || '',
-      likes: memory.likes || 0,
-      comments: memory.nb_commentaires || memory.comments || 0,
-      // Conserver les références originales pour les interactions
-      auteur: memory.auteur,
-      video: memory.video
-    }));
+    return memoriesData.map(memory => {
+      // Extraire correctement le nom d'utilisateur
+      let username = 'Utilisateur';
+      
+      if (memory.auteur) {
+        if (typeof memory.auteur === 'object') {
+          // Si auteur est un objet (cas d'un populate)
+          const prenom = memory.auteur.prenom || '';
+          const nom = memory.auteur.nom || '';
+          
+          if (prenom || nom) {
+            username = `${prenom} ${nom}`.trim();
+          } else if (memory.auteur.username) {
+            username = memory.auteur.username;
+          }
+        } else if (typeof memory.auteur === 'string' && memory.auteurDetails) {
+          // Si auteur est un ID mais que les détails sont disponibles ailleurs
+          const prenom = memory.auteurDetails.prenom || '';
+          const nom = memory.auteurDetails.nom || '';
+          username = `${prenom} ${nom}`.trim() || memory.auteurDetails.username || 'Utilisateur';
+        }
+      } else if (memory.username) {
+        username = memory.username;
+      }
+      
+      // S'assurer que les données de la vidéo sont correctes
+      const videoDetails = {
+        id: memory.video?._id || 
+            (typeof memory.video === 'string' ? memory.video : null) || 
+            memory.videoId || 
+            id, // id vient du contexte (id de la vidéo actuelle)
+        title: memory.video?.titre || memory.videoTitle || video?.titre || 'Vidéo sans titre',
+        artist: memory.video?.artiste || memory.videoArtist || video?.artiste || 'Artiste inconnu',
+        year: memory.video?.annee || memory.videoYear || video?.annee || '----'
+      };
+      
+      return {
+        id: memory._id || memory.id || `memory-${Math.random()}`,
+        username: username,
+        type: memory.type || 'posted',
+        videoId: videoDetails.id,
+        videoTitle: videoDetails.title,
+        videoArtist: videoDetails.artist,
+        videoYear: videoDetails.year,
+        imageUrl: memory.auteur?.photo_profil || memory.imageUrl || '/images/default-avatar.jpg',
+        content: memory.contenu || memory.content || '',
+        likes: memory.likes || 0,
+        comments: memory.nb_commentaires || memory.comments || 0,
+        // Conserver les références originales pour les interactions
+        auteur: memory.auteur,
+        video: memory.video
+      };
+    });
   };
 
   // Gérer le like d'une mémoire
   const handleLikeMemory = async (memoryId) => {
     try {
-      console.log('Tentative de like de la mémoire:', memoryId);
+      console.log('❤️ Tentative de like de la mémoire:', memoryId);
       
       // Mise à jour optimiste
       const updatedMemories = memories.map(memory => {
@@ -182,7 +242,7 @@ const VideoDetail = () => {
       await videoAPI.likeMemory(memoryId);
       
     } catch (err) {
-      console.error('Erreur lors du like de la mémoire:', err);
+      console.error('❌ Erreur lors du like de la mémoire:', err);
       
       // Revenir à l'état précédent en cas d'erreur
       fetchVideoMemories(id);
@@ -207,7 +267,7 @@ const VideoDetail = () => {
       setUserLiked(newLikedState);
       setLikeCount(newLikeCount);
       
-      console.log('Tentative de like/unlike...');
+      console.log('👍 Tentative de like/unlike...');
       
       // Appel API
       const response = await videoAPI.likeVideo(id);
@@ -218,19 +278,19 @@ const VideoDetail = () => {
           setUserLiked(response.data.liked);
           setLikeCount(response.data.likes);
         }
-        console.log('Like/unlike réussi');
+        console.log('✅ Like/unlike réussi');
       } else {
         // Revenir à l'état précédent en cas d'échec
         setUserLiked(!newLikedState);
         setLikeCount(likeCount);
-        console.warn('Échec du like:', response.message);
+        console.warn('⚠️ Échec du like:', response.message);
       }
     } catch (err) {
       // Revenir à l'état précédent en cas d'erreur
       setUserLiked(!userLiked);
       setLikeCount(likeCount);
       
-      console.error('Erreur lors du like:', err);
+      console.error('❌ Erreur lors du like:', err);
       
       if (err.response?.status === 401) {
         alert('Veuillez vous connecter pour aimer cette vidéo');
@@ -273,11 +333,11 @@ const VideoDetail = () => {
       
       // Log le partage via l'API (non bloquant)
       videoAPI.shareVideo(id).catch(err => 
-        console.warn('Échec du logging de partage:', err)
+        console.warn('⚠️ Échec du logging de partage:', err)
       );
       
     } catch (err) {
-      console.error('Erreur lors du partage:', err);
+      console.error('❌ Erreur lors du partage:', err);
       setShareMessage('Erreur lors du partage.');
       setTimeout(() => setShareMessage(''), 3000);
     }
@@ -298,19 +358,30 @@ const VideoDetail = () => {
     
     try {
       setIsAddingMemory(true);
-      console.log('Ajout d\'un souvenir...');
+      console.log('✍️ Ajout d\'un souvenir...');
       
       const response = await videoAPI.addMemory(id, memoryText.trim());
       
       if (response.success) {
         // Ajouter le nouveau souvenir à la liste
         if (response.data) {
-          const newMemory = formatMemories([response.data])[0];
+          // S'assurer que la vidéo est correctement liée au souvenir
+          const newMemoryData = {
+            ...response.data,
+            video: response.data.video || { 
+              _id: id,
+              titre: video?.titre,
+              artiste: video?.artiste,
+              annee: video?.annee
+            }
+          };
+          
+          const newMemory = formatMemories([newMemoryData])[0];
           setMemories([newMemory, ...memories]);
         }
         setMemoryText('');
         
-        console.log('Souvenir ajouté avec succès');
+        console.log('✅ Souvenir ajouté avec succès');
         
         // Notification de succès discrète
         setShareMessage('Souvenir ajouté avec succès!');
@@ -319,7 +390,7 @@ const VideoDetail = () => {
         alert(response.message || 'Erreur lors de l\'ajout du souvenir');
       }
     } catch (err) {
-      console.error('Erreur lors de l\'ajout du souvenir:', err);
+      console.error('❌ Erreur lors de l\'ajout du souvenir:', err);
       
       if (err.response?.status === 401) {
         alert('Veuillez vous connecter pour partager un souvenir');

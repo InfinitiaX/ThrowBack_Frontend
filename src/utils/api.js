@@ -161,33 +161,48 @@ const videoAPI = {
   },
 
   // Récupérer les souvenirs d'une vidéo
-  getVideoMemories: async (videoId) => {
-    try {
-      console.log(' Fetching memories for video:', videoId);
+
+getVideoMemories: async (videoId) => {
+  try {
+    console.log('🔍 Récupération des souvenirs pour la vidéo:', videoId);
+    
+    // Essayer d'abord avec la nouvelle API
+    const response = await api.get(`/api/public/videos/${videoId}/memories`);
+    
+    if (response.data && response.data.success) {
+      console.log(`✅ ${response.data.data?.length || 0} souvenirs récupérés via API publique`);
+      return response.data.data || [];
+    } else {
+      // Fallback vers l'ancienne route si nécessaire
+      console.log('⚠️ Échec API publique, tentative avec route classique...');
+      const fallbackResponse = await api.get(`/api/videos/${videoId}/memories`);
       
-      const response = await api.get(`/api/public/videos/${videoId}/memories`);
-      
-      if (response.data.success) {
-        return response.data.data || [];
-      } else {
-        return [];
+      if (fallbackResponse.data && fallbackResponse.data.success) {
+        console.log(`✅ ${fallbackResponse.data.data?.length || 0} souvenirs récupérés via route classique`);
+        return fallbackResponse.data.data || [];
       }
-    } catch (error) {
-      console.error(' Error fetching video memories:', error);
-      
-      // Fallback vers l'ancienne route
-      try {
-        const fallbackResponse = await api.get(`/api/videos/${videoId}/memories`);
-        if (fallbackResponse.data.success) {
-          return fallbackResponse.data.data || [];
-        }
-      } catch (fallbackError) {
-        console.error(' Fallback for memories also failed:', fallbackError);
-      }
-      
-      return [];
     }
-  },
+    
+    console.warn('❌ Aucune donnée de souvenirs trouvée');
+    return [];
+  } catch (error) {
+    console.error('❌ Erreur lors de la récupération des souvenirs:', error);
+    
+    // En cas d'erreur, essayer le fallback
+    try {
+      const fallbackResponse = await api.get(`/api/videos/${videoId}/memories`);
+      
+      if (fallbackResponse.data && fallbackResponse.data.success) {
+        console.log(`✅ ${fallbackResponse.data.data?.length || 0} souvenirs récupérés via route de secours`);
+        return fallbackResponse.data.data || [];
+      }
+    } catch (fallbackError) {
+      console.error('❌ Échec également sur la route de secours:', fallbackError);
+    }
+    
+    return [];
+  }
+},
 
   // Ajouter un souvenir
   addMemory: async (videoId, content) => {
@@ -217,27 +232,37 @@ const videoAPI = {
   },
 
   // Liker une vidéo
-  likeVideo: async (videoId) => {
-    try {
-      console.log(' Liking video:', videoId);
-      
-      const response = await api.post(`/api/public/videos/${videoId}/like`, {});
-      
+// Ajouter cette fonction à videoAPI si elle n'existe pas
+likeMemory: async (memoryId) => {
+  try {
+    console.log('❤️ Tentative de like du souvenir:', memoryId);
+    
+    const response = await api.post(`/api/public/memories/${memoryId}/like`);
+    
+    if (response.data.success) {
+      console.log('✅ Like réussi');
       return response.data;
-    } catch (error) {
-      console.error(' Error liking video:', error);
-      
-      // Fallback vers l'ancienne route
-      try {
-        const fallbackResponse = await api.post(`/api/videos/${videoId}/like`, {});
-        return fallbackResponse.data;
-      } catch (fallbackError) {
-        console.error(' Fallback for liking also failed:', fallbackError);
-      }
-      
-      throw error;
+    } else {
+      console.warn('⚠️ Échec du like (erreur côté serveur)');
+      throw new Error(response.data.message || 'Erreur côté serveur');
     }
-  },
+  } catch (error) {
+    console.error('❌ Erreur lors du like du souvenir:', error);
+    
+    // Fallback: essayer l'ancienne route
+    try {
+      const fallbackResponse = await api.post(`/api/memories/${memoryId}/like`);
+      if (fallbackResponse.data.success) {
+        console.log('✅ Like réussi (via route fallback)');
+        return fallbackResponse.data;
+      }
+    } catch (fallbackError) {
+      console.error('❌ Fallback également échoué:', fallbackError);
+    }
+    
+    throw error;
+  }
+},
 
   // Partager une vidéo
   shareVideo: async (videoId) => {

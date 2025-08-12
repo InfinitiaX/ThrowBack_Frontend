@@ -1,9 +1,9 @@
 import React from 'react';
 import styles from './VideoDetail.module.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHeart, faComment } from '@fortawesome/free-solid-svg-icons';
+import { faHeart, faComment, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 
-const MemoryCard = ({ memory, baseUrl = '', onLike }) => {
+const MemoryCard = ({ memory, baseUrl = '', onLike, currentVideoId }) => {
   if (!memory) return null;
 
   // Fonction pour construire des URLs complètes pour les images
@@ -36,8 +36,18 @@ const MemoryCard = ({ memory, baseUrl = '', onLike }) => {
     }
   };
 
+  // Vérifier si le souvenir correspond à la vidéo actuelle
+  const isMatchingCurrentVideo = () => {
+    if (!currentVideoId || !memory.videoId) return true; // Par défaut, considérer comme correspondant
+    
+    return memory.videoId.toString() === currentVideoId.toString();
+  };
+
+  // Style spécial pour les souvenirs non correspondants
+  const cardStyle = isMatchingCurrentVideo() ? {} : { borderLeft: '3px solid #e74c3c' };
+
   return (
-    <div className={styles.memoryCard}>
+    <div className={styles.memoryCard} style={cardStyle}>
       <div className={styles.memoryHeader}>
         <span className={styles.memoryUsername}>
           {memory.username || (memory.auteur && `${memory.auteur.prenom || ''} ${memory.auteur.nom || ''}`.trim()) || 'Utilisateur'}
@@ -55,7 +65,15 @@ const MemoryCard = ({ memory, baseUrl = '', onLike }) => {
       />
       
       <div className={styles.memoryBody}>
-        {memory.videoArtist || 'Artiste inconnu'} - {memory.videoTitle || 'Vidéo sans titre'} ({memory.videoYear || '----'}). Please, like and comment to show some love!
+        {memory.videoArtist || 'Artiste inconnu'} - {memory.videoTitle || 'Vidéo sans titre'} ({memory.videoYear || '----'})
+        
+        {/* Avertissement si le souvenir ne correspond pas à la vidéo actuelle */}
+        {!isMatchingCurrentVideo() && (
+          <div className={styles.wrongVideoWarning}>
+            <FontAwesomeIcon icon={faExclamationTriangle} className={styles.warningIcon} />
+            <span>Ce souvenir concerne une autre vidéo</span>
+          </div>
+        )}
       </div>
       
       {memory.content && (

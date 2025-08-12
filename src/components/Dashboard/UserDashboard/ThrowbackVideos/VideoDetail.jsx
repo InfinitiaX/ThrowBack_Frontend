@@ -447,7 +447,13 @@ const VideoDetail = () => {
         video: memory.video,
         // Pour la vérification de correspondance
         originalVideoId: videoDetails.id,
-        currentVideoId: currentVideoId
+        currentVideoId: currentVideoId,
+        // Information sur l'interaction utilisateur
+        userInteraction: memory.userInteraction || {
+          liked: false,
+          disliked: false,
+          isAuthor: false
+        }
       };
     });
   };
@@ -455,6 +461,127 @@ const VideoDetail = () => {
   // Formater tous les souvenirs pour l'affichage (mode "Tous les souvenirs")
   const getAllFormattedMemories = () => {
     return formatMemories(allMemories);
+  };
+
+  // Charger les réponses à un souvenir
+  const fetchReplies = async (memoryId) => {
+    try {
+      setMemoriesLoading(true);
+      console.log('🔍 Chargement des réponses pour le souvenir:', memoryId);
+      
+      try {
+        // Route principale
+        const response = await api.get(`/api/memories/${memoryId}/replies`);
+        
+        if (response.data && response.data.success) {
+          console.log(`✅ ${response.data.data.length} réponses récupérées`);
+          return response.data.data;
+        }
+      } catch (err) {
+        console.warn('⚠️ Échec de la route principale, tentative avec route alternative');
+        
+        // Route alternative
+        try {
+          const fallbackResponse = await api.get(`/api/public/memories/${memoryId}/replies`);
+          
+          if (fallbackResponse.data && fallbackResponse.data.success) {
+            console.log(`✅ ${fallbackResponse.data.data.length} réponses récupérées via route alternative`);
+            return fallbackResponse.data.data;
+          }
+        } catch (fallbackErr) {
+          console.error('❌ Toutes les routes ont échoué');
+        }
+      }
+      
+      return [];
+    } catch (err) {
+      console.error('❌ Erreur lors du chargement des réponses:', err);
+      return [];
+    } finally {
+      setMemoriesLoading(false);
+    }
+  };
+
+  // Pour gérer l'affichage des réponses d'un souvenir
+  const handleToggleReplies = async (memoryId) => {
+    // Vérifier si c'est déjà en cours de chargement
+    if (memoriesLoading) return;
+    
+    // Trouver le souvenir dans l'état
+    const memoryIndex = memories.findIndex(m => m.id === memoryId);
+    if (memoryIndex === -1) return;
+    
+    const memory = memories[memoryIndex];
+    
+    // Si les réponses sont déjà affichées, les masquer
+    if (memory.showReplies) {
+      const updatedMemories = [...memories];
+      updatedMemories[memoryIndex] = {
+        ...memory,
+        showReplies: false
+      };
+      setMemories(updatedMemories);
+      return;
+    }
+    
+    // Charger les réponses si elles ne sont pas déjà chargées
+    if (!memory.replies || memory.replies.length === 0) {
+      const replies = await fetchReplies(memoryId);
+      
+      const updatedMemories = [...memories];
+      updatedMemories[memoryIndex] = {
+        ...memory,
+        replies,
+        showReplies: true
+      };
+      setMemories(updatedMemories);
+    } else {
+      // Simplement afficher les réponses déjà chargées
+      const updatedMemories = [...memories];
+      updatedMemories[memoryIndex] = {
+        ...memory,
+        showReplies: true
+      };
+      setMemories(updatedMemories);
+    }
+  };
+
+  // Pour ajouter une réponse à un souvenir
+  const handleAddReply = async (memoryId, replyText) => {
+    try {
+      console.log('✍️ Ajout d\'une réponse au souvenir:', memoryId);
+      
+      const response = await api.post(`/api/memories/${memoryId}/replies`, {
+        contenu: replyText
+      });
+      
+      if (response.data && response.data.success) {
+        // Mettre à jour la liste des réponses en temps réel
+        const updatedMemories = memories.map(memory => {
+          if (memory.id === memoryId) {
+            return {
+              ...memory,
+              nb_commentaires: (memory.nb_commentaires || 0) + 1,
+              replies: memory.replies ? [...memory.replies, response.data.data] : [response.data.data]
+            };
+          }
+          return memory;
+        });
+        
+        setMemories(updatedMemories);
+        return true;
+      }
+      
+      return false;
+    } catch (err) {
+      console.error('❌ Erreur lors de l\'ajout de la réponse:', err);
+      if (err.response?.status === 401) {
+        alert('Veuillez vous connecter pour ajouter une réponse');
+      } else {
+        alert('Erreur lors de l\'ajout de la réponse. Veuillez réessayer.');
+      }
+      return false;
+    }
   };
 
   // Gérer le like d'une mémoire
@@ -465,9 +592,14 @@ const VideoDetail = () => {
       // Mise à jour optimiste
       const updatedMemories = memories.map(memory => {
         if (memory.id === memoryId) {
+          const isLiked = memory.userInteraction?.liked;
           return {
             ...memory,
-            likes: memory.likes + 1
+            likes: isLiked ? Math.max(0, memory.likes - 1) : memory.likes + 1,
+            userInteraction: {
+              ...memory.userInteraction,
+              liked: !isLiked
+            }
           };
         }
         return memory;
@@ -478,9 +610,14 @@ const VideoDetail = () => {
       // Aussi mettre à jour dans allMemories
       const updatedAllMemories = allMemories.map(memory => {
         if ((memory._id || memory.id) === memoryId) {
+          const isLiked = memory.userInteraction?.liked;
           return {
             ...memory,
-            likes: (memory.likes || 0) + 1
+            likes: isLiked ? Math.max(0, memory.likes - 1) : (memory.likes || 0) + 1,
+            userInteraction: {
+              ...memory.userInteraction,
+              liked: !isLiked
+            }
           };
         }
         return memory;
@@ -497,9 +634,37 @@ const VideoDetail = () => {
       
       // Appel API
       try {
-        await videoAPI.likeMemory(memoryId);
+        const response = await api.post(`/api/memories/${memoryId}/like`);
+        
+        // Si la réponse contient de nouvelles données, mettre à jour avec les vraies valeurs
+        if (response.data && response.data.success && response.data.data) {
+          const { liked, likes } = response.data.data;
+          
+          const updatedWithResponse = memories.map(memory => {
+            if (memory.id === memoryId) {
+              return {
+                ...memory,
+                likes: likes,
+                userInteraction: {
+                  ...memory.userInteraction,
+                  liked: liked
+                }
+              };
+            }
+            return memory;
+          });
+          
+          setMemories(updatedWithResponse);
+        }
       } catch (apiErr) {
-        console.warn('⚠️ API de like indisponible, mise à jour locale uniquement');
+        console.warn('⚠️ API de like indisponible, mise à jour locale uniquement:', apiErr);
+        
+        // Essayer avec une route alternative
+        try {
+          await api.post(`/api/public/memories/${memoryId}/like`);
+        } catch (fallbackErr) {
+          console.warn('⚠️ Route alternative également indisponible:', fallbackErr);
+        }
       }
       
     } catch (err) {
@@ -508,6 +673,57 @@ const VideoDetail = () => {
       if (err.response?.status === 401) {
         alert('Veuillez vous connecter pour aimer ce souvenir');
       }
+    }
+  };
+
+  // Gérer la suppression d'un souvenir
+  const handleDeleteMemory = async (memoryId) => {
+    try {
+      console.log('🗑️ Suppression du souvenir:', memoryId);
+      
+      if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce souvenir ?')) {
+        return;
+      }
+      
+      // Mise à jour optimiste
+      const updatedMemories = memories.filter(memory => memory.id !== memoryId);
+      setMemories(updatedMemories);
+      
+      // Aussi mettre à jour dans allMemories
+      const updatedAllMemories = allMemories.filter(memory => 
+        (memory._id || memory.id) !== memoryId
+      );
+      
+      setAllMemories(updatedAllMemories);
+      
+      // Mettre à jour le cache localStorage
+      try {
+        localStorage.setItem('allMemories', JSON.stringify(updatedAllMemories));
+      } catch (storageErr) {
+        console.warn('⚠️ Erreur lors de la mise à jour du cache:', storageErr);
+      }
+      
+      // Appel API
+      try {
+        await api.delete(`/api/memories/${memoryId}`);
+        console.log('✅ Souvenir supprimé avec succès');
+      } catch (apiErr) {
+        console.warn('⚠️ API de suppression indisponible:', apiErr);
+        
+        if (apiErr.response?.status === 401) {
+          alert('Vous devez être connecté pour supprimer ce souvenir');
+          // Restaurer le souvenir
+          fetchVideoMemories(id);
+        } else if (apiErr.response?.status === 403) {
+          alert('Vous ne pouvez pas supprimer ce souvenir');
+          // Restaurer le souvenir
+          fetchVideoMemories(id);
+        }
+      }
+    } catch (err) {
+      console.error('❌ Erreur lors de la suppression du souvenir:', err);
+      // Restaurer en cas d'erreur
+      fetchVideoMemories(id);
     }
   };
 
@@ -1086,7 +1302,12 @@ const VideoDetail = () => {
                 memory={memory}
                 baseUrl={baseUrl}
                 onLike={handleLikeMemory}
+                onAddReply={handleAddReply}
+                onDeleteMemory={handleDeleteMemory}
+                onToggleReplies={handleToggleReplies}
                 currentVideoId={id}
+                replies={memory.replies || []}
+                showReplies={memory.showReplies || false}
               />
             ))
           ) : (

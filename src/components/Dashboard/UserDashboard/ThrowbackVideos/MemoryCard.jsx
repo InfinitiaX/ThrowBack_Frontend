@@ -164,7 +164,7 @@ const MemoryCard = ({
           onClick={() => setShowReplyForm(!showReplyForm)}
         >
           <FontAwesomeIcon icon={faReply} className={styles.memoryIcon} />
-          <span>Reply</span>
+          {/* <span>Reply</span> */}
         </div>
       </div>
       

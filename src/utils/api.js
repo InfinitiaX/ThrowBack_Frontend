@@ -161,94 +161,79 @@ const videoAPI = {
     }
   },
 
-  // Récupérer les souvenirs d'une vidéo - FONCTION CORRIGÉE
- // Récupérer les souvenirs d'une vidéo - FONCTION CORRIGÉE
+// Récupérer les souvenirs d'une vidéo - FONCTION CORRIGÉE
 getVideoMemories: async (videoId) => {
   try {
     console.log('🔍 Récupération des souvenirs pour la vidéo:', videoId);
     
-    // Essayer d'abord la route directe pour les souvenirs de cette vidéo
+    // Normaliser l'ID pour comparaison
+    const normalizedVideoId = videoId.toString().trim();
+    
+    // Essayer d'abord avec la route spécifique à cette vidéo
     try {
       const response = await api.get(`/api/public/videos/${videoId}/memories`);
       
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
         const memories = response.data.data;
-        console.log(`✅ ${memories.length} souvenirs trouvés via API directe`);
-        
-        // Conserver ces souvenirs dans le localStorage pour persistance
-        try {
-          // D'abord récupérer tous les souvenirs existants
-          const existingMemoriesJson = localStorage.getItem('allMemories');
-          let allMemories = [];
-          
-          if (existingMemoriesJson) {
-            allMemories = JSON.parse(existingMemoriesJson);
-          }
-          
-          // Fusionner les nouveaux souvenirs avec les existants
-          const existingIds = new Set(allMemories.map(m => m._id || m.id));
-          const uniqueNewMemories = memories.filter(m => !existingIds.has(m._id || m.id));
-          
-          if (uniqueNewMemories.length > 0) {
-            const updatedMemories = [...uniqueNewMemories, ...allMemories];
-            localStorage.setItem('allMemories', JSON.stringify(updatedMemories));
-            localStorage.setItem('memoriesFetchTime', Date.now().toString());
-            console.log(`✅ ${uniqueNewMemories.length} nouveaux souvenirs ajoutés au cache`);
-          }
-        } catch (storageErr) {
-          console.warn('⚠️ Erreur lors de la mise à jour du cache:', storageErr);
-        }
-        
+        console.log(`✅ ${memories.length} souvenirs récupérés via API directe`);
         return memories;
       }
     } catch (directErr) {
-      console.warn('⚠️ Échec de l\'API directe, tentative avec route alternative');
+      console.warn('⚠️ Échec de la route directe:', directErr.message);
     }
     
-    // Si l'API directe échoue, essayer la route alternative
+    // Essayer avec la route alternative
     try {
       const fallbackResponse = await api.get(`/api/videos/${videoId}/memories`);
       
       if (fallbackResponse.data && fallbackResponse.data.success && Array.isArray(fallbackResponse.data.data)) {
         const memories = fallbackResponse.data.data;
-        console.log(`✅ ${memories.length} souvenirs trouvés via API alternative`);
-        
-        // Mettre à jour le cache
-        try {
-          const existingMemoriesJson = localStorage.getItem('allMemories');
-          let allMemories = [];
-          
-          if (existingMemoriesJson) {
-            allMemories = JSON.parse(existingMemoriesJson);
-          }
-          
-          const existingIds = new Set(allMemories.map(m => m._id || m.id));
-          const uniqueNewMemories = memories.filter(m => !existingIds.has(m._id || m.id));
-          
-          if (uniqueNewMemories.length > 0) {
-            const updatedMemories = [...uniqueNewMemories, ...allMemories];
-            localStorage.setItem('allMemories', JSON.stringify(updatedMemories));
-            localStorage.setItem('memoriesFetchTime', Date.now().toString());
-          }
-        } catch (storageErr) {
-          console.warn('⚠️ Erreur lors de la mise à jour du cache:', storageErr);
-        }
-        
+        console.log(`✅ ${memories.length} souvenirs récupérés via route alternative`);
         return memories;
       }
     } catch (fallbackErr) {
-      console.warn('⚠️ Échec de la route alternative, tentative de récupération depuis le cache');
+      console.warn('⚠️ Échec de la route alternative:', fallbackErr.message);
     }
     
-    // Si toutes les requêtes API échouent, essayer de récupérer depuis localStorage
+    // Si les routes spécifiques échouent, récupérer tous les souvenirs et filtrer
     try {
-      const cachedMemoriesJson = localStorage.getItem('allMemories');
+      // Récupérer tous les souvenirs
+      const allMemoriesResponse = await api.get('/api/public/memories');
       
-      if (cachedMemoriesJson) {
-        const allCachedMemories = JSON.parse(cachedMemoriesJson);
+      if (allMemoriesResponse.data && Array.isArray(allMemoriesResponse.data.data)) {
+        const allMemories = allMemoriesResponse.data.data;
+        console.log(`✅ ${allMemories.length} souvenirs récupérés au total`);
         
-        // Filtrer les souvenirs pour cette vidéo
-        const filteredMemories = allCachedMemories.filter(memory => {
+        // Filtrer pour cette vidéo spécifique
+        const filteredMemories = allMemories.filter(memory => {
+          const memoryVideoId = 
+              (memory.video && typeof memory.video === 'object' ? memory.video._id : null) || 
+              (typeof memory.video === 'string' ? memory.video : null) ||
+              memory.videoId || 
+              memory.video_id;
+          
+          // Normaliser aussi cet ID pour comparaison
+          const normalizedMemoryVideoId = memoryVideoId ? memoryVideoId.toString().trim() : '';
+          
+          return normalizedMemoryVideoId === normalizedVideoId;
+        });
+        
+        console.log(`✅ ${filteredMemories.length} souvenirs correspondent à cette vidéo`);
+        return filteredMemories;
+      }
+    } catch (allMemoriesErr) {
+      console.warn('⚠️ Échec de la récupération de tous les souvenirs:', allMemoriesErr.message);
+    }
+    
+    // Dernier recours : une route générique plus simple
+    try {
+      const lastResortResponse = await api.get('/api/memories');
+      
+      if (lastResortResponse.data && Array.isArray(lastResortResponse.data.data)) {
+        const allMemories = lastResortResponse.data.data;
+        
+        // Filtrer pour cette vidéo
+        const filteredMemories = allMemories.filter(memory => {
           const memoryVideoId = 
               (memory.video && typeof memory.video === 'object' ? memory.video._id : null) || 
               (typeof memory.video === 'string' ? memory.video : null) ||
@@ -258,18 +243,50 @@ getVideoMemories: async (videoId) => {
           return memoryVideoId && memoryVideoId.toString() === videoId.toString();
         });
         
-        console.log(`✅ ${filteredMemories.length} souvenirs trouvés dans le cache local`);
+        console.log(`✅ ${filteredMemories.length} souvenirs trouvés via route de dernier recours`);
         return filteredMemories;
       }
-    } catch (cacheErr) {
-      console.error('❌ Erreur lors de l\'accès au cache:', cacheErr);
+    } catch (lastResortErr) {
+      console.error('❌ Toutes les tentatives ont échoué:', lastResortErr.message);
     }
     
-    // Si tout échoue, retourner un tableau vide
+    console.warn('⚠️ Aucun souvenir trouvé malgré toutes les tentatives');
     return [];
   } catch (error) {
     console.error('❌ Erreur lors de la récupération des souvenirs:', error);
     return [];
+  }
+},
+
+// Liker un souvenir
+likeMemory: async (memoryId) => {
+  try {
+    console.log('❤️ Tentative de like du souvenir:', memoryId);
+    
+    const response = await api.post(`/api/public/memories/${memoryId}/like`);
+    
+    if (response.data.success) {
+      console.log('✅ Like réussi');
+      return response.data;
+    } else {
+      console.warn('⚠️ Échec du like (erreur côté serveur)');
+      throw new Error(response.data.message || 'Erreur côté serveur');
+    }
+  } catch (error) {
+    console.error('❌ Erreur lors du like du souvenir:', error);
+    
+    // Fallback: essayer l'ancienne route
+    try {
+      const fallbackResponse = await api.post(`/api/memories/${memoryId}/like`);
+      if (fallbackResponse.data.success) {
+        console.log('✅ Like réussi (via route fallback)');
+        return fallbackResponse.data;
+      }
+    } catch (fallbackError) {
+      console.error('❌ Fallback également échoué:', fallbackError);
+    }
+    
+    throw error;
   }
 },
 

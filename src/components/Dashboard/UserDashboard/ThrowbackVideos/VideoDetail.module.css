@@ -788,32 +788,6 @@
   color: #333;
 }
 
-.memoriesControls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.refreshButton {
-  background: transparent;
-  border: none;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #666;
-  transition: all 0.2s ease;
-}
-
-.refreshButton:hover {
-  background: #eee;
-  color: #b31217;
-  transform: rotate(30deg);
-}
-
 .filterToggleButton {
   background: transparent;
   border: 1px solid #b31217;
@@ -845,6 +819,11 @@
   text-align: center;
 }
 
+.spinnerIcon {
+  font-size: 24px;
+  color: #b31217;
+}
+
 /* Message quand il n'y a pas de souvenirs */
 .emptyMemories {
   background: #fff;
@@ -873,6 +852,97 @@
   transform: translateY(-2px);
 }
 
+/* Styles pour l'avertissement de souvenir incorrect */
+.wrongVideoWarning {
+  background-color: #fff8e6;
+  color: #e74c3c;
+  font-size: 0.85rem;
+  padding: 6px 10px;
+  margin-top: 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-left: 3px solid #e74c3c;
+}
+
+.warningIcon {
+  color: #e74c3c;
+}
+
+/* Carte de souvenir */
+.memoryCard {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.memoryHeader {
+  margin-bottom: 12px;
+}
+
+.memoryUsername {
+  font-weight: bold;
+  color: #333;
+}
+
+.memoryUserImage {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 12px;
+  float: left;
+}
+
+.memoryBody {
+  margin: 12px 0;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: #444;
+  clear: both;
+}
+
+.memoryText {
+  margin: 12px 0;
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.4;
+}
+
+.memoryFooter {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.memoryLikes, .memoryComments {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.memoryIcon {
+  color: #b31217;
+}
+
+/* Media queries pour responsivité */
+@media (max-width: 768px) {
+  .memoriesHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .filterToggleButton {
+    align-self: flex-end;
+  }
+}
 
 /* Ajout à VideoDetail.module.css */
 

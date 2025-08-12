@@ -12,7 +12,8 @@ import {
   faExclamationTriangle,
   faCopy,
   faList,
-  faFilter
+  faFilter,
+  faSync
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './VideoDetail.module.css';
 import PlaylistModal from './PlaylistModal';
@@ -46,17 +47,25 @@ const VideoDetail = () => {
   const [showShareOptions, setShowShareOptions] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   
-  // Références pour le système de réessai
-  const retryCount = useRef(0);
+  // Références pour suivre l'état des requêtes
+  const fetchingRef = useRef(false);
+  const retryCountRef = useRef(0);
   const maxRetries = 3;
 
   // Construire l'URL de base en fonction de l'environnement
   const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
-  // Charger toutes les vidéos au montage du composant
+  // Charger toutes les vidéos et tous les souvenirs au montage du composant
   useEffect(() => {
     fetchAllVideos();
     fetchAllMemories();
+    
+    // Ajouter un listener pour événement de stockage localStorage qui sera utilisé comme mécanisme de partage d'état
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   // Charger la vidéo spécifique quand l'ID change
@@ -65,15 +74,19 @@ const VideoDetail = () => {
       fetchVideoById(id);
       fetchVideoMemories(id);
       window.scrollTo(0, 0);
+      
+      // Sauvegarder l'ID de la vidéo actuelle dans localStorage
+      localStorage.setItem('currentVideoId', id);
     }
   }, [id]);
 
-  // Filtrer les souvenirs quand la vidéo ou les souvenirs changent
-  useEffect(() => {
-    if (id && allMemories.length > 0) {
-      filterMemoriesForCurrentVideo();
+  // Gérer les changements de localStorage (pour la communication entre onglets)
+  const handleStorageChange = (event) => {
+    if (event.key === 'memoriesUpdated' && event.newValue) {
+      // Si les souvenirs ont été mis à jour dans un autre onglet
+      fetchVideoMemories(id);
     }
-  }, [id, allMemories]);
+  };
 
   // Récupérer toutes les vidéos disponibles
   const fetchAllVideos = async () => {
@@ -109,7 +122,6 @@ const VideoDetail = () => {
       
       let memoriesData = [];
       
-      // Essayer plusieurs routes pour récupérer tous les souvenirs
       try {
         // Route publique
         const response = await api.get('/api/public/memories');
@@ -132,41 +144,72 @@ const VideoDetail = () => {
         }
       }
       
-      // Si on a récupéré des souvenirs, les stocker
+      // Si on a récupéré des souvenirs, les mettre en cache
       if (memoriesData.length > 0) {
         setAllMemories(memoriesData);
+        
+        // Stocker les souvenirs dans localStorage pour persistance entre les rafraîchissements
+        try {
+          localStorage.setItem('allMemories', JSON.stringify(memoriesData));
+          localStorage.setItem('memoriesFetchTime', Date.now().toString());
+        } catch (storageErr) {
+          console.warn('⚠️ Impossible de stocker les souvenirs dans localStorage:', storageErr);
+        }
+      } else {
+        // Si aucun souvenir n'a été récupéré, essayer de charger depuis localStorage
+        try {
+          const cachedMemories = localStorage.getItem('allMemories');
+          if (cachedMemories) {
+            const parsedMemories = JSON.parse(cachedMemories);
+            setAllMemories(parsedMemories);
+            console.log(`✅ ${parsedMemories.length} souvenirs récupérés depuis le cache`);
+          }
+        } catch (parseErr) {
+          console.warn('⚠️ Erreur lors de la récupération du cache:', parseErr);
+        }
       }
     } catch (err) {
       console.error('❌ Erreur lors du chargement des souvenirs:', err);
+      
+      // Essayer de charger depuis localStorage en cas d'erreur
+      try {
+        const cachedMemories = localStorage.getItem('allMemories');
+        if (cachedMemories) {
+          const parsedMemories = JSON.parse(cachedMemories);
+          setAllMemories(parsedMemories);
+          console.log(`✅ ${parsedMemories.length} souvenirs récupérés depuis le cache après erreur`);
+        }
+      } catch (parseErr) {
+        console.warn('⚠️ Erreur lors de la récupération du cache:', parseErr);
+      }
     } finally {
       setMemoriesLoading(false);
     }
   };
 
   // Filtrer les souvenirs pour la vidéo actuelle
-  const filterMemoriesForCurrentVideo = () => {
-    if (!id || !allMemories.length) return;
+  const filterMemoriesForCurrentVideo = (memoriesArray, videoId) => {
+    if (!videoId || !memoriesArray || !Array.isArray(memoriesArray) || memoriesArray.length === 0) return [];
     
-    console.log('🔍 Filtrage des souvenirs pour la vidéo:', id);
+    console.log('🔍 Filtrage des souvenirs pour la vidéo:', videoId);
     
     // Normaliser l'ID de la vidéo actuelle pour les comparaisons
-    const currentVideoId = id.toString().trim();
+    const currentVideoId = videoId.toString().trim();
     
     // Filtrer les souvenirs associés à cette vidéo
-    const matchingMemories = allMemories.filter(memory => {
+    const matchingMemories = memoriesArray.filter(memory => {
       // Extraire l'ID de la vidéo du souvenir (avec différents formats possibles)
       const memoryVideoId = 
         (memory.video && typeof memory.video === 'object' ? memory.video._id : null) || 
         (memory.video && typeof memory.video === 'string' ? memory.video : null) ||
-        (memory.videoId ? memory.videoId : null) ||
-        (memory.video_id ? memory.video_id : null);
+        memory.videoId || 
+        memory.video_id;
       
-      // Normaliser l'ID du souvenir pour comparaison
+      // Normaliser l'ID du souvenir
       const normalizedMemoryVideoId = memoryVideoId ? memoryVideoId.toString().trim() : '';
       
-      // Vérification stricte de correspondance
+      // Vérification de correspondance avec logging pour débuggage
       const isMatch = normalizedMemoryVideoId === currentVideoId;
-      
       if (isMatch) {
         console.log(`✅ Souvenir correspondant trouvé: ID=${memory._id || memory.id}, vidéo=${memoryVideoId}`);
       }
@@ -175,14 +218,7 @@ const VideoDetail = () => {
     });
     
     console.log(`🎯 ${matchingMemories.length} souvenirs correspondent à la vidéo actuelle`);
-    
-    // Si on a trouvé des souvenirs, les formater pour l'affichage
-    if (matchingMemories.length > 0) {
-      const formattedMemories = formatMemories(matchingMemories);
-      setMemories(formattedMemories);
-    } else {
-      setMemories([]);
-    }
+    return matchingMemories;
   };
 
   // Récupérer une vidéo spécifique par son ID
@@ -216,66 +252,143 @@ const VideoDetail = () => {
     }
   };
 
-  // Récupérer les souvenirs spécifiques à cette vidéo avec système de réessai
+  // Récupérer les souvenirs spécifiques à cette vidéo avec gestion de cache et retries
   const fetchVideoMemories = async (videoId) => {
+    // Éviter les requêtes multiples simultanées
+    if (fetchingRef.current) {
+      console.log('⏳ Une requête est déjà en cours, annulation');
+      return;
+    }
+    
+    fetchingRef.current = true;
+    
     try {
       setMemoriesLoading(true);
       console.log('🔍 Récupération des souvenirs pour la vidéo:', videoId);
       
-      const memoriesData = await videoAPI.getVideoMemories(videoId);
+      // D'abord essayer de récupérer depuis le cache local
+      const memoriesFromState = allMemories.length > 0 ? filterMemoriesForCurrentVideo(allMemories, videoId) : [];
       
-      if (Array.isArray(memoriesData) && memoriesData.length > 0) {
-        // Double vérification pour s'assurer que les souvenirs correspondent à la vidéo actuelle
-        const strictlyFilteredMemories = memoriesData.filter(memory => {
-          const memoryVideoId = 
-              (memory.video && typeof memory.video === 'object' ? memory.video._id : null) || 
-              (typeof memory.video === 'string' ? memory.video : null) ||
-              memory.videoId || 
-              memory.video_id;
-          
-          return memoryVideoId && memoryVideoId.toString() === videoId.toString();
-        });
-        
-        console.log(`Double vérification: ${strictlyFilteredMemories.length}/${memoriesData.length} souvenirs correspondent réellement à cette vidéo`);
-        
-        const formattedMemories = formatMemories(strictlyFilteredMemories);
+      if (memoriesFromState.length > 0) {
+        console.log(`✅ ${memoriesFromState.length} souvenirs trouvés dans l'état local`);
+        const formattedMemories = formatMemories(memoriesFromState, videoId);
         setMemories(formattedMemories);
-        retryCount.current = 0; // Réinitialiser le compteur en cas de succès
-      } else if (retryCount.current < maxRetries) {
-        // Si aucun souvenir n'est trouvé, réessayer après un délai
-        retryCount.current++;
-        console.log(`⚠️ Aucun souvenir trouvé, tentative ${retryCount.current}/${maxRetries}`);
-        
-        setTimeout(() => {
-          fetchVideoMemories(videoId);
-        }, 1000); // Attendre 1 seconde avant de réessayer
-      } else {
-        console.warn('❌ Aucun souvenir trouvé après plusieurs tentatives');
-        setMemories([]);
-        retryCount.current = 0; // Réinitialiser le compteur
+        fetchingRef.current = false;
+        setMemoriesLoading(false);
+        return;
       }
-    } catch (err) {
-      console.error('❌ Erreur lors du chargement des souvenirs:', err);
       
-      if (retryCount.current < maxRetries) {
-        // Réessayer en cas d'erreur
-        retryCount.current++;
-        console.log(`⚠️ Erreur, tentative ${retryCount.current}/${maxRetries}`);
+      // Essayer de récupérer depuis le localStorage
+      try {
+        const cachedMemories = localStorage.getItem('allMemories');
+        if (cachedMemories) {
+          const parsedMemories = JSON.parse(cachedMemories);
+          const filteredMemories = filterMemoriesForCurrentVideo(parsedMemories, videoId);
+          
+          if (filteredMemories.length > 0) {
+            console.log(`✅ ${filteredMemories.length} souvenirs trouvés dans le cache localStorage`);
+            const formattedMemories = formatMemories(filteredMemories, videoId);
+            setMemories(formattedMemories);
+            
+            // Mettre à jour l'état global aussi
+            setAllMemories(parsedMemories);
+            
+            fetchingRef.current = false;
+            setMemoriesLoading(false);
+            return;
+          }
+        }
+      } catch (cacheErr) {
+        console.warn('⚠️ Erreur lors de la récupération du cache:', cacheErr);
+      }
+      
+      // Si pas de cache ou cache vide, requête à l'API
+      console.log('🔄 Tentative de récupération depuis l\'API...');
+      
+      // Essayer d'abord avec l'API spécifique à cette vidéo
+      try {
+        const memoriesData = await videoAPI.getVideoMemories(videoId);
         
-        setTimeout(() => {
-          fetchVideoMemories(videoId);
-        }, 1000);
-      } else {
-        setMemories([]);
-        retryCount.current = 0;
+        if (Array.isArray(memoriesData) && memoriesData.length > 0) {
+          console.log(`✅ ${memoriesData.length} souvenirs récupérés via API`);
+          
+          // Filtrer strictement pour cette vidéo
+          const strictlyFilteredMemories = memoriesData.filter(memory => {
+            const memoryVideoId = 
+                (memory.video && typeof memory.video === 'object' ? memory.video._id : null) || 
+                (typeof memory.video === 'string' ? memory.video : null) ||
+                memory.videoId || 
+                memory.video_id;
+            
+            return memoryVideoId && memoryVideoId.toString() === videoId.toString();
+          });
+          
+          const formattedMemories = formatMemories(strictlyFilteredMemories, videoId);
+          setMemories(formattedMemories);
+          
+          // Réinitialiser le compteur de tentatives
+          retryCountRef.current = 0;
+        } else if (retryCountRef.current < maxRetries) {
+          // Augmenter le compteur de tentatives et réessayer après un délai
+          retryCountRef.current++;
+          console.log(`⚠️ Pas de souvenirs trouvés, tentative ${retryCountRef.current}/${maxRetries}`);
+          
+          setTimeout(() => {
+            fetchingRef.current = false;
+            fetchVideoMemories(videoId);
+          }, 1000 * retryCountRef.current); // Attendre de plus en plus longtemps
+          
+          return;
+        } else {
+          console.warn('❌ Aucun souvenir trouvé après plusieurs tentatives');
+          setMemories([]);
+          retryCountRef.current = 0;
+        }
+      } catch (apiErr) {
+        console.error('❌ Erreur lors de la récupération des souvenirs via API:', apiErr);
+        
+        // Fallback: récupérer tous les souvenirs et filtrer
+        if (retryCountRef.current < maxRetries) {
+          retryCountRef.current++;
+          console.log(`⚠️ Tentative de fallback ${retryCountRef.current}/${maxRetries}`);
+          
+          try {
+            // Récupérer tous les souvenirs
+            await fetchAllMemories();
+            
+            // Filtrer pour cette vidéo
+            const newFilteredMemories = filterMemoriesForCurrentVideo(allMemories, videoId);
+            if (newFilteredMemories.length > 0) {
+              const formattedMemories = formatMemories(newFilteredMemories, videoId);
+              setMemories(formattedMemories);
+            } else {
+              setMemories([]);
+            }
+          } catch (fallbackErr) {
+            console.error('❌ Erreur lors du fallback:', fallbackErr);
+            setMemories([]);
+          }
+        } else {
+          console.warn('❌ Échec après plusieurs tentatives');
+          setMemories([]);
+        }
       }
     } finally {
+      fetchingRef.current = false;
       setMemoriesLoading(false);
+      retryCountRef.current = 0;
+    }
+  };
+
+  // Rafraîchir les souvenirs manuellement
+  const refreshMemories = () => {
+    if (id) {
+      fetchVideoMemories(id);
     }
   };
 
   // Formater les données des souvenirs pour l'affichage
-  const formatMemories = (memoriesData) => {
+  const formatMemories = (memoriesData, currentVideoId = id) => {
     if (!Array.isArray(memoriesData) || memoriesData.length === 0) {
       return [];
     }
@@ -311,16 +424,11 @@ const VideoDetail = () => {
             (typeof memory.video === 'string' ? memory.video : null) || 
             memory.videoId || 
             memory.video_id ||
-            id, // id vient du contexte (id de la vidéo actuelle)
+            currentVideoId, // id vient du contexte (id de la vidéo actuelle)
         title: memory.video?.titre || memory.videoTitle || video?.titre || 'Vidéo sans titre',
         artist: memory.video?.artiste || memory.videoArtist || video?.artiste || 'Artiste inconnu',
         year: memory.video?.annee || memory.videoYear || video?.annee || '----'
       };
-      
-      // Forcer l'ID de la vidéo actuelle si on a un souci d'association
-      if (!videoDetails.id || videoDetails.id === 'undefined') {
-        videoDetails.id = id;
-      }
       
       return {
         id: memory._id || memory.id || `memory-${Math.random()}`,
@@ -336,7 +444,10 @@ const VideoDetail = () => {
         comments: memory.nb_commentaires || memory.comments || 0,
         // Conserver les références originales pour les interactions
         auteur: memory.auteur,
-        video: memory.video || { _id: id }
+        video: memory.video,
+        // Pour la vérification de correspondance
+        originalVideoId: videoDetails.id,
+        currentVideoId: currentVideoId
       };
     });
   };
@@ -376,6 +487,13 @@ const VideoDetail = () => {
       });
       
       setAllMemories(updatedAllMemories);
+      
+      // Mettre à jour le cache localStorage
+      try {
+        localStorage.setItem('allMemories', JSON.stringify(updatedAllMemories));
+      } catch (storageErr) {
+        console.warn('⚠️ Erreur lors de la mise à jour du cache:', storageErr);
+      }
       
       // Appel API
       try {
@@ -508,71 +626,146 @@ const VideoDetail = () => {
         video: id
       };
       
-      // Essayer plusieurs routes pour l'ajout
-      let success = false;
-      let newMemoryData = null;
+      const response = await api.post(`/api/public/videos/${id}/memories`, memoryData);
       
-      // D'abord essayer l'API publique
-      try {
-        const response = await api.post(`/api/public/videos/${id}/memories`, memoryData);
-        
-        if (response.data && response.data.success) {
-          success = true;
-          newMemoryData = response.data.data;
-          console.log('✅ Souvenir ajouté avec succès via API publique');
-        }
-      } catch (err) {
-        console.warn('⚠️ Échec de l\'API publique pour l\'ajout, tentative alternative');
-      }
-      
-      // Si l'API publique échoue, essayer l'API alternative
-      if (!success) {
-        try {
-          const fallbackResponse = await api.post(`/api/videos/${id}/memories`, memoryData);
-          
-          if (fallbackResponse.data && fallbackResponse.data.success) {
-            success = true;
-            newMemoryData = fallbackResponse.data.data;
-            console.log('✅ Souvenir ajouté avec succès via API alternative');
-          }
-        } catch (fallbackErr) {
-          console.error('❌ Toutes les tentatives d\'ajout ont échoué');
-        }
-      }
-      
-      if (success && newMemoryData) {
-        // S'assurer que la référence à la vidéo est correcte
-        if (!newMemoryData.video) {
-          newMemoryData.video = {
-            _id: id,
-            titre: video?.titre,
-            artiste: video?.artiste,
-            annee: video?.annee
+      if (response.data && response.data.success) {
+        // Ajouter le nouveau souvenir à la liste avec référence explicite à la vidéo actuelle
+        if (response.data.data) {
+          const newMemoryData = {
+            ...response.data.data,
+            video: {
+              _id: id,
+              titre: video?.titre,
+              artiste: video?.artiste,
+              annee: video?.annee
+            },
+            videoId: id // Ajouter explicitement l'ID de la vidéo
           };
+          
+          // Ajouter à la liste des souvenirs filtrés
+          const newMemory = formatMemories([newMemoryData])[0];
+          setMemories(prevMemories => [newMemory, ...prevMemories]);
+          
+          // Ajouter aussi à la liste complète
+          const updatedAllMemories = [newMemoryData, ...allMemories];
+          setAllMemories(updatedAllMemories);
+          
+          // Mettre à jour le cache localStorage
+          try {
+            localStorage.setItem('allMemories', JSON.stringify(updatedAllMemories));
+            // Notifier les autres onglets que les souvenirs ont été mis à jour
+            localStorage.setItem('memoriesUpdated', Date.now().toString());
+          } catch (storageErr) {
+            console.warn('⚠️ Erreur lors de la mise à jour du cache:', storageErr);
+          }
         }
-        
-        // Ajouter à la liste des souvenirs
-        const newMemory = formatMemories([newMemoryData])[0];
-        setMemories(prevMemories => [newMemory, ...prevMemories]);
         
         setMemoryText('');
+        
+        console.log('✅ Souvenir ajouté avec succès');
+        
+        // Notification de succès discrète
         setShareMessage('Souvenir ajouté avec succès!');
         setTimeout(() => setShareMessage(''), 3000);
-        
-        // Recharger les souvenirs après un court délai pour s'assurer que le nouveau souvenir est bien récupéré
-        setTimeout(() => {
-          fetchVideoMemories(id);
-        }, 1000);
       } else {
-        alert('Erreur lors de l\'ajout du souvenir. Veuillez réessayer.');
+        // Fallback: essayer la route alternative
+        const fallbackResponse = await api.post(`/api/videos/${id}/memories`, memoryData);
+        
+        if (fallbackResponse.data && fallbackResponse.data.success) {
+          // Même traitement que ci-dessus
+          if (fallbackResponse.data.data) {
+            const newMemoryData = {
+              ...fallbackResponse.data.data,
+              video: {
+                _id: id,
+                titre: video?.titre,
+                artiste: video?.artiste,
+                annee: video?.annee
+              },
+              videoId: id
+            };
+            
+            const newMemory = formatMemories([newMemoryData])[0];
+            setMemories(prevMemories => [newMemory, ...prevMemories]);
+            
+            const updatedAllMemories = [newMemoryData, ...allMemories];
+            setAllMemories(updatedAllMemories);
+            
+            try {
+              localStorage.setItem('allMemories', JSON.stringify(updatedAllMemories));
+              localStorage.setItem('memoriesUpdated', Date.now().toString());
+            } catch (storageErr) {
+              console.warn('⚠️ Erreur lors de la mise à jour du cache:', storageErr);
+            }
+          }
+          
+          setMemoryText('');
+          setShareMessage('Souvenir ajouté avec succès!');
+          setTimeout(() => setShareMessage(''), 3000);
+        } else {
+          alert(fallbackResponse.data?.message || 'Erreur lors de l\'ajout du souvenir');
+        }
       }
     } catch (err) {
       console.error('❌ Erreur lors de l\'ajout du souvenir:', err);
       
-      if (err.response?.status === 401) {
-        alert('Veuillez vous connecter pour partager un souvenir');
-      } else {
-        alert('Erreur lors de l\'ajout du souvenir. Veuillez réessayer.');
+      // Essayer le fallback
+      try {
+        const memoryData = {
+          contenu: memoryText.trim(),
+          video_id: id,
+          videoId: id,
+          video: id
+        };
+        
+        const fallbackResponse = await api.post(`/api/videos/${id}/memories`, memoryData);
+        
+        if (fallbackResponse.data && fallbackResponse.data.success) {
+          console.log('✅ Souvenir ajouté avec succès (via fallback)');
+          
+          // Mêmes actions que ci-dessus
+          if (fallbackResponse.data.data) {
+            const newMemoryData = {
+              ...fallbackResponse.data.data,
+              video: {
+                _id: id,
+                titre: video?.titre,
+                artiste: video?.artiste,
+                annee: video?.annee
+              },
+              videoId: id
+            };
+            
+            const newMemory = formatMemories([newMemoryData])[0];
+            setMemories(prevMemories => [newMemory, ...prevMemories]);
+            setAllMemories(prevAllMemories => [newMemoryData, ...prevAllMemories]);
+            
+            try {
+              localStorage.setItem('allMemories', JSON.stringify([newMemoryData, ...allMemories]));
+              localStorage.setItem('memoriesUpdated', Date.now().toString());
+            } catch (storageErr) {
+              console.warn('⚠️ Erreur lors de la mise à jour du cache:', storageErr);
+            }
+          }
+          
+          setMemoryText('');
+          setShareMessage('Souvenir ajouté avec succès!');
+          setTimeout(() => setShareMessage(''), 3000);
+        } else {
+          if (err.response?.status === 401) {
+            alert('Veuillez vous connecter pour partager un souvenir');
+          } else {
+            alert('Erreur lors de l\'ajout du souvenir. Veuillez réessayer.');
+          }
+        }
+      } catch (fallbackErr) {
+        console.error('❌ Fallback également échoué:', fallbackErr);
+        
+        if (err.response?.status === 401) {
+          alert('Veuillez vous connecter pour partager un souvenir');
+        } else {
+          alert('Erreur lors de l\'ajout du souvenir. Veuillez réessayer.');
+        }
       }
     } finally {
       setIsAddingMemory(false);
@@ -857,17 +1050,26 @@ const VideoDetail = () => {
 
         {/* Memories Sidebar */}
         <aside className={styles.rightCards}>
-          {/* En-tête avec filtre */}
+          {/* En-tête avec filtre et bouton de rafraîchissement */}
           <div className={styles.memoriesHeader}>
             <h3>Souvenirs {!showAllMemories && "de cette vidéo"}</h3>
-            <button 
-              className={styles.filterToggleButton} 
-              onClick={toggleAllMemories}
-              title={showAllMemories ? "Voir uniquement les souvenirs de cette vidéo" : "Voir tous les souvenirs"}
-            >
-              <FontAwesomeIcon icon={faFilter} />
-              <span>{showAllMemories ? "Filtrer" : "Tous"}</span>
-            </button>
+            <div className={styles.memoriesControls}>
+              <button 
+                className={styles.refreshButton}
+                onClick={refreshMemories}
+                title="Rafraîchir les souvenirs"
+              >
+                <FontAwesomeIcon icon={faSync} spin={memoriesLoading} />
+              </button>
+              <button 
+                className={styles.filterToggleButton} 
+                onClick={toggleAllMemories}
+                title={showAllMemories ? "Voir uniquement les souvenirs de cette vidéo" : "Voir tous les souvenirs"}
+              >
+                <FontAwesomeIcon icon={faFilter} />
+                <span>{showAllMemories ? "Filtrer" : "Tous"}</span>
+              </button>
+            </div>
           </div>
           
           {/* Loader pour les souvenirs */}
@@ -901,6 +1103,14 @@ const VideoDetail = () => {
                   Voir tous les souvenirs
                 </button>
               )}
+              
+              <button 
+                className={styles.refreshButton}
+                onClick={refreshMemories}
+                style={{ marginTop: '12px' }}
+              >
+                <FontAwesomeIcon icon={faSync} /> Rafraîchir
+              </button>
             </div>
           )}
         </aside>

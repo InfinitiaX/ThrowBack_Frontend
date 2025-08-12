@@ -162,119 +162,116 @@ const videoAPI = {
   },
 
   // Récupérer les souvenirs d'une vidéo - FONCTION CORRIGÉE
-  getVideoMemories: async (videoId) => {
+ // Récupérer les souvenirs d'une vidéo - FONCTION CORRIGÉE
+getVideoMemories: async (videoId) => {
+  try {
+    console.log('🔍 Récupération des souvenirs pour la vidéo:', videoId);
+    
+    // Essayer d'abord la route directe pour les souvenirs de cette vidéo
     try {
-      console.log('🔍 Récupération des souvenirs pour la vidéo:', videoId);
+      const response = await api.get(`/api/public/videos/${videoId}/memories`);
       
-      // Normaliser l'ID pour comparaison
-      const normalizedVideoId = videoId.toString().trim();
-      
-      // Récupérer TOUS les souvenirs
-      let allMemories = [];
-      
-      try {
-        // Route publique pour tous les souvenirs
-        const allMemoriesResponse = await api.get('/api/public/memories');
-        if (allMemoriesResponse.data && Array.isArray(allMemoriesResponse.data.data)) {
-          allMemories = allMemoriesResponse.data.data;
-          console.log(`✅ ${allMemories.length} souvenirs récupérés globalement`);
-        }
-      } catch (err) {
-        console.warn('⚠️ Échec de la route publique pour tous les souvenirs, tentative avec route classique');
+      if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        const memories = response.data.data;
+        console.log(`✅ ${memories.length} souvenirs trouvés via API directe`);
         
+        // Conserver ces souvenirs dans le localStorage pour persistance
         try {
-          // Route classique
-          const fallbackResponse = await api.get('/api/memories');
-          if (fallbackResponse.data && Array.isArray(fallbackResponse.data.data)) {
-            allMemories = fallbackResponse.data.data;
-            console.log(`✅ ${allMemories.length} souvenirs récupérés globalement via route classique`);
-          }
-        } catch (fallbackErr) {
-          console.error('❌ Aucune route ne fonctionne pour tous les souvenirs');
-        }
-      }
-      
-      // FILTRER STRICTEMENT par l'ID de la vidéo actuelle
-      const filteredMemories = allMemories.filter(memory => {
-        // Extraire l'ID de la vidéo du souvenir (toutes les possibilités)
-        const memoryVideoId = 
-            (memory.video && typeof memory.video === 'object' ? memory.video._id : null) || 
-            (typeof memory.video === 'string' ? memory.video : null) ||
-            memory.videoId || 
-            memory.video_id;
-        
-        // Normaliser aussi cet ID pour comparaison
-        const normalizedMemoryVideoId = memoryVideoId ? memoryVideoId.toString().trim() : '';
-        
-        // VÉRIFICATION STRICTE de correspondance
-        const isMatch = normalizedMemoryVideoId === normalizedVideoId;
-        
-        if (isMatch) {
-          console.log(`✅ Souvenir correspondant trouvé: ID=${memory._id || memory.id}, vidéo=${normalizedMemoryVideoId}`);
-        }
-        
-        return isMatch;
-      });
-      
-      console.log(`🎯 ${filteredMemories.length} souvenirs correspondent à cette vidéo`);
-      
-      // Si on n'a trouvé aucun souvenir via le filtrage, essayer les routes spécifiques à la vidéo
-      if (filteredMemories.length === 0) {
-        try {
-          console.log('⚠️ Aucun souvenir trouvé via filtrage, tentative avec routes spécifiques...');
+          // D'abord récupérer tous les souvenirs existants
+          const existingMemoriesJson = localStorage.getItem('allMemories');
+          let allMemories = [];
           
-          const specificResponse = await api.get(`/api/public/videos/${videoId}/memories`);
-          if (specificResponse.data && specificResponse.data.success && Array.isArray(specificResponse.data.data)) {
-            console.log(`✅ ${specificResponse.data.data.length} souvenirs récupérés via route spécifique`);
-            
-            // Filtrer à nouveau pour s'assurer que les souvenirs correspondent bien à la vidéo
-            const validMemories = specificResponse.data.data.filter(memory => {
-              const memoryVideoId = 
-                  (memory.video && typeof memory.video === 'object' ? memory.video._id : null) || 
-                  (typeof memory.video === 'string' ? memory.video : null) ||
-                  memory.videoId || 
-                  memory.video_id;
-              
-              return memoryVideoId && memoryVideoId.toString() === videoId.toString();
-            });
-            
-            console.log(`✅ ${validMemories.length}/${specificResponse.data.data.length} souvenirs validés après filtrage`);
-            return validMemories;
+          if (existingMemoriesJson) {
+            allMemories = JSON.parse(existingMemoriesJson);
           }
-        } catch (specificErr) {
-          console.warn('⚠️ Échec de la route spécifique publique, tentative avec route classique');
           
-          try {
-            const fallbackSpecificResponse = await api.get(`/api/videos/${videoId}/memories`);
-            if (fallbackSpecificResponse.data && fallbackSpecificResponse.data.success && Array.isArray(fallbackSpecificResponse.data.data)) {
-              console.log(`✅ ${fallbackSpecificResponse.data.data.length} souvenirs récupérés via route spécifique classique`);
-              
-              // Filtrer à nouveau
-              const validMemories = fallbackSpecificResponse.data.data.filter(memory => {
-                const memoryVideoId = 
-                    (memory.video && typeof memory.video === 'object' ? memory.video._id : null) || 
-                    (typeof memory.video === 'string' ? memory.video : null) ||
-                    memory.videoId || 
-                    memory.video_id;
-                
-                return memoryVideoId && memoryVideoId.toString() === videoId.toString();
-              });
-              
-              console.log(`✅ ${validMemories.length}/${fallbackSpecificResponse.data.data.length} souvenirs validés après filtrage`);
-              return validMemories;
-            }
-          } catch (fallbackSpecificErr) {
-            console.error('❌ Aucune route spécifique ne fonctionne');
+          // Fusionner les nouveaux souvenirs avec les existants
+          const existingIds = new Set(allMemories.map(m => m._id || m.id));
+          const uniqueNewMemories = memories.filter(m => !existingIds.has(m._id || m.id));
+          
+          if (uniqueNewMemories.length > 0) {
+            const updatedMemories = [...uniqueNewMemories, ...allMemories];
+            localStorage.setItem('allMemories', JSON.stringify(updatedMemories));
+            localStorage.setItem('memoriesFetchTime', Date.now().toString());
+            console.log(`✅ ${uniqueNewMemories.length} nouveaux souvenirs ajoutés au cache`);
           }
+        } catch (storageErr) {
+          console.warn('⚠️ Erreur lors de la mise à jour du cache:', storageErr);
         }
+        
+        return memories;
       }
-      
-      return filteredMemories;
-    } catch (error) {
-      console.error('❌ Erreur lors de la récupération des souvenirs:', error);
-      return [];
+    } catch (directErr) {
+      console.warn('⚠️ Échec de l\'API directe, tentative avec route alternative');
     }
-  },
+    
+    // Si l'API directe échoue, essayer la route alternative
+    try {
+      const fallbackResponse = await api.get(`/api/videos/${videoId}/memories`);
+      
+      if (fallbackResponse.data && fallbackResponse.data.success && Array.isArray(fallbackResponse.data.data)) {
+        const memories = fallbackResponse.data.data;
+        console.log(`✅ ${memories.length} souvenirs trouvés via API alternative`);
+        
+        // Mettre à jour le cache
+        try {
+          const existingMemoriesJson = localStorage.getItem('allMemories');
+          let allMemories = [];
+          
+          if (existingMemoriesJson) {
+            allMemories = JSON.parse(existingMemoriesJson);
+          }
+          
+          const existingIds = new Set(allMemories.map(m => m._id || m.id));
+          const uniqueNewMemories = memories.filter(m => !existingIds.has(m._id || m.id));
+          
+          if (uniqueNewMemories.length > 0) {
+            const updatedMemories = [...uniqueNewMemories, ...allMemories];
+            localStorage.setItem('allMemories', JSON.stringify(updatedMemories));
+            localStorage.setItem('memoriesFetchTime', Date.now().toString());
+          }
+        } catch (storageErr) {
+          console.warn('⚠️ Erreur lors de la mise à jour du cache:', storageErr);
+        }
+        
+        return memories;
+      }
+    } catch (fallbackErr) {
+      console.warn('⚠️ Échec de la route alternative, tentative de récupération depuis le cache');
+    }
+    
+    // Si toutes les requêtes API échouent, essayer de récupérer depuis localStorage
+    try {
+      const cachedMemoriesJson = localStorage.getItem('allMemories');
+      
+      if (cachedMemoriesJson) {
+        const allCachedMemories = JSON.parse(cachedMemoriesJson);
+        
+        // Filtrer les souvenirs pour cette vidéo
+        const filteredMemories = allCachedMemories.filter(memory => {
+          const memoryVideoId = 
+              (memory.video && typeof memory.video === 'object' ? memory.video._id : null) || 
+              (typeof memory.video === 'string' ? memory.video : null) ||
+              memory.videoId || 
+              memory.video_id;
+          
+          return memoryVideoId && memoryVideoId.toString() === videoId.toString();
+        });
+        
+        console.log(`✅ ${filteredMemories.length} souvenirs trouvés dans le cache local`);
+        return filteredMemories;
+      }
+    } catch (cacheErr) {
+      console.error('❌ Erreur lors de l\'accès au cache:', cacheErr);
+    }
+    
+    // Si tout échoue, retourner un tableau vide
+    return [];
+  } catch (error) {
+    console.error('❌ Erreur lors de la récupération des souvenirs:', error);
+    return [];
+  }
+},
 
   // Ajouter un souvenir
   addMemory: async (videoId, content) => {

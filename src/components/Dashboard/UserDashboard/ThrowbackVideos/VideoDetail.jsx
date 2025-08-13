@@ -546,23 +546,62 @@ const VideoDetail = () => {
     }
   };
 
-  // Pour ajouter une réponse à un souvenir
-  const handleAddReply = async (memoryId, replyText) => {
-    try {
-      console.log('✍️ Ajout d\'une réponse au souvenir:', memoryId);
+
+// Dans VideoDetail.jsx, mettez à jour la fonction handleAddReply
+const handleAddReply = async (memoryId, replyText) => {
+  try {
+    console.log('✍️ Ajout d\'une réponse au souvenir:', memoryId);
+    
+    // Appel API - essayer avec la route complète pour s'assurer qu'elle est correcte
+    const response = await api.post(`/api/memories/${memoryId}/replies`, {
+      contenu: replyText
+    });
+    
+    if (response.data && response.data.success) {
+      // Traitement en cas de succès
+      console.log('✅ Réponse ajoutée avec succès:', response.data);
       
-      const response = await api.post(`/api/memories/${memoryId}/replies`, {
+      // Mettre à jour la liste des réponses en temps réel
+      const updatedMemories = memories.map(memory => {
+        if (memory.id === memoryId) {
+          return {
+            ...memory,
+            nb_commentaires: (memory.nb_commentaires || 0) + 1,
+            replies: memory.replies 
+              ? [...memory.replies, response.data.data] 
+              : [response.data.data]
+          };
+        }
+        return memory;
+      });
+      
+      setMemories(updatedMemories);
+      return true;
+    }
+    
+    return false;
+  } catch (err) {
+    console.error('❌ Erreur lors de l\'ajout de la réponse:', err);
+    
+    // Essayer avec une route alternative
+    try {
+      console.log('🔄 Tentative avec route alternative...');
+      const fallbackResponse = await api.post(`/api/public/memories/${memoryId}/replies`, {
         contenu: replyText
       });
       
-      if (response.data && response.data.success) {
-        // Mettre à jour la liste des réponses en temps réel
+      if (fallbackResponse.data && fallbackResponse.data.success) {
+        console.log('✅ Réponse ajoutée avec succès (via fallback):', fallbackResponse.data);
+        
+        // Mettre à jour la liste des réponses
         const updatedMemories = memories.map(memory => {
           if (memory.id === memoryId) {
             return {
               ...memory,
               nb_commentaires: (memory.nb_commentaires || 0) + 1,
-              replies: memory.replies ? [...memory.replies, response.data.data] : [response.data.data]
+              replies: memory.replies 
+                ? [...memory.replies, fallbackResponse.data.data] 
+                : [fallbackResponse.data.data]
             };
           }
           return memory;
@@ -571,23 +610,24 @@ const VideoDetail = () => {
         setMemories(updatedMemories);
         return true;
       }
-      
-      return false;
-    } catch (err) {
-      console.error('❌ Erreur lors de l\'ajout de la réponse:', err);
-      if (err.response?.status === 401) {
-        alert('Veuillez vous connecter pour ajouter une réponse');
-      } else {
-        alert('Erreur lors de l\'ajout de la réponse. Veuillez réessayer.');
-      }
-      return false;
+    } catch (fallbackErr) {
+      console.error('❌ Erreur lors de la tentative alternative:', fallbackErr);
     }
-  };
+    
+    if (err.response?.status === 401) {
+      alert('Veuillez vous connecter pour ajouter une réponse');
+    } else {
+      alert('Erreur lors de l\'ajout de la réponse. Veuillez réessayer.');
+    }
+    
+    return false;
+  }
+};
 
   // Gérer le like d'une mémoire
   const handleLikeMemory = async (memoryId) => {
     try {
-      console.log('❤️ Tentative de like de la mémoire:', memoryId);
+      console.log(' Tentative de like de la mémoire:', memoryId);
       
       // Mise à jour optimiste
       const updatedMemories = memories.map(memory => {

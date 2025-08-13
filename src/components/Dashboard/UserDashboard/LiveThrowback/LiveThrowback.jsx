@@ -16,19 +16,28 @@ import LoadingSpinner from '../../../Common/LoadingSpinner';
 import { useAuth } from '../../../../contexts/AuthContext';
 import api from '../../../../utils/api';
 
-// Cache utilitaire pour réduire les appels API
+// Cache utilitaire amélioré pour réduire les appels API et préserver l'état de lecture
 const cache = {
   data: {},
-  get: (key) => cache.data[key],
+  get: (key) => {
+    const item = cache.data[key];
+    if (!item) return null;
+    return item.value;
+  },
   set: (key, value, ttl = 60000) => {
     cache.data[key] = {
       value,
-      expiry: Date.now() + ttl
+      expiry: Date.now() + ttl,
+      timestamp: Date.now()
     };
   },
   isValid: (key) => {
     const item = cache.data[key];
     return item && item.expiry > Date.now();
+  },
+  getTimestamp: (key) => {
+    const item = cache.data[key];
+    return item ? item.timestamp : null;
   },
   clear: (key) => {
     if (key) {
@@ -60,7 +69,9 @@ const LiveThrowback = () => {
   const [viewCount, setViewCount] = useState(0);
   const [comment, setComment] = useState('');
   const [chatDisabled, setChatDisabled] = useState(false);
+  const [lastUrlUpdate, setLastUrlUpdate] = useState(0); // Nouvel état pour limiter les rechargements
   const videoRef = useRef(null);
+  const playerRef = useRef(null); // Référence pour l'API player YouTube
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -94,7 +105,7 @@ const LiveThrowback = () => {
     return shortMatch ? shortMatch[1] : longMatch ? longMatch[1] : null;
   };
 
-  // Fonction améliorée pour obtenir l'URL de lecture
+  // Fonction améliorée pour obtenir l'URL de lecture en préservant la position
   const getPlaybackUrl = () => {
     if (!currentStream) return '';
     
@@ -103,6 +114,19 @@ const LiveThrowback = () => {
       logger.debug('Stream expired or not live');
       return '';
     }
+    
+    // Limiter les rechargements d'URL (pas plus d'une fois toutes les 5 secondes)
+    // Sauf si on a explicitement demandé un rechargement forcé
+    const now = Date.now();
+    if (now - lastUrlUpdate < 5000) {
+      logger.debug('URL refresh throttled, using existing URL');
+      if (videoRef.current?.src) {
+        return videoRef.current.src;
+      }
+    }
+    
+    // Mettre à jour le timestamp de dernière URL
+    setLastUrlUpdate(now);
     
     // Extraire les paramètres de configuration
     const loop = currentStream.playbackConfig?.loop !== false;
@@ -116,6 +140,19 @@ const LiveThrowback = () => {
       const videos = currentStream.compilationVideos;
       const currentIndex = currentStream.currentVideoIndex || 0;
       
+      // Calculer la position de lecture dans la vidéo courante si disponible
+      let startTimeParam = '';
+      
+      if (currentStream.currentVideoStartTime) {
+        const videoStartTime = new Date(currentStream.currentVideoStartTime);
+        const secondsElapsed = Math.floor((now - videoStartTime) / 1000);
+        
+        // Éviter de démarrer trop près de la fin ou avec des valeurs négatives
+        if (secondsElapsed > 0 && secondsElapsed < 300) { // Moins de 5 minutes
+          startTimeParam = `&start=${secondsElapsed}`;
+        }
+      }
+      
       // Une seule vidéo : lecture en boucle
       if (videos.length === 1) {
         const video = videos[0];
@@ -125,6 +162,9 @@ const LiveThrowback = () => {
           if (loop) url += '&loop=1&playlist=' + video.sourceId; // Pour le loop sur une vidéo unique
           url += '&rel=0&showinfo=0&modestbranding=1&iv_load_policy=3&fs=1&enablejsapi=1';
           url += '&origin=' + window.location.origin;
+          url += startTimeParam;
+          // Ajouter un paramètre aléatoire pour éviter le cache du navigateur
+          url += '&nocache=' + Date.now();
           return url;
         }
         
@@ -142,35 +182,30 @@ const LiveThrowback = () => {
       
       // Plusieurs vidéos : playlist ou vidéo courante
       else {
-        // Calculer la vidéo courante basée sur le temps écoulé
-        const startTime = new Date(currentStream.actualStartTime || currentStream.scheduledStartTime);
-        const now = new Date();
-        const elapsedMinutes = Math.floor((now - startTime) / (1000 * 60));
-        const avgVideoDuration = 4; // minutes par vidéo
-        const calculatedIndex = Math.floor(elapsedMinutes / avgVideoDuration) % videos.length;
-        
-        // Utiliser l'index calculé ou celui du serveur
-        const videoIndex = currentStream.currentVideoIndex !== undefined ? 
-                          currentStream.currentVideoIndex : calculatedIndex;
-        
-        const currentVideo = videos[videoIndex];
-        
         // Si toutes les vidéos sont YouTube, créer une playlist
         if (videos.every(v => v.sourceType === 'YOUTUBE')) {
           const videoIds = videos.map(v => v.sourceId);
           let url = `https://www.youtube.com/embed/?playlist=${videoIds.join(',')}&autoplay=${autoplay ? 1 : 0}`;
           if (loop) url += '&loop=1';
           if (shuffle) url += '&shuffle=1';
-          url += `&index=${videoIndex + 1}&rel=0&showinfo=0&modestbranding=1&enablejsapi=1`;
+          url += `&index=${currentIndex + 1}&rel=0&showinfo=0&modestbranding=1&enablejsapi=1`;
           url += '&origin=' + window.location.origin;
+          url += startTimeParam;
+          // Ajouter un paramètre aléatoire pour éviter le cache du navigateur
+          url += '&nocache=' + Date.now();
           return url;
         }
         
         // Sinon, jouer la vidéo courante
+        const currentVideo = videos[currentIndex];
+        
         if (currentVideo && currentVideo.sourceType === 'YOUTUBE') {
           let url = `https://www.youtube.com/embed/${currentVideo.sourceId}?autoplay=${autoplay ? 1 : 0}`;
           url += '&rel=0&showinfo=0&modestbranding=1&iv_load_policy=3&fs=1&enablejsapi=1';
           url += '&origin=' + window.location.origin;
+          url += startTimeParam;
+          // Ajouter un paramètre aléatoire pour éviter le cache du navigateur
+          url += '&nocache=' + Date.now();
           return url;
         }
         
@@ -188,7 +223,9 @@ const LiveThrowback = () => {
     
     // 2. URL de lecture directe
     if (currentStream.playbackUrl) {
-      return currentStream.playbackUrl;
+      // Ajouter un paramètre nocache pour éviter les problèmes de cache
+      const hasQueryParams = currentStream.playbackUrl.includes('?');
+      return `${currentStream.playbackUrl}${hasQueryParams ? '&' : '?'}nocache=${Date.now()}`;
     }
     
     // 3. URL YouTube directe
@@ -199,6 +236,8 @@ const LiveThrowback = () => {
         if (loop) url += '&loop=1&playlist=' + videoId;
         url += '&rel=0&showinfo=0&modestbranding=1&iv_load_policy=3&fs=1&enablejsapi=1';
         url += '&origin=' + window.location.origin;
+        // Ajouter un paramètre aléatoire pour éviter le cache du navigateur
+        url += '&nocache=' + Date.now();
         return url;
       }
       return currentStream.youtubeUrl;
@@ -221,20 +260,70 @@ const LiveThrowback = () => {
     
     const now = new Date();
     const startTime = new Date(currentStream.actualStartTime || currentStream.scheduledStartTime);
-    const elapsedMinutes = Math.floor((now - startTime) / (1000 * 60));
     
-    // Calculer l'index de la vidéo courante
-    const avgVideoDuration = 4; // minutes
-    const newIndex = Math.floor(elapsedMinutes / avgVideoDuration) % videos.length;
+    // Calculer en secondes plutôt qu'en minutes pour plus de précision
+    const elapsedSeconds = Math.floor((now - startTime) / 1000);
     
-    // Mettre à jour l'index si nécessaire
+    // Fonction pour obtenir la durée d'une vidéo (en secondes)
+    const getVideoDuration = (video) => {
+      if (video.duration) return video.duration;
+      return video.sourceType === 'YOUTUBE' ? 240 : 180; // Valeurs par défaut plus précises
+    };
+    
+    // Calculer l'index de manière plus précise
+    let accumulatedTime = 0;
+    let newIndex = 0;
+    
+    for (let i = 0; i < videos.length; i++) {
+      const duration = getVideoDuration(videos[i]);
+      if (accumulatedTime + duration > elapsedSeconds) {
+        newIndex = i;
+        break;
+      }
+      accumulatedTime += duration;
+      
+      // Boucler si nécessaire
+      if (i === videos.length - 1) {
+        i = -1;
+        // Éviter les boucles infinies
+        if (accumulatedTime > elapsedSeconds * 2) {
+          newIndex = 0;
+          break;
+        }
+      }
+    }
+    
+    // Mettre à jour seulement si nécessaire
     if (newIndex !== currentStream.currentVideoIndex) {
+      logger.debug(`Updating video index from ${currentStream.currentVideoIndex} to ${newIndex}`);
+      
+      // Éviter les sauts brusques en vérifiant si l'index est consécutif
+      const currentIndex = currentStream.currentVideoIndex || 0;
+      const isConsecutive = newIndex === (currentIndex + 1) % videos.length;
+      
       setCurrentStream(prev => ({
         ...prev,
-        currentVideoIndex: newIndex
+        currentVideoIndex: newIndex,
+        // Stocker le moment où cette vidéo a démarré
+        currentVideoStartTime: new Date(startTime.getTime() + (accumulatedTime * 1000))
       }));
       
-      logger.debug(`Updated video index to ${newIndex}`);
+      // Si le changement est consécutif, ne pas recharger toute l'iframe
+      if (isConsecutive && videoRef.current) {
+        // Tenter d'utiliser l'API player si disponible pour une transition fluide
+        try {
+          if (videoRef.current.contentWindow && 
+              videoRef.current.contentWindow.postMessage) {
+            videoRef.current.contentWindow.postMessage(JSON.stringify({
+              event: 'command',
+              func: 'loadVideoById',
+              args: [videos[newIndex].sourceId]
+            }), '*');
+          }
+        } catch (e) {
+          logger.error('Error using player API:', e);
+        }
+      }
     }
   };
 
@@ -243,27 +332,25 @@ const LiveThrowback = () => {
     const fetchLiveStreams = async () => {
       const cacheKey = 'livestreams';
       
-      // Utiliser le cache si disponible et valide
-      if (cache.isValid(cacheKey)) {
-        const cachedData = cache.get(cacheKey).value;
+      // N'utiliser le cache que s'il est encore valide ET si le courant de lecture est actif
+      // pour éviter de réinitialiser la lecture pendant le visionnage
+      if (cache.isValid(cacheKey) && currentStream && isStreamValid(currentStream)) {
+        const cachedData = cache.get(cacheKey);
         logger.debug('Using cached livestreams data');
         
-        // Filtrer les streams expirés même dans le cache
-        const validStreams = cachedData.filter(isStreamValid);
-        setLiveStreams(validStreams);
-        
-        if (validStreams.length > 0 && !currentStream) {
-          setCurrentStream(validStreams[0]);
-          setViewCount(validStreams[0].statistics?.totalUniqueViewers || 0);
-          setLikeCount(validStreams[0].statistics?.likes || 0);
-          setChatDisabled(validStreams[0].chatEnabled === false);
-          if (user && validStreams[0].userLiked) {
-            setLiked(true);
-          }
+        // Préserver le stream actuel et ses propriétés de lecture
+        if (cachedData && cachedData.length > 0 && currentStream) {
+          const updatedStreams = cachedData.map(stream => 
+            stream._id === currentStream._id 
+              ? { ...stream, currentVideoIndex: currentStream.currentVideoIndex, currentVideoStartTime: currentStream.currentVideoStartTime }
+              : stream
+          );
+          
+          // Filtrer les streams expirés même dans le cache
+          const validStreams = updatedStreams.filter(isStreamValid);
+          setLiveStreams(validStreams);
+          return;
         }
-        
-        setLoading(false);
-        return;
       }
       
       try {
@@ -282,11 +369,22 @@ const LiveThrowback = () => {
           const validStreams = streams.filter(isStreamValid);
           logger.debug('Valid streams found:', validStreams.length);
           
-          setLiveStreams(validStreams);
+          // Si un stream actuel existe, préserver son index et temps de démarrage vidéo
+          if (currentStream && validStreams.length > 0) {
+            const updatedStreams = validStreams.map(stream => 
+              stream._id === currentStream._id 
+                ? { ...stream, currentVideoIndex: currentStream.currentVideoIndex, currentVideoStartTime: currentStream.currentVideoStartTime }
+                : stream
+            );
+            setLiveStreams(updatedStreams);
+          } else {
+            setLiveStreams(validStreams);
+          }
+          
           cache.set(cacheKey, validStreams, 60000); // Cache pendant 1 minute seulement
           
-          // Définir le premier stream comme courant s'il existe
-          if (validStreams.length > 0) {
+          // Définir le premier stream comme courant s'il n'existe pas déjà
+          if (validStreams.length > 0 && !currentStream) {
             logger.debug('Setting current stream:', validStreams[0].title);
             setCurrentStream(validStreams[0]);
             setViewCount(validStreams[0].statistics?.totalUniqueViewers || 0);
@@ -294,6 +392,19 @@ const LiveThrowback = () => {
             setChatDisabled(validStreams[0].chatEnabled === false);
             if (user && validStreams[0].userLiked) {
               setLiked(true);
+            }
+          } else if (validStreams.length > 0 && currentStream) {
+            // Mettre à jour le stream courant avec les nouvelles données tout en préservant certaines propriétés
+            const updatedCurrentStream = validStreams.find(s => s._id === currentStream._id);
+            if (updatedCurrentStream) {
+              setCurrentStream(prev => ({
+                ...updatedCurrentStream,
+                currentVideoIndex: prev.currentVideoIndex,
+                currentVideoStartTime: prev.currentVideoStartTime
+              }));
+              setViewCount(updatedCurrentStream.statistics?.totalUniqueViewers || 0);
+              setLikeCount(updatedCurrentStream.statistics?.likes || 0);
+              setChatDisabled(updatedCurrentStream.chatEnabled === false);
             }
           } else {
             logger.debug('No valid streams found');
@@ -344,7 +455,8 @@ const LiveThrowback = () => {
   useEffect(() => {
     if (!currentStream || currentStream.compilationType !== 'VIDEO_COLLECTION') return;
     
-    const progressInterval = setInterval(updateStreamProgress, 30000); // Toutes les 30 secondes
+    // Intervalle plus court (10 secondes au lieu de 30) pour des mises à jour plus fréquentes
+    const progressInterval = setInterval(updateStreamProgress, 10000);
     
     return () => clearInterval(progressInterval);
   }, [currentStream]);
@@ -364,10 +476,61 @@ const LiveThrowback = () => {
       }
     };
     
-    const expirationInterval = setInterval(checkExpiration, 10000); // Toutes les 10 secondes
+    const expirationInterval = setInterval(checkExpiration, 20000); // Toutes les 20 secondes
     
     return () => clearInterval(expirationInterval);
   }, [currentStream]);
+
+  // Initialiser le lecteur YouTube lorsqu'il est chargé
+  useEffect(() => {
+    // Fonction pour configurer l'API YouTube lorsque l'iframe est chargée
+    const setupYouTubeAPI = () => {
+      if (!videoRef.current) return;
+
+      try {
+        // Écouter les messages de l'iframe YouTube
+        const handleMessage = (event) => {
+          // Vérifier que le message vient de notre iframe
+          if (videoRef.current && event.source === videoRef.current.contentWindow) {
+            try {
+              const data = JSON.parse(event.data);
+              
+              // Détecter les événements de l'API YouTube
+              if (data.event === 'onReady') {
+                logger.debug('YouTube player ready');
+                playerRef.current = {
+                  ready: true,
+                  postMessage: (message) => {
+                    if (videoRef.current && videoRef.current.contentWindow) {
+                      videoRef.current.contentWindow.postMessage(JSON.stringify(message), '*');
+                    }
+                  }
+                };
+              }
+              
+              // Détecter la fin d'une vidéo pour passer à la suivante
+              if (data.event === 'onStateChange' && data.info === 0) { // 0 = ended
+                logger.debug('Video ended, updating progress');
+                updateStreamProgress();
+              }
+            } catch (e) {
+              // Ignorer les messages qui ne sont pas du JSON
+            }
+          }
+        };
+        
+        window.addEventListener('message', handleMessage);
+        
+        return () => {
+          window.removeEventListener('message', handleMessage);
+        };
+      } catch (error) {
+        logger.error('Error setting up YouTube API:', error);
+      }
+    };
+    
+    setupYouTubeAPI();
+  }, [videoRef.current]);
 
   // Gérer le like
   const handleLike = async () => {
@@ -506,6 +669,16 @@ const LiveThrowback = () => {
     const currentIndex = currentStream.currentVideoIndex || 0;
     const currentVideo = videos[currentIndex];
     
+    // Calculer la progression dans la vidéo actuelle
+    let videoProgressPercent = 0;
+    if (currentStream.currentVideoStartTime) {
+      const now = new Date();
+      const videoStartTime = new Date(currentStream.currentVideoStartTime);
+      const duration = currentVideo.duration || 240; // Durée en secondes
+      const elapsedSeconds = Math.floor((now - videoStartTime) / 1000);
+      videoProgressPercent = Math.min(100, Math.max(0, (elapsedSeconds / duration) * 100));
+    }
+    
     return (
       <div className={styles.compilationProgress}>
         <div className={styles.progressInfo}>
@@ -519,7 +692,7 @@ const LiveThrowback = () => {
         <div className={styles.progressBar}>
           <div 
             className={styles.progressFill}
-            style={{ width: `${((currentIndex + 1) / videos.length) * 100}%` }}
+            style={{ width: `${((currentIndex + videoProgressPercent/100) / videos.length) * 100}%` }}
           />
         </div>
       </div>

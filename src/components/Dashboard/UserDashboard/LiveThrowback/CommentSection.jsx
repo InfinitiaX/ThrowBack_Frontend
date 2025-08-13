@@ -16,11 +16,11 @@ const logger = {
   error: (...args) => console.error(...args)
 };
 
-// Cache pour les commentaires
+// Cache pour les commentaires amélioré
 const commentsCache = {
   data: {},
   get: (key) => commentsCache.data[key],
-  set: (key, value, ttl = 60000) => {
+  set: (key, value, ttl = 20000) => { // Réduit à 20 secondes pour plus de fraîcheur
     commentsCache.data[key] = {
       value,
       expiry: Date.now() + ttl
@@ -54,6 +54,7 @@ const CommentSection = ({ streamId }) => {
   const [error, setError] = useState(null);
   const [isBanned, setIsBanned] = useState(false);
   const [chatDisabled, setChatDisabled] = useState(false);
+  const [lastFetch, setLastFetch] = useState(0); // Pour éviter trop de requêtes
   const { user } = useAuth();
   const commentsEndRef = useRef(null);
   const commentsContainerRef = useRef(null);
@@ -90,7 +91,37 @@ const CommentSection = ({ streamId }) => {
   const fetchComments = async () => {
     if (!streamId || chatDisabled || isBanned) return;
     
+    // Limiter la fréquence des requêtes (pas plus d'une toutes les 5 secondes)
+    const now = Date.now();
+    if (now - lastFetch < 5000 && page === 1 && comments.length > 0) {
+      logger.debug('Throttling comment fetch requests');
+      return;
+    }
+    
+    setLastFetch(now);
+    
     const cacheKey = `comments_${streamId}_page_${page}`;
+    
+    // Utiliser le cache seulement pour la première page pour garder les derniers commentaires frais
+    if (commentsCache.isValid(cacheKey) && page > 1) {
+      const cachedComments = commentsCache.get(cacheKey).value;
+      if (Array.isArray(cachedComments)) {
+        if (page === 1) {
+          setComments(cachedComments);
+        } else {
+          // Pour les pages > 1, fusionner avec les commentaires existants
+          setComments(prev => {
+            // Éviter les doublons en vérifiant les IDs
+            const existingIds = new Set(prev.map(c => c._id));
+            const newComments = cachedComments.filter(c => !existingIds.has(c._id));
+            return [...prev, ...newComments];
+          });
+        }
+        setHasMore(cachedComments.length === 10);
+        setLoading(false);
+        return;
+      }
+    }
     
     try {
       setLoading(true);
@@ -107,13 +138,18 @@ const CommentSection = ({ streamId }) => {
         
         // Vérifier que fetchedComments est un tableau
         if (Array.isArray(fetchedComments)) {
-          // Mettre en cache les commentaires récupérés
-          commentsCache.set(cacheKey, fetchedComments, 60000); // Cache pour 1 minute
+          // Mettre en cache les commentaires récupérés (seulement pour la page 1 ou pour un temps court)
+          commentsCache.set(cacheKey, fetchedComments, page === 1 ? 10000 : 60000); // Cache pour 10s si page 1, 1min sinon
           
           if (page === 1) {
             setComments(fetchedComments);
           } else {
-            setComments(prev => [...prev, ...fetchedComments]);
+            setComments(prev => {
+              // Éviter les doublons en vérifiant les IDs
+              const existingIds = new Set(prev.map(c => c._id));
+              const newComments = fetchedComments.filter(c => !existingIds.has(c._id));
+              return [...prev, ...newComments];
+            });
           }
           
           setHasMore(fetchedComments.length === 10);
@@ -170,13 +206,14 @@ const CommentSection = ({ streamId }) => {
     fetchComments();
     
     // Mise en place d'un polling pour rafraîchir les commentaires
+    // Réduit à 10 secondes au lieu de 15 pour une meilleure réactivité
     const interval = setInterval(() => {
       // Nettoyer le cache pour la première page uniquement
       if (page === 1 && !chatDisabled && !isBanned) {
         commentsCache.clear(`comments_${streamId}_page_1`);
         fetchComments();
       }
-    }, 15000); // 15 secondes
+    }, 10000); // 10 secondes
     
     return () => clearInterval(interval);
   }, [streamId, page, chatDisabled, isBanned]);

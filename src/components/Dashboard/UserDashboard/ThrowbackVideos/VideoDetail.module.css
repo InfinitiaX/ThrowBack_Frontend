@@ -1,58 +1,65 @@
-/* Styles de base */
-.throwbackVideosBg {
-  min-height: 100vh;
-  width: 100%;
-  background: #fff;
+.recommendedLoading {
+  grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding: 20px;
+  justify-content: center;
+  padding: 30px;
+  color: #777;
+  gap: 12px;
+  text-align: center;
+}
+
+.emptyRecommendations {
+  grid-column: 1 / -1;
+  padding: 30px;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border: 1px dashed #ddd;
+}/* VideoDetail.module.css */
+.throwbackVideosBg {
+  min-height: 100vh;
+  background: #f7f7fa;
+  display: flex;
+  flex-direction: column;
 }
 
 .mainContentWrap {
   display: flex;
+  flex-direction: row;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1800px;
   margin: 0 auto;
-  gap: 20px;
+  min-height: 80vh;
 }
 
 .mainContent {
   flex: 1;
-  background: #fff;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  padding: 24px 32px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
 }
 
-.rightCards {
-  width: 350px;
-  max-height: calc(100vh - 40px);
-  overflow-y: auto;
-  background: #fff;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  position: sticky;
-  top: 20px;
-}
-
-/* Video Player */
+/* Video player styling */
 .videoPlayerContainer {
   width: 100%;
-  margin-bottom: 20px;
-  border-radius: 10px;
-  overflow: hidden;
+  margin-bottom: 16px;
   position: relative;
-  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
 }
 
 .videoWrapper {
   position: relative;
-  padding-bottom: 56.25%; /* 16:9 */
-  height: 0;
-  overflow: hidden;
+  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  width: 100%;
+  background: #000;
 }
 
 .videoWrapper iframe {
@@ -61,15 +68,15 @@
   left: 0;
   width: 100%;
   height: 100%;
-  border: none;
+  border-radius: 8px;
 }
 
 .videoThumbnail {
   position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  background: #000;
   cursor: pointer;
-  padding-bottom: 56.25%; /* 16:9 */
-  height: 0;
-  overflow: hidden;
 }
 
 .thumbnailImg {
@@ -86,165 +93,167 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
   background: rgba(179, 18, 23, 0.8);
-  width: 60px;
-  height: 60px;
   border-radius: 50%;
+  color: white;
+  font-size: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  color: white;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
 }
 
-/* Video Info */
+.videoThumbnail:hover .playButton {
+  background: rgba(211, 47, 47, 0.9);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+/* Video info bar */
 .videoInfoBar {
-  margin-bottom: 20px;
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
 }
 
 .videoTitle {
-  color: white;
-  font-size: 24px;
-  margin-bottom: 10px;
-  font-weight: 500;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #222;
+  margin: 0;
+  flex: 1;
 }
 
 .videoStats {
   display: flex;
-  gap: 20px;
-  color: #ccc;
+  gap: 16px;
 }
 
 .statItem {
   display: flex;
   align-items: center;
   gap: 8px;
+  color: #444;
+  font-size: 1rem;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .statItem:hover {
   color: #b31217;
 }
 
-.statItem.liked {
-  color: #e74c3c;
+.liked {
+  color: #b31217;
 }
 
-.statItem.loading {
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-/* Memory Input */
+/* Memory input */
 .memoryInputContainer {
+  position: relative;
+  width: 100%;
+  margin-bottom: 24px;
   display: flex;
-  margin-bottom: 20px;
-  gap: 10px;
+  align-items: center;
 }
 
 .memoryInput {
-  flex: 1;
-  padding: 12px 15px;
-  border-radius: 25px;
-  border: none;
-  background: #333;
-  color: white;
-  font-size: 14px;
+  width: 100%;
+  padding: 12px 50px 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  background: white;
+  transition: all 0.2s ease;
 }
 
-.memoryInput::placeholder {
-  color: #aaa;
+.memoryInput:focus {
+  outline: none;
+  border-color: #b31217;
+  box-shadow: 0 0 0 2px rgba(179, 18, 23, 0.1);
 }
 
 .commentButton {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #b31217;
-  color: white;
+  position: absolute;
+  right: 8px;
+  background: none;
   border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  color: #777;
+  font-size: 1.1rem;
   cursor: pointer;
-  transition: background-color 0.2s;
+  padding: 8px;
+  transition: color 0.2s ease;
 }
 
 .commentButton:hover {
-  background: #e74c3c;
+  color: #b31217;
 }
 
-.commentButton.loading {
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-/* Share Options */
-.shareOptions {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  margin-top: 10px;
-  background: #222;
-  border-radius: 10px;
-  padding: 10px;
-  z-index: 10;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.shareOption {
-  padding: 8px 12px;
-  cursor: pointer;
-  color: white;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.shareOption:hover {
-  background: #333;
-}
-
-.shareMessage {
-  margin-top: 10px;
-  padding: 8px 12px;
-  background: #2c2c2c;
-  border-radius: 4px;
-  color: #fff;
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-/* Recommended Videos */
 .recommendedVideosSection {
-  margin-top: 30px;
+  margin-top: 24px;
 }
 
 .recommendedSectionTitle {
-  color: white;
-  font-size: 20px;
-  margin-bottom: 15px;
-  font-weight: 500;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+  position: relative;
+  display: inline-block;
 }
 
+.recommendedSectionTitle:after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #b31217;
+  border-radius: 2px;
+}
+
+/* Recommended videos */
 .recommendedVideosGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
 }
 
 .recommendedVideo {
   text-decoration: none;
-  color: white;
-  transition: transform 0.2s;
   display: block;
+  transition: all 0.2s ease;
   position: relative;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .recommendedVideo:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.currentVideo {
+  border: 2px solid #b31217;
+  box-shadow: 0 0 0 2px rgba(179, 18, 23, 0.3);
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.currentlyPlaying {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: rgba(179, 18, 23, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .recommendedImg {
@@ -253,371 +262,1021 @@
   object-fit: cover;
   border-radius: 8px;
   margin-bottom: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .recommendedInfo {
-  font-size: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  color: #222;
+  font-size: 0.9rem;
 }
 
 .recommendedArtist {
-  color: white;
   font-weight: 600;
-  margin-bottom: 2px;
+  margin-right: 4px;
 }
 
 .recommendedTitle {
-  color: #ccc;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: #444;
 }
 
-.currentVideo {
-  position: relative;
-}
-
-.currentlyPlaying {
-  position: absolute;
-  top: 5px;
-  left: 5px;
-  background: rgba(179, 18, 23, 0.8);
-  color: white;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-/* Memory Cards */
-.memoriesHeader {
+/* Memories sidebar */
+.rightCards {
+  width: 320px;
+  padding: 24px 18px 0 0;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  color: white;
+  flex-direction: column;
+  gap: 20px;
+  max-height: 90vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #b31217 #f0f0f0;
 }
 
-.memoriesControls {
+.rightCards::-webkit-scrollbar {
+  width: 6px;
+}
+
+.rightCards::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 10px;
+}
+
+.rightCards::-webkit-scrollbar-thumb {
+  background-color: #b31217;
+  border-radius: 10px;
+}
+
+/* Memory cards */
+.memoryCard {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
-.refreshButton, .filterToggleButton {
-  background: #333;
-  border: none;
-  color: white;
-  padding: 6px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-}
-
-.refreshButton:hover, .filterToggleButton:hover {
-  background: #444;
-}
-
-.memoryCard {
-  background: #2c2c2c;
-  border-radius: 10px;
-  padding: 15px;
-  margin-bottom: 15px;
-  color: white;
-  position: relative;
-}
-
 .memoryHeader {
-  margin-bottom: 10px;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
+  font-size: 0.9rem;
+  color: #444;
 }
 
 .memoryUsername {
+  color: #d32f2f;
   font-weight: 600;
-  color: #e74c3c;
+}
+
+.memoryContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.memoryVideoInfo {
+  font-size: 0.85rem;
+  color: #555;
 }
 
 .memoryUserImage {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 100%;
+  aspect-ratio: 1/1;
   object-fit: cover;
-  margin-right: 10px;
-  float: left;
-}
-
-.memoryBody {
-  margin-bottom: 10px;
-  font-size: 14px;
-  color: #aaa;
-  min-height: 40px;
+  border-radius: 8px;
+  margin: 6px 0;
 }
 
 .memoryText {
-  margin-top: 15px;
-  clear: both;
-  line-height: 1.5;
+  white-space: pre-line;
+  color: #d32f2f;
+  font-size: 0.9rem;
 }
 
 .memoryFooter {
   display: flex;
-  margin-top: 10px;
-  font-size: 14px;
-  color: #aaa;
+  justify-content: flex-start;
+  gap: 16px;
+  margin-top: 6px;
 }
 
 .memoryLikes, .memoryComments {
   display: flex;
   align-items: center;
-  margin-right: 15px;
-  cursor: pointer;
-}
-
-.memoryLikes.liked {
-  color: #e74c3c;
+  gap: 6px;
+  color: #666;
+  font-size: 0.9rem;
 }
 
 .memoryIcon {
-  margin-right: 5px;
+  color: #777;
+  font-size: 1rem;
 }
 
-.wrongVideoWarning {
-  background: rgba(231, 76, 60, 0.1);
-  border-left: 3px solid #e74c3c;
-  padding: 8px 12px;
-  margin-top: 8px;
-  font-size: 12px;
-  color: #e74c3c;
+/* Loading and error states */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 60vh;
+  padding: 24px;
+}
+
+.spinnerIcon {
+  font-size: 3rem;
+  color: #b31217;
+  margin-bottom: 16px;
+}
+
+.errorContainer {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 32px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.errorIcon {
+  font-size: 3rem;
+  color: #b31217;
+  margin-bottom: 16px;
+}
+
+.backButton {
+  display: inline-block;
+  background: #b31217;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  margin-top: 16px;
+}
+
+/* Styles pour le filtre de souvenirs */
+.memoriesFilterToggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f7f7f7;
+  border-radius: 8px;
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.filterToggleButton {
+  background: none;
+  border: none;
   display: flex;
   align-items: center;
   gap: 8px;
+  color: #555;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.filterToggleButton:hover {
+  background-color: #eee;
+  color: #b31217;
+}
+
+.filterToggleButton.active {
+  background-color: #b31217;
+  color: white;
+}
+
+.memoriesLoadingIndicator {
+  color: #b31217;
+  font-size: 0.9rem;
+}
+
+.showAllButton {
+  margin-top: 16px;
+  background-color: #f0f0f0;
+  color: #555;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.showAllButton:hover {
+  background-color: #e0e0e0;
+  color: #b31217;
+}
+
+/* Styles pour le message vide */
+.emptyMemories {
+  background: #fff;
+  border-radius: 14px;
+  border: 1.5px solid #ddd;
+  padding: 24px 16px;
+  text-align: center;
+  color: #777;
+  font-style: italic;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Styles pour l'en-tête des souvenirs */
+.memoriesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #b31217;
+}
+
+.memoriesHeader h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.filterToggleButton {
+  background: transparent;
+  border: 1px solid #b31217;
+  border-radius: 4px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: #b31217;
+  transition: all 0.2s ease;
+}
+
+.filterToggleButton:hover {
+  background: #b31217;
+  color: white;
+}
+
+/* Loader pour les souvenirs */
+.memoriesLoading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  color: #777;
+  gap: 12px;
+  text-align: center;
+}
+
+/* Message quand il n'y a pas de souvenirs */
+.emptyMemories {
+  background: #fff;
+  border-radius: 14px;
+  border: 1.5px solid #ddd;
+  padding: 24px 16px;
+  text-align: center;
+  color: #777;
+  font-style: italic;
+}
+
+.showAllButton {
+  margin-top: 16px;
+  padding: 8px 16px;
+  background: #b31217;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.showAllButton:hover {
+  background: #8a0e12;
+  transform: translateY(-2px);
+}
+
+/* Media queries pour responsivité */
+@media (max-width: 768px) {
+  .memoriesHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .filterToggleButton {
+    align-self: flex-end;
+  }
+}
+
+
+/* Styles pour l'en-tête des souvenirs */
+.memoriesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #b31217;
+}
+
+.memoriesHeader h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.filterToggleButton {
+  background: transparent;
+  border: 1px solid #b31217;
+  border-radius: 4px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: #b31217;
+  transition: all 0.2s ease;
+}
+
+.filterToggleButton:hover {
+  background: #b31217;
+  color: white;
+}
+
+/* Loader pour les souvenirs */
+.memoriesLoading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  color: #777;
+  gap: 12px;
+  text-align: center;
+}
+
+/* Message quand il n'y a pas de souvenirs */
+.emptyMemories {
+  background: #fff;
+  border-radius: 14px;
+  border: 1.5px solid #ddd;
+  padding: 24px 16px;
+  text-align: center;
+  color: #777;
+  font-style: italic;
+}
+
+.showAllButton {
+  margin-top: 16px;
+  padding: 8px 16px;
+  background: #b31217;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.showAllButton:hover {
+  background: #8a0e12;
+  transform: translateY(-2px);
+}
+
+/* Styles pour l'avertissement de souvenir incorrect */
+.wrongVideoWarning {
+  background-color: #fff8e6;
+  color: #e74c3c;
+  font-size: 0.85rem;
+  padding: 6px 10px;
+  margin-top: 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-left: 3px solid #e74c3c;
 }
 
 .warningIcon {
   color: #e74c3c;
 }
 
-/* Loaders & Error states */
-.loadingContainer, .errorContainer, .memoriesLoading, .emptyMemories, .recommendedLoading, .emptyRecommendations {
+/* Media queries pour responsivité */
+@media (max-width: 768px) {
+  .memoriesHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .filterToggleButton {
+    align-self: flex-end;
+  }
+}
+
+
+/* Styles pour l'en-tête des souvenirs */
+.memoriesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #b31217;
+}
+
+.memoriesHeader h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.memoriesControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.refreshButton {
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s ease;
+}
+
+.refreshButton:hover {
+  background: #eee;
+  color: #b31217;
+  transform: rotate(30deg);
+}
+
+.filterToggleButton {
+  background: transparent;
+  border: 1px solid #b31217;
+  border-radius: 4px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: #b31217;
+  transition: all 0.2s ease;
+}
+
+.filterToggleButton:hover {
+  background: #b31217;
+  color: white;
+}
+
+/* Loader pour les souvenirs */
+.memoriesLoading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 30px;
+  color: #777;
+  gap: 12px;
   text-align: center;
-  padding: 40px 0;
-  color: white;
 }
 
-.spinnerIcon, .errorIcon {
-  font-size: 24px;
-  margin-bottom: 15px;
-  color: #b31217;
-}
-
-.backButton {
-  margin-top: 20px;
-  background: #b31217;
-  color: white;
-  text-decoration: none;
-  padding: 10px 20px;
-  border-radius: 4px;
-  font-weight: 500;
+/* Message quand il n'y a pas de souvenirs */
+.emptyMemories {
+  background: #fff;
+  border-radius: 14px;
+  border: 1.5px solid #ddd;
+  padding: 24px 16px;
+  text-align: center;
+  color: #777;
+  font-style: italic;
 }
 
 .showAllButton {
-  margin-top: 10px;
-  background: #333;
+  margin-top: 16px;
+  padding: 8px 16px;
+  background: #b31217;
   color: white;
   border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
+  border-radius: 20px;
   cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
 }
 
 .showAllButton:hover {
-  background: #444;
+  background: #8a0e12;
+  transform: translateY(-2px);
 }
 
-/* Animation */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+/* Ajoutez ces styles à votre fichier VideoDetail.module.css */
 
-/* Système de réponses */
-.replyForm {
-  display: flex;
-  margin-top: 12px;
-  padding: 8px;
-  background-color: rgba(0, 0, 0, 0.05);
+.shareOptions {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: #ffffff;
   border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  margin-top: 5px;
+  overflow: hidden;
+  width: 180px;
+  border: 1px solid #3e3e3e;
 }
 
-.replyInput {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #444;
-  border-radius: 20px;
-  background-color: #333;
-  color: white;
-  font-size: 14px;
-}
-
-.replyButton {
-  background-color: #b31217;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  margin-left: 8px;
+.shareOption {
+  padding: 12px 15px;
   cursor: pointer;
+  transition: background-color 0.2s;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 10px;
+}
+
+.shareOption:hover {
+  background-color: #3a3a3a;
+}
+
+.shareOption svg {
+  width: 16px;
+  height: 16px;
+}
+
+.shareMessage {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: rgba(67, 160, 71, 0.2);
+  color: #a5d6a7;
+  padding: 8px 15px;
+  border-radius: 4px;
+  margin-top: 5px;
+  font-size: 14px;
+  animation: fadeOut 3s forwards;
+  z-index: 10;
+}
+
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.videoStats {
+  display: flex;
+  gap: 15px;
+  position: relative;
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 4px;
   transition: background-color 0.2s;
 }
 
-.replyButton:hover {
-  background-color: #d32f2f;
+.statItem:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
-.replyButton:disabled {
-  background-color: #555;
-  cursor: not-allowed;
+.liked {
+  color: #d32f2f;
 }
 
-.memoryReply {
+.videoInfoBar {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  cursor: pointer;
-  margin-left: 16px;
-  color: #aaa;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #3e3e3e;
+  position: relative;
 }
 
-.memoryReply:hover {
-  color: #b31217;
-}
 
-.repliesSection {
-  margin-top: 12px;
-  padding-top: 8px;
-  border-top: 1px solid #444;
-}
 
-.replyCard {
+/* Ajout à VideoDetail.module.css */
+
+/* Modal de playlist */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
   display: flex;
-  margin-bottom: 12px;
-  padding: 8px;
-  background-color: rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-}
-
-.replyUserImage {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  object-fit: cover;
-  margin-right: 10px;
-}
-
-.replyContent {
-  flex: 1;
-}
-
-.replyUsername {
-  font-weight: 600;
-  font-size: 13px;
-  color: #e74c3c;
-}
-
-.replyText {
-  font-size: 14px;
-  margin: 4px 0;
-}
-
-.replyFooter {
-  display: flex;
-  font-size: 12px;
-  margin-top: 4px;
-}
-
-.replyLikes {
-  display: flex;
+  justify-content: center;
   align-items: center;
-  cursor: pointer;
-  color: #aaa;
+  z-index: 1000;
 }
 
-.replyLikes.liked {
-  color: #e74c3c;
+.modalContent {
+  background-color: #1e1e1e;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  border: 1px solid #b31217;
 }
 
-.replyIcon {
-  margin-right: 4px;
-}
-
-.replyDelete {
+.modalHeader {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  cursor: pointer;
-  color: #aaa;
-  margin-left: 10px;
+  padding: 15px 20px;
+  border-bottom: 1px solid #333;
 }
 
-.replyDelete:hover {
-  color: #e74c3c;
+.modalHeader h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.3rem;
 }
 
-/* Bouton suppression mémoire */
-.deleteButton {
-  margin-left: auto;
+.closeButton {
   background: none;
   border: none;
   color: #aaa;
+  font-size: 24px;
   cursor: pointer;
-  font-size: 12px;
-  padding: 4px;
+  transition: color 0.2s;
+}
+
+.closeButton:hover {
+  color: #fff;
+}
+
+/* Formulaires et contrôles */
+.input, .textarea {
+  width: 100%;
+  padding: 10px;
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 5px;
+  color: #fff;
+  margin-top: 5px;
+}
+
+.textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.formGroup {
+  margin-bottom: 15px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 5px;
+  color: #ddd;
+  font-weight: 500;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.cancelButton {
+  padding: 8px 15px;
+  background-color: transparent;
+  border: 1px solid #555;
+  color: #ddd;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.submitButton {
+  padding: 8px 15px;
+  background-color: #b31217;
+  border: none;
+  color: #fff;
+  border-radius: 5px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.submitButton:disabled {
+  background-color: #662326;
+  cursor: not-allowed;
+}
+
+/* Options de partage */
+.shareOptions {
+  position: absolute;
+  background-color: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 5px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  padding: 10px 0;
+  z-index: 100;
+  top: 100%;
+  right: 0;
+  width: 180px;
+  margin-top: 5px;
+}
+
+.shareOption {
+  padding: 10px 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background-color 0.2s;
+}
+
+.shareOption:hover {
+  background-color: #2a2a2a;
+}
+
+.shareMessage {
+  background-color: #232323;
+  color: #fff;
+  padding: 8px 15px;
   border-radius: 4px;
+  margin-top: 10px;
+  text-align: center;
+  animation: fadeOut 3s forwards;
+  animation-delay: 2s;
 }
 
-.deleteButton:hover {
-  color: #e74c3c;
-  background: rgba(231, 76, 60, 0.1);
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
-/* Responsive Design */
-@media (max-width: 992px) {
+/* Playlists */
+.playlistsList {
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 15px 0;
+}
+
+.playlistItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  border-bottom: 1px solid #333;
+}
+
+.playlistItem:last-child {
+  border-bottom: none;
+}
+
+.playlistInfo h4 {
+  margin: 0 0 5px 0;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.playlistInfo span {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.addButton {
+  padding: 6px 12px;
+  background-color: #2a2a2a;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9rem;
+}
+
+.addButton:hover {
+  background-color: #b31217;
+}
+
+.addedButton {
+  background-color: #2d632f;
+  cursor: default;
+}
+
+.addedButton:hover {
+  background-color: #2d632f;
+}
+
+.createButton {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin-top: 15px;
+  background-color: transparent;
+  border: 1px dashed #555;
+  color: #ddd;
+  border-radius: 5px;
+  cursor: pointer;
+  text-align: center;
+  font-weight: 500;
+}
+
+.createButton:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: #777;
+}
+
+.errorMessage, .successMessage {
+  padding: 10px 15px;
+  margin: 15px 20px;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.errorMessage {
+  background-color: rgba(255, 0, 0, 0.1);
+  border: 1px solid rgba(255, 0, 0, 0.3);
+  color: #ff6b6b;
+}
+
+.successMessage {
+  background-color: rgba(0, 128, 0, 0.1);
+  border: 1px solid rgba(0, 128, 0, 0.3);
+  color: #6bff6b;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 0;
+}
+
+.spinnerIcon {
+  font-size: 24px;
+  margin-bottom: 10px;
+  color: #b31217;
+}
+
+.emptyMessage {
+  text-align: center;
+  padding: 20px;
+  color: #aaa;
+}
+
+
+
+
+.memoryBody {
+  font-size: 1rem;
+  color: #222;
+  margin-bottom: 8px;
+  white-space: pre-line;
+}
+
+.memoryUserImage {
+  width: 100%;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  border-radius: 8px;
+  margin: 6px 0;
+}
+
+/* Mettre à jour les styles existants du memoryCard pour harmonisation */
+.memoryCard {
+  background: #fff;
+  border: 1.5px solid #b31217;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px #b3121722;
+  padding: 18px 16px 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.memoryHeader {
+  font-size: 1rem;
+  color: #222;
+  margin-bottom: 6px;
+}
+
+.memoryFooter {
+  display: flex;
+  gap: 18px;
+  color: #b31217;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Ajout pour la compatibilité responsive */
+@media (max-width: 1200px) {
+  .memoryCard {
+    min-width: 300px;
+    max-width: 300px;
+  }
+}
+
+/* Message vide harmonisé */
+.emptyMemories {
+  background: #fff;
+  border-radius: 14px;
+  border: 1.5px solid #ddd;
+  padding: 24px 16px;
+  text-align: center;
+  color: #777;
+  font-style: italic;
+}
+
+
+/* Pour les petits écrans */
+@media (max-width: 768px) {
+  .videoInfoBar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .videoStats {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .shareOptions {
+    right: 0;
+    width: 100%;
+  }
+}
+
+/* Responsive styles */
+@media (max-width: 1200px) {
   .mainContentWrap {
     flex-direction: column;
   }
   
   .rightCards {
     width: 100%;
-    max-height: 600px;
+    max-width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 24px 32px;
+    gap: 20px;
+    max-height: none;
   }
   
-  .recommendedVideosGrid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  .memoryCard {
+    min-width: 300px;
+    max-width: 300px;
   }
 }
 
-@media (max-width: 576px) {
-  .throwbackVideosBg {
-    padding: 10px;
-  }
-  
-  .mainContent, .rightCards {
-    padding: 15px;
-  }
-  
-  .videoTitle {
-    font-size: 18px;
-  }
-  
+@media (max-width: 768px) {
   .recommendedVideosGrid {
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .videoInfoBar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .videoStats {
+    align-self: flex-end;
+  }
+  
+  .mainContent {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .recommendedVideosGrid {
+    grid-template-columns: 1fr;
   }
 }

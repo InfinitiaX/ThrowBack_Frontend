@@ -20,7 +20,7 @@
 
 .mainContent {
   flex: 1;
-  background: #1a1a1a;
+  background: #fff;
   border-radius: 10px;
   padding: 20px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -30,7 +30,7 @@
   width: 350px;
   max-height: calc(100vh - 40px);
   overflow-y: auto;
-  background: #1a1a1a;
+  background: #fff;
   border-radius: 10px;
   padding: 20px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -45,7 +45,7 @@
   border-radius: 10px;
   overflow: hidden;
   position: relative;
-  background: #000;
+  background: #fff;
 }
 
 .videoWrapper {

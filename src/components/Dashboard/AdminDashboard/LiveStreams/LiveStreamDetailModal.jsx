@@ -90,21 +90,21 @@ const LiveStreamDetailModal = ({
   };
 
   // Formater la durée totale
-const formatTotalDuration = (seconds) => {
-  if (!seconds || isNaN(seconds)) return '0s';
-  
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  
-  if (hours > 0) {
-    return `${hours}h ${minutes}m ${remainingSeconds}s`;
-  } else if (minutes > 0) {
-    return `${minutes}m ${remainingSeconds}s`;
-  } else {
-    return `${remainingSeconds}s`;
-  }
-};
+  const formatTotalDuration = (seconds) => {
+    if (!seconds) return '0s';
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${remainingSeconds}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${remainingSeconds}s`;
+    } else {
+      return `${remainingSeconds}s`;
+    }
+  };
 
   // Obtenir le badge de statut avec couleur appropriée
   const getStatusBadge = (status) => {
@@ -479,13 +479,9 @@ const formatTotalDuration = (seconds) => {
                           e.target.src = '/images/video-placeholder.jpg';
                         }}
                       />
-                      {video.duration && (
-                        <span className={styles.compilationVideoDuration}>
-                          {typeof video.duration === 'number' 
-                            ? formatTotalDuration(video.duration)
-                            : video.duration}
-                        </span>
-                      )}
+                      <span className={styles.compilationVideoDuration}>
+                        {video.duration || '0:00'}
+                      </span>
                     </div>
                     <div className={styles.compilationVideoInfo}>
                       <h4 className={styles.compilationVideoTitle}>{video.title}</h4>

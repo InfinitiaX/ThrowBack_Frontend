@@ -103,31 +103,6 @@ const VideoUrlImport = ({ onVideoSelect, apiBaseUrl }) => {
         throw new Error("Impossible d'extraire l'ID de la vidéo depuis l'URL.");
       }
       
-      // Normalisation de la durée
-      const normalizeDuration = (duration) => {
-        // Si la durée est déjà en secondes
-        if (typeof duration === 'number') {
-          return duration;
-        }
-        
-        // Si la durée est au format 'HH:MM:SS' ou 'MM:SS'
-        if (typeof duration === 'string') {
-          const parts = duration.split(':').map(part => parseInt(part, 10) || 0);
-          
-          if (parts.length === 3) { // format h:m:s
-            return parts[0] * 3600 + parts[1] * 60 + parts[2];
-          } else if (parts.length === 2) { // format m:s
-            return parts[0] * 60 + parts[1];
-          } else if (parts.length === 1) { // juste secondes
-            return parts[0];
-          }
-        }
-        
-        // Valeur par défaut selon la source
-        return sourceType === 'youtube' ? 240 : 
-               sourceType === 'vimeo' ? 300 : 180;
-      };
-      
       // Récupérer les métadonnées depuis le backend
       const token = localStorage.getItem('token');
       if (!token) {
@@ -166,8 +141,8 @@ const VideoUrlImport = ({ onVideoSelect, apiBaseUrl }) => {
         title: data.title || 'Titre non disponible',
         description: data.description || 'Aucune description',
         thumbnail: data.thumbnail || '/images/video-placeholder.jpg',
-        duration: normalizeDuration(data.duration), // Normaliser la durée
-        source: sourceType.toUpperCase(), // Standardiser en majuscules
+        duration: data.duration || '0:00',
+        source: sourceType,
         url: url,
         // Données supplémentaires facultatives
         channel: data.channel || 'Chaîne inconnue',
@@ -259,41 +234,18 @@ const VideoUrlImport = ({ onVideoSelect, apiBaseUrl }) => {
 
   // Simuler des métadonnées si l'API n'est pas disponible (pour développement)
   const simulateMetadata = (url, sourceType, videoId) => {
-    // Normaliser le type de source en majuscules pour cohérence
-    const normalizedSourceType = sourceType.toUpperCase();
-    
-    // Estimer la durée selon le type de source (en secondes)
-    let defaultDuration;
-    if (normalizedSourceType === 'YOUTUBE') defaultDuration = 240;
-    else if (normalizedSourceType === 'VIMEO') defaultDuration = 300;
-    else defaultDuration = 180;
-    
+    // Cette fonction n'est utilisée que si l'API n'est pas disponible
     return {
       videoId,
-      title: `Vidéo ${normalizedSourceType} - ${videoId}`,
+      title: `Vidéo ${sourceType} - ${videoId}`,
       description: 'Description simulée pour cette vidéo',
       thumbnail: '/images/video-placeholder.jpg',
-      duration: defaultDuration, // Durée en secondes
-      source: normalizedSourceType,
+      duration: '3:45',
+      source: sourceType,
       url: url,
       channel: 'Chaîne simulée',
       published: 'il y a 2 ans'
     };
-  };
-
-  // Fonction pour formater la durée en secondes en format lisible
-  const formatDurationFromSeconds = (seconds) => {
-    if (!seconds || isNaN(seconds)) return '0:00';
-    
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-    } else {
-      return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-    }
   };
 
   return (
@@ -407,17 +359,15 @@ const VideoUrlImport = ({ onVideoSelect, apiBaseUrl }) => {
                     }}
                   />
                   <span className={styles.videoPlatformBadge}>
-                    {video.source === 'YOUTUBE' && <i className="fab fa-youtube"></i>}
-                    {video.source === 'VIMEO' && <i className="fab fa-vimeo-v"></i>}
-                    {video.source === 'DAILYMOTION' && <i className="fas fa-play-circle"></i>}
+                    {video.source === 'youtube' && <i className="fab fa-youtube"></i>}
+                    {video.source === 'vimeo' && <i className="fab fa-vimeo-v"></i>}
+                    {video.source === 'dailymotion' && <i className="fas fa-play-circle"></i>}
                   </span>
                 </div>
                 <div className={styles.recentImportInfo}>
                   <h5 className={styles.recentImportTitle}>{video.title}</h5>
                   <p className={styles.recentImportMeta}>
-                    {typeof video.duration === 'number' 
-                      ? formatDurationFromSeconds(video.duration)
-                      : video.duration} | {video.channel}
+                    {video.duration} | {video.channel}
                   </p>
                 </div>
                 <button 

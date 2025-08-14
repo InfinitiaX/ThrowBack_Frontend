@@ -266,88 +266,62 @@ const LiveThrowback = () => {
     
     // Fonction pour obtenir la durée d'une vidéo (en secondes)
     const getVideoDuration = (video) => {
-      // Utiliser la durée en secondes directement si disponible
-      if (typeof video.duration === 'number' && video.duration > 0) {
-        return video.duration;
-      }
-      
-      // Sinon, utiliser des valeurs par défaut selon le type de vidéo
-      return video.sourceType === 'YOUTUBE' ? 240 : 
-             video.sourceType === 'VIMEO' ? 300 : 180;
+      if (video.duration) return video.duration;
+      return video.sourceType === 'YOUTUBE' ? 240 : 180; // Valeurs par défaut plus précises
     };
     
-    // Calculer l'index de la vidéo actuelle et la progression
+    // Calculer l'index de manière plus précise
     let accumulatedTime = 0;
     let newIndex = 0;
-    let videoProgress = 0;
-    let shouldLoop = currentStream.playbackConfig?.loop !== false;
     
-    // Mode lecture aléatoire
-    if (currentStream.playbackConfig?.shuffle) {
-      // En mode aléatoire, changer de vidéo toutes les 4 minutes environ
-      const shuffleInterval = 240; // 4 minutes en secondes
-      const totalElapsed = elapsedSeconds % (videos.length * shuffleInterval);
-      newIndex = Math.floor(totalElapsed / shuffleInterval) % videos.length;
+    for (let i = 0; i < videos.length; i++) {
+      const duration = getVideoDuration(videos[i]);
+      if (accumulatedTime + duration > elapsedSeconds) {
+        newIndex = i;
+        break;
+      }
+      accumulatedTime += duration;
       
-      // Calculer la progression dans cette vidéo
-      const videoElapsed = totalElapsed % shuffleInterval;
-      const videoDuration = getVideoDuration(videos[newIndex]);
-      videoProgress = Math.min(1, videoElapsed / videoDuration);
-    } 
-    // Mode séquentiel standard
-    else {
-      // Parcourir la playlist pour trouver la vidéo actuelle
-      for (let i = 0; i < videos.length; i++) {
-        const videoDuration = getVideoDuration(videos[i]);
-        
-        if (accumulatedTime + videoDuration > elapsedSeconds) {
-          newIndex = i;
-          // Calculer la progression dans cette vidéo
-          videoProgress = (elapsedSeconds - accumulatedTime) / videoDuration;
+      // Boucler si nécessaire
+      if (i === videos.length - 1) {
+        i = -1;
+        // Éviter les boucles infinies
+        if (accumulatedTime > elapsedSeconds * 2) {
+          newIndex = 0;
           break;
-        }
-        
-        accumulatedTime += videoDuration;
-        
-        // Si on atteint la fin et que loop est activé, recommencer
-        if (i === videos.length - 1 && shouldLoop) {
-          i = -1; // -1 car l'incrémentation du for le mettra à 0
-          
-          // Éviter les boucles infinies
-          if (accumulatedTime > elapsedSeconds * 2) {
-            newIndex = 0;
-            videoProgress = 0;
-            break;
-          }
         }
       }
     }
     
-    // Mettre à jour l'état seulement si l'index a changé
+    // Mettre à jour seulement si nécessaire
     if (newIndex !== currentStream.currentVideoIndex) {
-      // Calculer le timestamp exact du début de la vidéo actuelle
-      const videoStartTime = new Date(startTime.getTime() + (accumulatedTime * 1000));
+      logger.debug(`Updating video index from ${currentStream.currentVideoIndex} to ${newIndex}`);
+      
+      // Éviter les sauts brusques en vérifiant si l'index est consécutif
+      const currentIndex = currentStream.currentVideoIndex || 0;
+      const isConsecutive = newIndex === (currentIndex + 1) % videos.length;
       
       setCurrentStream(prev => ({
         ...prev,
         currentVideoIndex: newIndex,
-        currentVideoStartTime: videoStartTime,
-        videoProgress: videoProgress // Ajouter la progression comme propriété
+        // Stocker le moment où cette vidéo a démarré
+        currentVideoStartTime: new Date(startTime.getTime() + (accumulatedTime * 1000))
       }));
       
-      // Si le lecteur est disponible, essayer d'utiliser l'API YouTube
-      if (playerRef.current && playerRef.current.ready) {
+      // Si le changement est consécutif, ne pas recharger toute l'iframe
+      if (isConsecutive && videoRef.current) {
+        // Tenter d'utiliser l'API player si disponible pour une transition fluide
         try {
-          const currentVideo = videos[newIndex];
-          if (currentVideo && currentVideo.sourceType === 'YOUTUBE') {
-            playerRef.current.postMessage({
+          if (videoRef.current.contentWindow && 
+              videoRef.current.contentWindow.postMessage) {
+            videoRef.current.contentWindow.postMessage(JSON.stringify({
               event: 'command',
               func: 'loadVideoById',
-              args: [currentVideo.sourceId]
-            });
+              args: [videos[newIndex].sourceId]
+            }), '*');
           }
         } catch (e) {
-          console.error('Error using YouTube API:', e);
+          logger.error('Error using player API:', e);
         }
       }
     }
@@ -700,24 +674,9 @@ const LiveThrowback = () => {
     if (currentStream.currentVideoStartTime) {
       const now = new Date();
       const videoStartTime = new Date(currentStream.currentVideoStartTime);
-      
-      // Utiliser la durée en secondes directement ou la calculer
-      let duration = 0;
-      if (typeof currentVideo.duration === 'number') {
-        duration = currentVideo.duration;
-      } else {
-        // Valeur par défaut selon le type de vidéo
-        duration = currentVideo.sourceType === 'YOUTUBE' ? 240 : 
-                   currentVideo.sourceType === 'VIMEO' ? 300 : 180;
-      }
-      
+      const duration = currentVideo.duration || 240; // Durée en secondes
       const elapsedSeconds = Math.floor((now - videoStartTime) / 1000);
       videoProgressPercent = Math.min(100, Math.max(0, (elapsedSeconds / duration) * 100));
-    }
-    
-    // Si videoProgress est directement fourni dans l'état (nouvelles modifications)
-    if (currentStream.videoProgress !== undefined) {
-      videoProgressPercent = currentStream.videoProgress * 100;
     }
     
     return (

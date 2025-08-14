@@ -1,7 +1,8 @@
+// components/LiveThrowback/LiveStreamScheduler.jsx
 import React, { useState } from 'react';
 import styles from './LiveThrowback.module.css';
 
-const LiveStreamScheduler = ({ onSchedule, videosSelected = [], isLoading }) => {
+const LiveStreamScheduler = ({ onSchedule, videosSelected, isLoading }) => {
   const [schedulingData, setSchedulingData] = useState({
     title: '',
     description: '',
@@ -102,43 +103,10 @@ const LiveStreamScheduler = ({ onSchedule, videosSelected = [], isLoading }) => 
   const handleSubmit = () => {
     if (!validateForm()) return;
     
-    // Normaliser les informations sur les vidéos sélectionnées
-    // pour s'assurer que la durée est correctement formatée en secondes
-    const normalizedVideos = videosSelected.map(video => {
-      let durationInSeconds = 0;
-      
-      // Convertir la durée au format correct
-      if (typeof video.duration === 'number') {
-        durationInSeconds = video.duration;
-      } else if (typeof video.duration === 'string') {
-        const parts = video.duration.split(':').map(part => parseInt(part, 10) || 0);
-        
-        if (parts.length === 3) { // format h:m:s
-          durationInSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
-        } else if (parts.length === 2) { // format m:s
-          durationInSeconds = parts[0] * 60 + parts[1];
-        } else if (parts.length === 1) { // juste secondes
-          durationInSeconds = parts[0];
-        }
-      }
-      
-      // Valeur par défaut si pas de durée valide
-      if (durationInSeconds <= 0) {
-        durationInSeconds = video.sourceType === 'YOUTUBE' ? 240 : 
-                           video.sourceType === 'VIMEO' ? 300 : 180;
-      }
-      
-      return {
-        ...video,
-        duration: durationInSeconds // Stocker en secondes
-      };
-    });
-    
     // S'assurer que tags est bien une chaîne avant de l'envoyer
     const formattedData = {
       ...schedulingData,
-      tags: typeof schedulingData.tags === 'string' ? schedulingData.tags : '',
-      videos: normalizedVideos // Passer les vidéos normalisées
+      tags: typeof schedulingData.tags === 'string' ? schedulingData.tags : ''
     };
     
     onSchedule(formattedData);
@@ -167,7 +135,7 @@ const LiveStreamScheduler = ({ onSchedule, videosSelected = [], isLoading }) => 
     <div className={styles.schedulerContainer}>
       <div className={styles.schedulerHeader}>
         <h3>Programmer le LiveThrowback</h3>
-        {!videosSelected.length && (
+        {!videosSelected && (
           <div className={styles.warningMessage}>
             <i className="fas fa-exclamation-triangle"></i> Ajoutez au moins une vidéo avant de programmer
           </div>
@@ -358,7 +326,7 @@ const LiveStreamScheduler = ({ onSchedule, videosSelected = [], isLoading }) => 
           <button 
             className={styles.scheduleButton}
             onClick={handleSubmit}
-            disabled={isLoading || !videosSelected.length}
+            disabled={isLoading || !videosSelected}
           >
             {isLoading ? (
               <><i className="fas fa-spinner fa-spin"></i> Programmation en cours...</>

@@ -5,49 +5,30 @@ const CompilationBuilder = ({ selectedVideos, onRemoveVideo, onReorderVideos }) 
   const [totalDuration, setTotalDuration] = useState(0);
   const [draggedVideo, setDraggedVideo] = useState(null);
 
-// components/LiveThrowback/CompilationBuilder.jsx - Fonction à modifier
-
-// Remplacer la fonction de calcul de durée totale
-useEffect(() => {
-  // Calculer la durée totale
-  const calcTotalDuration = () => {
-    let total = 0;
-    selectedVideos.forEach(video => {
-      // Normaliser la durée en secondes
-      let durationInSeconds = 0;
-      
-      if (typeof video.duration === 'number') {
-        // Si la durée est déjà en secondes, l'utiliser directement
-        durationInSeconds = video.duration;
-      } else if (typeof video.duration === 'string') {
-        // Convertir la durée formatée (MM:SS ou HH:MM:SS) en secondes
-        const parts = video.duration.split(':').map(part => parseInt(part, 10) || 0);
+  // Calculer la durée totale à chaque modification de la liste
+  useEffect(() => {
+    // Calculer la durée totale
+    const calcTotalDuration = () => {
+      let total = 0;
+      selectedVideos.forEach(video => {
+        // Convertir la durée en secondes
+        const duration = video.duration || '0:00';
+        const parts = duration.split(':').map(part => parseInt(part, 10) || 0);
         
         if (parts.length === 3) { // format h:m:s
-          durationInSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+          total += parts[0] * 3600 + parts[1] * 60 + parts[2];
         } else if (parts.length === 2) { // format m:s
-          durationInSeconds = parts[0] * 60 + parts[1];
+          total += parts[0] * 60 + parts[1];
         } else if (parts.length === 1) { // juste secondes
-          durationInSeconds = parts[0];
+          total += parts[0];
         }
-      }
+      });
       
-      // Valeur par défaut en fonction du type de source si pas de durée valide
-      if (durationInSeconds <= 0) {
-        durationInSeconds = video.sourceType === 'YOUTUBE' ? 240 : 
-                            video.sourceType === 'VIMEO' ? 300 : 180;
-      }
-      
-      total += durationInSeconds;
-    });
+      setTotalDuration(total);
+    };
     
-    setTotalDuration(total);
-  };
-  
-  calcTotalDuration();
-}, [selectedVideos]);
-
-
+    calcTotalDuration();
+  }, [selectedVideos]);
 
   // Formater la durée totale en hh:mm:ss
   const formatTotalDuration = () => {

@@ -11,17 +11,32 @@ const CompilationBuilder = ({ selectedVideos, onRemoveVideo, onReorderVideos }) 
     const calcTotalDuration = () => {
       let total = 0;
       selectedVideos.forEach(video => {
-        // Convertir la durée en secondes
-        const duration = video.duration || '0:00';
-        const parts = duration.split(':').map(part => parseInt(part, 10) || 0);
+        // Normaliser la durée en secondes
+        let durationInSeconds = 0;
         
-        if (parts.length === 3) { // format h:m:s
-          total += parts[0] * 3600 + parts[1] * 60 + parts[2];
-        } else if (parts.length === 2) { // format m:s
-          total += parts[0] * 60 + parts[1];
-        } else if (parts.length === 1) { // juste secondes
-          total += parts[0];
+        if (typeof video.duration === 'number') {
+          // Si la durée est déjà en secondes, l'utiliser directement
+          durationInSeconds = video.duration;
+        } else if (typeof video.duration === 'string') {
+          // Convertir la durée formatée (MM:SS ou HH:MM:SS) en secondes
+          const parts = video.duration.split(':').map(part => parseInt(part, 10) || 0);
+          
+          if (parts.length === 3) { // format h:m:s
+            durationInSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+          } else if (parts.length === 2) { // format m:s
+            durationInSeconds = parts[0] * 60 + parts[1];
+          } else if (parts.length === 1) { // juste secondes
+            durationInSeconds = parts[0];
+          }
         }
+        
+        // Valeur par défaut en fonction du type de source si pas de durée valide
+        if (durationInSeconds <= 0) {
+          durationInSeconds = video.sourceType === 'YOUTUBE' ? 240 : 
+                              video.sourceType === 'VIMEO' ? 300 : 180;
+        }
+        
+        total += durationInSeconds;
       });
       
       setTotalDuration(total);
@@ -120,7 +135,9 @@ const CompilationBuilder = ({ selectedVideos, onRemoveVideo, onReorderVideos }) 
                   }}
                 />
                 <span className={styles.selectedVideoDuration}>
-                  {video.duration || '0:00'}
+                  {typeof video.duration === 'number' 
+                    ? formatDurationFromSeconds(video.duration) 
+                    : video.duration || '0:00'}
                 </span>
               </div>
               <div className={styles.selectedVideoInfo}>
@@ -171,6 +188,21 @@ const CompilationBuilder = ({ selectedVideos, onRemoveVideo, onReorderVideos }) 
       )}
     </div>
   );
+};
+
+// Fonction utilitaire pour formater la durée en secondes en format lisible
+const formatDurationFromSeconds = (seconds) => {
+  if (!seconds || isNaN(seconds)) return '0:00';
+  
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  } else {
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
 };
 
 export default CompilationBuilder;

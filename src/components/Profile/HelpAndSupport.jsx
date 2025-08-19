@@ -16,7 +16,8 @@ import {
   faMusic,
   faUser,
   faHeart,
-  faHeadphones
+  faHeadphones,
+  faGlobe
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './HelpAndSupport.module.css';
 import { useAuth } from '../../contexts/AuthContext';
@@ -24,68 +25,68 @@ import { useAuth } from '../../contexts/AuthContext';
 // FAQ items
 const faqItems = [
   {
-    question: "Comment créer une playlist?",
-    answer: "Pour créer une playlist, allez dans la section 'Playlists' via le menu principal, puis cliquez sur le bouton 'Créer une playlist'. Donnez un titre à votre playlist, ajoutez une description et choisissez sa visibilité. Vous pourrez ensuite y ajouter des vidéos depuis n'importe quelle page de vidéo."
+    question: "How do I create a playlist?",
+    answer: "To create a playlist, go to the 'Playlists' section via the main menu, then click the 'Create a playlist' button. Give your playlist a title, add a description, and choose its visibility. You can then add videos to it from any video page."
   },
   {
-    question: "Comment ajouter une vidéo à ma playlist?",
-    answer: "Sur chaque page de vidéo, vous trouverez un bouton 'Ajouter à la playlist'. Cliquez dessus pour afficher vos playlists existantes ou pour créer une nouvelle playlist. Vous pouvez également gérer vos playlists depuis la section 'Playlists' du menu principal."
+    question: "How do I add a video to my playlist?",
+    answer: "On each video page, you'll find an 'Add to playlist' button. Click on it to display your existing playlists or to create a new playlist. You can also manage your playlists from the 'Playlists' section in the main menu."
   },
   {
-    question: "Comment partager mes souvenirs (memories) avec mes amis?",
-    answer: "Lorsque vous regardez une vidéo, vous pouvez ajouter un souvenir en utilisant la section 'Ajouter un souvenir' sous la vidéo. Une fois votre souvenir publié, il apparaîtra sur votre profil et dans votre flux d'activité. Vos amis verront vos souvenirs dans leur fil d'actualités. Vous pouvez également partager un souvenir spécifique en cliquant sur l'icône de partage."
+    question: "How do I share my memories with friends?",
+    answer: "When watching a video, you can add a memory using the 'Add a memory' section below the video. Once your memory is published, it will appear on your profile and in your activity feed. Your friends will see your memories in their news feed. You can also share a specific memory by clicking on the share icon."
   },
   {
-    question: "Comment modifier mon profil?",
-    answer: "Pour modifier votre profil, allez sur votre page de profil et cliquez sur le bouton 'Setting'. Vous pourrez alors modifier votre photo de profil, votre biographie, votre localisation et d'autres informations personnelles."
+    question: "How do I edit my profile?",
+    answer: "To edit your profile, go to your profile page and click the 'Setting' button. You can then modify your profile picture, biography, location, and other personal information."
   },
   {
-    question: "Comment trouver des vidéos d'une décennie spécifique?",
-    answer: "Utilisez la fonction de recherche et les filtres disponibles dans la section 'ThrowBack Videos'. Vous pouvez filtrer par décennie, artiste ou genre musical pour trouver les vidéos qui vous intéressent."
+    question: "How do I find videos from a specific decade?",
+    answer: "Use the search function and filters available in the 'ThrowBack Videos' section. You can filter by decade, artist, or music genre to find the videos that interest you."
   },
   {
-    question: "Je ne peux pas lire une vidéo, que dois-je faire?",
-    answer: "Si vous rencontrez des problèmes pour lire une vidéo, vérifiez votre connexion internet. Si le problème persiste, essayez d'actualiser la page. Si la vidéo reste inaccessible, elle peut être temporairement indisponible. Vous pouvez nous signaler le problème via le formulaire de contact ci-dessous."
+    question: "I can't play a video, what should I do?",
+    answer: "If you're having trouble playing a video, check your internet connection. If the problem persists, try refreshing the page. If the video remains inaccessible, it may be temporarily unavailable. You can report the problem to us using the contact form below."
   },
   {
-    question: "Comment fonctionne le système de Live ThrowBack?",
-    answer: "Live ThrowBack est notre système de diffusion en direct qui propose une programmation musicale nostalgique. Consultez le programme dans la section 'LiveThrowBack' pour connaître les horaires des émissions. Vous pouvez interagir avec d'autres auditeurs via le chat en direct pendant les diffusions."
+    question: "How does the Live ThrowBack system work?",
+    answer: "Live ThrowBack is our live broadcasting system that offers nostalgic music programming. Check the schedule in the 'LiveThrowBack' section to know the broadcast times. You can interact with other listeners via the live chat during broadcasts."
   },
   {
-    question: "Est-ce que je peux suggérer des vidéos à ajouter?",
-    answer: "Absolument! Nous sommes toujours à la recherche de nouvelles vidéos à ajouter à notre bibliothèque. Utilisez le formulaire de contact ci-dessous pour nous suggérer des vidéos que vous aimeriez voir sur ThrowBack."
+    question: "Can I suggest videos to add?",
+    answer: "Absolutely! We're always looking for new videos to add to our library. Use the contact form below to suggest videos you'd like to see on ThrowBack."
   }
 ];
 
 // Guide sections
 const guideItems = [
   {
-    title: "Débuter avec ThrowBack",
+    title: "Getting Started with ThrowBack",
     icon: faUser,
     link: "/guide/getting-started"
   },
   {
-    title: "Gestion de votre profil",
+    title: "Managing Your Profile",
     icon: faCog,
     link: "/guide/profile-management"
   },
   {
-    title: "Découvrir des vidéos",
+    title: "Discovering Videos",
     icon: faVideo,
     link: "/guide/discover-videos"
   },
   {
-    title: "Créer et gérer des playlists",
+    title: "Creating and Managing Playlists",
     icon: faMusic,
     link: "/guide/playlists"
   },
   {
-    title: "Partager des souvenirs",
+    title: "Sharing Memories",
     icon: faHeart,
     link: "/guide/sharing-memories"
   },
   {
-    title: "Écouter Live ThrowBack",
+    title: "Listening to Live ThrowBack",
     icon: faHeadphones,
     link: "/guide/live-throwback"
   }
@@ -103,6 +104,7 @@ const HelpAndSupport = () => {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [formError, setFormError] = useState(null);
   const contactFormRef = useRef(null);
+  const missionRef = useRef(null);
 
   // Toggle FAQ item
   const toggleFaq = (index) => {
@@ -124,17 +126,17 @@ const HelpAndSupport = () => {
     
     // Form validation
     if (!contactForm.subject.trim()) {
-      setFormError("Veuillez entrer un sujet pour votre demande");
+      setFormError("Please enter a subject for your request");
       return;
     }
     
     if (!contactForm.message.trim()) {
-      setFormError("Veuillez entrer un message");
+      setFormError("Please enter a message");
       return;
     }
     
     if (!contactForm.email.trim() || !contactForm.email.includes('@')) {
-      setFormError("Veuillez entrer une adresse email valide");
+      setFormError("Please enter a valid email address");
       return;
     }
     
@@ -161,24 +163,32 @@ const HelpAndSupport = () => {
     contactFormRef.current.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Scroll to mission section
+  const scrollToMission = () => {
+    missionRef.current.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <div className={styles.helpContainer}>
       <div className={styles.helpHeader}>
-        <button 
-          className={styles.backButton}
-          onClick={() => navigate('/dashboard/profile')}
-        >
-          <FontAwesomeIcon icon={faArrowLeft} />
-          <span>Retour au profil</span>
-        </button>
-        <h1 className={styles.pageTitle}>Aide et support</h1>
+       <button onClick={() => navigate(-1)} className={styles.backButton}>← Back</button>
+        <h1 className={styles.pageTitle}>Help and Support</h1>
       </div>
       
       <div className={styles.helpContent}>
         <div className={styles.helpSidebar}>
           <div className={styles.sidebarSection}>
-            <h3 className={styles.sidebarTitle}>Ressources</h3>
+            <h3 className={styles.sidebarTitle}>Resources</h3>
             <ul className={styles.sidebarLinks}>
+              <li>
+                <a href="#mission" className={styles.sidebarLink} onClick={(e) => {
+                  e.preventDefault();
+                  scrollToMission();
+                }}>
+                  <FontAwesomeIcon icon={faGlobe} />
+                  <span>Our Mission</span>
+                </a>
+              </li>
               <li>
                 <a href="#faq" className={styles.sidebarLink}>
                   <FontAwesomeIcon icon={faQuestionCircle} />
@@ -188,7 +198,7 @@ const HelpAndSupport = () => {
               <li>
                 <a href="#guide" className={styles.sidebarLink}>
                   <FontAwesomeIcon icon={faBook} />
-                  <span>Guide utilisateur</span>
+                  <span>User Guide</span>
                 </a>
               </li>
               <li>
@@ -197,14 +207,14 @@ const HelpAndSupport = () => {
                   scrollToContactForm();
                 }}>
                   <FontAwesomeIcon icon={faEnvelope} />
-                  <span>Nous contacter</span>
+                  <span>Contact Us</span>
                 </a>
               </li>
             </ul>
           </div>
           
           <div className={styles.sidebarSection}>
-            <h3 className={styles.sidebarTitle}>Contact direct</h3>
+            <h3 className={styles.sidebarTitle}>Direct Contact</h3>
             <div className={styles.contactInfo}>
               <div className={styles.contactItem}>
                 <FontAwesomeIcon icon={faEnvelope} />
@@ -219,10 +229,39 @@ const HelpAndSupport = () => {
         </div>
         
         <div className={styles.helpMain}>
+          <section id="mission" className={styles.section} ref={missionRef}>
+            <h2 className={styles.sectionTitle}>
+              <FontAwesomeIcon icon={faGlobe} />
+              <span>Our Mission</span>
+            </h2>
+            
+            <div className={styles.missionContainer}>
+              <p className={styles.missionText}>
+                At Throwback-Connect, our mission is to unite generations and cultures through the 
+                timeless power of music by celebrating the golden eras and iconic sounds that shaped 
+                the past—from Motown, 90s Hip-Hop, and classic R&B to Rock 'n' Roll, Disco, Funk, 
+                Country, and beyond.
+              </p>
+              
+              <p className={styles.missionText}>
+                Curating and sharing music videos from around the world, we 
+                create a global digital space where memories come alive and rhythms spark 
+                connection. Whether you're vibing to Detroit soul, dancing to Kingston riddims, or 
+                reminiscing with Nashville twang, or exploring Afrobeat, Reggae, French chanson, Latin 
+                classics, and Japanese city pop, Throwback-Connect bridges cultures and generations, 
+                bringing people together through the soundtrack of their lives—across borders and time.
+              </p>
+              
+              <p className={styles.missionTagline}>
+                Your memories. Your music. Let's connect!
+              </p>
+            </div>
+          </section>
+          
           <section id="faq" className={styles.section}>
             <h2 className={styles.sectionTitle}>
               <FontAwesomeIcon icon={faQuestionCircle} />
-              <span>Questions fréquentes</span>
+              <span>Frequently Asked Questions</span>
             </h2>
             
             <div className={styles.faqContainer}>
@@ -249,7 +288,7 @@ const HelpAndSupport = () => {
           <section id="guide" className={styles.section}>
             <h2 className={styles.sectionTitle}>
               <FontAwesomeIcon icon={faBook} />
-              <span>Guide utilisateur</span>
+              <span>User Guide</span>
             </h2>
             
             <div className={styles.guideGrid}>
@@ -258,7 +297,7 @@ const HelpAndSupport = () => {
                   <FontAwesomeIcon icon={item.icon} className={styles.guideIcon} />
                   <h3 className={styles.guideTitle}>{item.title}</h3>
                   <a href={item.link} className={styles.guideLink}>
-                    Voir le guide
+                    View Guide
                   </a>
                 </div>
               ))}
@@ -268,14 +307,14 @@ const HelpAndSupport = () => {
           <section id="contact" className={styles.section} ref={contactFormRef}>
             <h2 className={styles.sectionTitle}>
               <FontAwesomeIcon icon={faEnvelope} />
-              <span>Nous contacter</span>
+              <span>Contact Us</span>
             </h2>
             
             <div className={styles.contactFormContainer}>
               {formSubmitted ? (
                 <div className={styles.formSuccess}>
-                  <h3>Merci pour votre message!</h3>
-                  <p>Nous avons bien reçu votre demande et nous vous répondrons dans les plus brefs délais.</p>
+                  <h3>Thank you for your message!</h3>
+                  <p>We have received your request and will respond as soon as possible.</p>
                 </div>
               ) : (
                 <form className={styles.contactForm} onSubmit={handleSubmit}>
@@ -294,13 +333,13 @@ const HelpAndSupport = () => {
                       value={contactForm.email}
                       onChange={handleInputChange}
                       className={styles.formInput}
-                      placeholder="Votre adresse email"
+                      placeholder="Your email address"
                       required
                     />
                   </div>
                   
                   <div className={styles.formGroup}>
-                    <label htmlFor="subject" className={styles.formLabel}>Sujet</label>
+                    <label htmlFor="subject" className={styles.formLabel}>Subject</label>
                     <input 
                       type="text"
                       id="subject"
@@ -308,7 +347,7 @@ const HelpAndSupport = () => {
                       value={contactForm.subject}
                       onChange={handleInputChange}
                       className={styles.formInput}
-                      placeholder="Sujet de votre message"
+                      placeholder="Subject of your message"
                       required
                     />
                   </div>
@@ -321,7 +360,7 @@ const HelpAndSupport = () => {
                       value={contactForm.message}
                       onChange={handleInputChange}
                       className={styles.formTextarea}
-                      placeholder="Décrivez votre problème ou votre question en détail"
+                      placeholder="Describe your issue or question in detail"
                       rows="6"
                       required
                     />
@@ -329,7 +368,7 @@ const HelpAndSupport = () => {
                   
                   <button type="submit" className={styles.submitButton}>
                     <FontAwesomeIcon icon={faPaperPlane} />
-                    <span>Envoyer</span>
+                    <span>Send</span>
                   </button>
                 </form>
               )}

@@ -449,7 +449,7 @@ const Settings = () => {
         )}
 
         {/* Preferences Block */}
-        {activeTab === 'Language and theme' && (
+        {activeTab === 'L&T' && (
           <div>
             <div className={styles.sectionHeader}>
               <MdLanguage className={styles.sectionIcon} />

@@ -352,11 +352,11 @@ const ProfileTabs = () => {
     <>
       <button onClick={() => navigate(-1)} className={styles.backButton}>← Back</button>
       <div className={styles.tabsContainer}>
-        <h1 style={{textAlign: 'center', fontSize: '2rem', fontWeight: 700, marginBottom: 24, color: '#333'}}>Information</h1>
+        <h1 style={{textAlign: 'center', fontSize: '2rem', fontWeight: 700, marginBottom: 24, color: '#333'}}>Informations</h1>
         
         {error && <div className={styles.errorMessage}>{error}</div>}
         {success && <div className={styles.successMessage}>{success}</div>}
-        {isLoading && <div className={styles.loadingIndicator}>Chargement...</div>}
+        {isLoading && <div className={styles.loadingIndicator}>Loading...</div>}
         
         <div className={styles.tabs}>
           {tabs.map(tab => (

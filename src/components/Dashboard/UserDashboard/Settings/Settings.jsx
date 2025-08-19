@@ -271,7 +271,7 @@ const Settings = () => {
             className={`${styles.tab} ${activeTab === 'Language and theme' ? styles.active : ''}`}
             onClick={() => setActiveTab('Language and theme')}
           >
-            Language and theme
+            L&T
             <span style={comingSoonStyle}>Coming Soon</span>
           </button>
         </div>
@@ -453,7 +453,7 @@ const Settings = () => {
           <div>
             <div className={styles.sectionHeader}>
               <MdLanguage className={styles.sectionIcon} />
-              <h2>L&T</h2>
+              <h2>Language and theme</h2>
             </div>
             
             <DevelopmentNotice />

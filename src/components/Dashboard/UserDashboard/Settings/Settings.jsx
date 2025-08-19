@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../../contexts/AuthContext';
 import styles from './Settings.module.css';
-import { MdLock, MdNotifications, MdPrivacyTip, MdLanguage, MdPalette } from 'react-icons/md';
+import { MdLock, MdNotifications, MdPrivacyTip, MdLanguage, MdPalette, MdInfo } from 'react-icons/md';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -21,6 +21,33 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Style pour le badge Coming Soon
+const comingSoonStyle = {
+  fontSize: '0.6rem',
+  padding: '2px 4px',
+  backgroundColor: '#8b0000',
+  color: 'white',
+  borderRadius: '4px',
+  marginLeft: '8px',
+  fontWeight: 'bold',
+  display: 'inline-block',
+  verticalAlign: 'middle',
+  lineHeight: 1,
+};
+
+// Style pour la notification "Feature in development"
+const developmentNoticeStyle = {
+  backgroundColor: 'rgba(139, 0, 0, 0.05)',
+  border: '1px solid rgba(139, 0, 0, 0.1)',
+  borderRadius: '8px',
+  padding: '15px',
+  marginTop: '15px',
+  marginBottom: '15px',
+  display: 'flex',
+  alignItems: 'center',
+  color: '#8b0000',
+};
 
 const Settings = () => {
   const { user } = useAuth();
@@ -199,6 +226,17 @@ const Settings = () => {
     return <div className={styles.loading}>Loading...</div>;
   }
 
+  // Composant pour afficher la notification de fonctionnalité en développement
+  const DevelopmentNotice = () => (
+    <div style={developmentNoticeStyle}>
+      <MdInfo size={24} style={{ marginRight: '10px' }} />
+      <div>
+        <p style={{ margin: '0', fontWeight: 'bold' }}>This feature is currently under development</p>
+        <p style={{ margin: '5px 0 0 0' }}>We're working hard to bring you this functionality soon. Stay tuned!</p>
+      </div>
+    </div>
+  );
+
   return (
     <div className={styles.settingsContainer}>
       {serverError && (
@@ -220,18 +258,21 @@ const Settings = () => {
             onClick={() => setActiveTab('notifications')}
           >
             NOTIFICATIONS
+            <span style={comingSoonStyle}>Coming Soon</span>
           </button>
           <button
             className={`${styles.tab} ${activeTab === 'privacy' ? styles.active : ''}`}
             onClick={() => setActiveTab('privacy')}
           >
             PRIVACY
+            <span style={comingSoonStyle}>Coming Soon</span>
           </button>
           <button
             className={`${styles.tab} ${activeTab === 'Language and theme' ? styles.active : ''}`}
             onClick={() => setActiveTab('Language and theme')}
           >
             Language and theme
+            <span style={comingSoonStyle}>Coming Soon</span>
           </button>
         </div>
 
@@ -303,7 +344,10 @@ const Settings = () => {
               <MdNotifications className={styles.sectionIcon} />
               <h2>Notifications</h2>
             </div>
-            <div className={styles.settingGroup}>
+            
+            <DevelopmentNotice />
+            
+            <div className={styles.settingGroup} style={{ opacity: 0.6, pointerEvents: 'none' }}>
               <label className={styles.settingItem}>
                 <div className={styles.settingLabel}>
                   <span>Email Notifications</span>
@@ -314,6 +358,7 @@ const Settings = () => {
                   checked={settings.notifications.email}
                   onChange={() => handleNotificationChange('email')}
                   className={styles.toggle}
+                  disabled
                 />
               </label>
               <label className={styles.settingItem}>
@@ -326,6 +371,7 @@ const Settings = () => {
                   checked={settings.notifications.push}
                   onChange={() => handleNotificationChange('push')}
                   className={styles.toggle}
+                  disabled
                 />
               </label>
               <label className={styles.settingItem}>
@@ -338,6 +384,7 @@ const Settings = () => {
                   checked={settings.notifications.marketing}
                   onChange={() => handleNotificationChange('marketing')}
                   className={styles.toggle}
+                  disabled
                 />
               </label>
             </div>
@@ -351,7 +398,10 @@ const Settings = () => {
               <MdPrivacyTip className={styles.sectionIcon} />
               <h2>Privacy</h2>
             </div>
-            <div className={styles.settingGroup}>
+            
+            <DevelopmentNotice />
+            
+            <div className={styles.settingGroup} style={{ opacity: 0.6, pointerEvents: 'none' }}>
               <div className={styles.settingItem}>
                 <div className={styles.settingLabel}>
                   <span>Profile Visibility</span>
@@ -361,6 +411,7 @@ const Settings = () => {
                   value={settings.privacy.profileVisibility}
                   onChange={(e) => handlePrivacyChange('profileVisibility', e.target.value)}
                   className={styles.select}
+                  disabled
                 >
                   <option value="public">Public</option>
                   <option value="private">Private</option>
@@ -377,6 +428,7 @@ const Settings = () => {
                   checked={settings.privacy.showEmail}
                   onChange={(e) => handlePrivacyChange('showEmail', e.target.checked)}
                   className={styles.toggle}
+                  disabled
                 />
               </label>
               <label className={styles.settingItem}>
@@ -389,6 +441,7 @@ const Settings = () => {
                   checked={settings.privacy.showPhone}
                   onChange={(e) => handlePrivacyChange('showPhone', e.target.checked)}
                   className={styles.toggle}
+                  disabled
                 />
               </label>
             </div>
@@ -402,7 +455,10 @@ const Settings = () => {
               <MdLanguage className={styles.sectionIcon} />
               <h2>Language and theme</h2>
             </div>
-            <div className={styles.settingGroup}>
+            
+            <DevelopmentNotice />
+            
+            <div className={styles.settingGroup} style={{ opacity: 0.6, pointerEvents: 'none' }}>
               <div className={styles.settingItem}>
                 <div className={styles.settingLabel}>
                   <span>Language</span>
@@ -412,6 +468,7 @@ const Settings = () => {
                   value={settings.language}
                   onChange={handleLanguageChange}
                   className={styles.select}
+                  disabled
                 >
                   <option value="en">English</option>
                   <option value="fr">French</option>
@@ -427,6 +484,7 @@ const Settings = () => {
                   value={settings.theme}
                   onChange={handleThemeChange}
                   className={styles.select}
+                  disabled
                 >
                   <option value="light">Light</option>
                   <option value="dark">Dark</option>
@@ -435,7 +493,7 @@ const Settings = () => {
               </div>
             </div>
             <div className={styles.actions}>
-              <button onClick={handleSave} className={styles.saveButton}>
+              <button onClick={handleSave} className={styles.saveButton} disabled>
                 Save All Changes
               </button>
             </div>
@@ -446,4 +504,4 @@ const Settings = () => {
   );
 };
 
-export default Settings; 
+export default Settings;

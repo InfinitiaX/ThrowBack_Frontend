@@ -110,6 +110,7 @@ function App() {
             <Route path="upload/video" element={<UserTempPage title="Upload Video" />} />
             <Route path="posts/create" element={<UserTempPage title="Create Post" />} />
             <Route path="groups/create" element={<UserTempPage title="Create Group" />} />
+            <Route path="playlistsquick/create" element={<UserTempPage title="Create Playlist" />} />
             <Route path="history" element={<UserTempPage title="History" />} />
           </Route>
 

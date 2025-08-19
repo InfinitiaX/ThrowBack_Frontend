@@ -241,7 +241,7 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
   };
 
   const handleCreatePlaylistClick = () => {
-    navigate('/dashboard/playlists/create');
+    navigate('/dashboard/playlistsquick/create', { state: { title: 'Create Playlist' } });
     setIsCreateDropdownOpen(false);
   };
 
@@ -381,6 +381,7 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
                 <button className={styles.dropdownItem} onClick={handleCreatePlaylistClick}>
                   <FontAwesomeIcon icon={faList} className={styles.dropdownIcon} />
                   <span>Create Playlist</span>
+                  <span style={comingSoonStyle}>Coming Soon</span>
                 </button>
                 
                 <button className={styles.dropdownItem} onClick={handleCreatePostClick}>

@@ -23,7 +23,7 @@ import {
   faList
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './PodcastDetail.module.css';
-// Importer les nouveaux composants
+// Import new components
 import PlaylistSelectionModal from './PlaylistSelectionModal';
 import MemoryList from './MemoryList';
 import podcastAPI from '../../../../utils/podcastAPI';
@@ -32,13 +32,13 @@ const PodcastDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  // États principaux
+  // Main states
   const [podcast, setPodcast] = useState(null);
   const [allPodcasts, setAllPodcasts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // États de lecteur audio
+  // Audio player states
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -46,7 +46,7 @@ const PodcastDetail = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [prevVolume, setPrevVolume] = useState(1);
   
-  // États d'interaction
+  // Interaction states
   const [userLiked, setUserLiked] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [viewCount, setViewCount] = useState(0);
@@ -54,7 +54,7 @@ const PodcastDetail = () => {
   const [isLiking, setIsLiking] = useState(false);
   const [isBookmarking, setIsBookmarking] = useState(false);
   
-  // États d'interface
+  // Interface states
   const [podcastsLoading, setPodcastsLoading] = useState(false);
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
   const [showShareOptions, setShowShareOptions] = useState(false);
@@ -76,12 +76,12 @@ const PodcastDetail = () => {
     return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
   };
 
-  // Charger tous les podcasts au montage du composant
+  // Load all podcasts when component mounts
   useEffect(() => {
     fetchAllPodcasts();
   }, []);
 
-  // Charger le podcast spécifique quand l'ID change
+  // Load specific podcast when ID changes
   useEffect(() => {
     if (id) {
       fetchPodcastById(id);
@@ -119,11 +119,11 @@ const PodcastDetail = () => {
     }
   }, [audioRef]);
 
-  // Récupérer tous les podcasts disponibles
+  // Fetch all available podcasts
   const fetchAllPodcasts = async () => {
     try {
       setPodcastsLoading(true);
-      console.log('Chargement de tous les podcasts...');
+      console.log('Loading all podcasts...');
       
       const podcastsData = await podcastAPI.getAllPodcasts({
         limit: '50'
@@ -131,25 +131,25 @@ const PodcastDetail = () => {
       
       if (Array.isArray(podcastsData) && podcastsData.length > 0) {
         setAllPodcasts(podcastsData);
-        console.log(`${podcastsData.length} podcasts chargés`);
+        console.log(`${podcastsData.length} podcasts loaded`);
       } else {
-        console.warn('Aucun podcast trouvé, utilisation de données fictives');
+        console.warn('No podcasts found, using mock data');
         setupMockData();
       }
     } catch (err) {
-      console.error('Erreur lors du chargement des podcasts:', err);
+      console.error('Error loading podcasts:', err);
       setupMockData();
     } finally {
       setPodcastsLoading(false);
     }
   };
 
-  // Récupérer un podcast spécifique par son ID
+  // Fetch a specific podcast by ID
   const fetchPodcastById = async (podcastId) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🎙️ Chargement du podcast:', podcastId);
+      console.log('🎙️ Loading podcast:', podcastId);
       
       const podcastData = await podcastAPI.getPodcastById(podcastId);
       
@@ -157,22 +157,22 @@ const PodcastDetail = () => {
         console.log('Podcast data loaded:', podcastData);
         setPodcast(podcastData);
         
-        // Vérifier si l'utilisateur a aimé le podcast
+        // Check if user liked the podcast
         setUserLiked(podcastData.userInteraction?.liked || false);
         setIsBookmarked(podcastData.userInteraction?.bookmarked || false);
         
-        // Définir les compteurs
+        // Set counters
         setViewCount(podcastData.viewCount || 0);
         setLikeCount(podcastData.likeCount || 0);
         
-        console.log('Podcast chargé:', podcastData.title);
+        console.log('Podcast loaded:', podcastData.title);
       } else {
-        setError('Impossible de charger les détails du podcast');
+        setError('Unable to load podcast details');
         setupMockData();
       }
     } catch (err) {
-      console.error('Erreur lors du chargement du podcast:', err);
-      setError('Erreur lors du chargement du podcast');
+      console.error('Error loading podcast:', err);
+      setError('Error loading podcast');
       
       // If API fails, use mock data for demo
       setupMockData();
@@ -313,99 +313,99 @@ const PodcastDetail = () => {
     }
   };
 
-  // Gérer le like d'un podcast
+  // Handle liking a podcast
   const handleLikePodcast = async () => {
-    if (isLiking) return; // Éviter les clics multiples
+    if (isLiking) return; // Prevent multiple clicks
     
     try {
       setIsLiking(true);
       
-      // Mise à jour optimiste de l'interface
+      // Optimistic UI update
       const newLikedState = !userLiked;
       const newLikeCount = newLikedState ? likeCount + 1 : Math.max(0, likeCount - 1);
       
       setUserLiked(newLikedState);
       setLikeCount(newLikeCount);
       
-      console.log('Tentative de like/unlike...');
+      console.log('Attempting like/unlike...');
       
-      // Appel API
+      // API call
       const response = await podcastAPI.likePodcast(id);
       
       if (response.success) {
-        // Mettre à jour avec les vraies données du serveur
+        // Update with real data from server
         if (response.data) {
           setUserLiked(response.data.liked);
           setLikeCount(response.data.likeCount);
         }
-        console.log('Like/unlike réussi');
+        console.log('Like/unlike successful');
       } else {
-        // Revenir à l'état précédent en cas d'échec
+        // Revert to previous state on failure
         setUserLiked(!newLikedState);
         setLikeCount(likeCount);
-        console.warn('Échec du like:', response.message);
+        console.warn('Like failed:', response.message);
       }
     } catch (err) {
-      // Revenir à l'état précédent en cas d'erreur
+      // Revert to previous state on error
       setUserLiked(!userLiked);
       setLikeCount(likeCount);
       
-      console.error('Erreur lors du like:', err);
+      console.error('Error during like:', err);
       
       if (err.response?.status === 401) {
-        alert('Veuillez vous connecter pour aimer ce podcast');
+        alert('Please log in to like this podcast');
       } else {
-        alert('Erreur lors du like. Veuillez réessayer.');
+        alert('Error during like. Please try again.');
       }
     } finally {
       setIsLiking(false);
     }
   };
 
-  // Gérer le bookmark d'un podcast
+  // Handle bookmarking a podcast
   const handleBookmarkPodcast = async () => {
     if (isBookmarking) return; 
     
     try {
       setIsBookmarking(true);
       
-      // Mise à jour optimiste de l'interface
+      // Optimistic UI update
       const newBookmarkedState = !isBookmarked;
       setIsBookmarked(newBookmarkedState);
       
-      console.log('Tentative de bookmark/unbookmark...');
+      console.log('Attempting bookmark/unbookmark...');
       
-      // Appel API
+      // API call
       const response = await podcastAPI.bookmarkPodcast(id);
       
       if (response.success) {
-        // Mettre à jour avec les vraies données du serveur
+        // Update with real data from server
         if (response.data) {
           setIsBookmarked(response.data.bookmarked);
         }
-        console.log('Bookmark/unbookmark réussi');
+        console.log('Bookmark/unbookmark successful');
       } else {
-        // Revenir à l'état précédent en cas d'échec
+        // Revert to previous state on failure
         setIsBookmarked(!newBookmarkedState);
-        console.warn('Échec du bookmark:', response.message);
+        console.warn('Bookmark failed:', response.message);
       }
     } catch (err) {
-      // Revenir à l'état précédent en cas d'erreur
+      // Revert to previous state on error
       setIsBookmarked(!isBookmarked);
       
-      console.error('Erreur lors du bookmark:', err);
+      console.error('Error during bookmark:', err);
       
       if (err.response?.status === 401) {
-        alert('Veuillez vous connecter pour mettre ce podcast en favori');
+        alert('Please log in to bookmark this podcast');
       } else {
-        alert('Erreur lors du bookmark. Veuillez réessayer.');
+        alert('Error during bookmark. Please try again.');
       }
     } finally {
       setIsBookmarking(false);
     }
   };
 
-  // Gérer le partage de podcast
+  // Handle podcast sharing
   const handleSharePodcast = () => {
     setShowShareOptions(!showShareOptions);
   };
@@ -418,7 +418,7 @@ const PodcastDetail = () => {
       switch (option) {
         case 'copy':
           await navigator.clipboard.writeText(podcastUrl);
-          setShareMessage('URL copiée dans le presse-papier!');
+          setShareMessage('URL copied to clipboard!');
           setTimeout(() => setShareMessage(''), 3000);
           break;
         case 'facebook':
@@ -434,14 +434,14 @@ const PodcastDetail = () => {
           return;
       }
       
-      // Log le partage via l'API (non bloquant)
+      // Log share via API (non-blocking)
       podcastAPI.sharePodcast(id, option).catch(err => 
-        console.warn('Échec du logging de partage:', err)
+        console.warn('Failed to log share:', err)
       );
       
     } catch (err) {
-      console.error('Erreur lors du partage:', err);
-      setShareMessage('Erreur lors du partage.');
+      console.error('Error during sharing:', err);
+      setShareMessage('Error during sharing.');
       setTimeout(() => setShareMessage(''), 3000);
     }
     
@@ -482,7 +482,7 @@ const PodcastDetail = () => {
     }
   };
 
-  // Obtenir un chemin d'image sécurisé
+  // Get secure image path
   const getImagePath = (imagePath) => {
     if (!imagePath) {
       // Default image path
@@ -498,7 +498,7 @@ const PodcastDetail = () => {
     return `${backendUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
   };
 
-  // Composant pour les podcasts recommandés
+  // Component for recommended podcasts
   const RecommendedPodcast = ({ podcast: recommendedPodcast }) => {
     const isCurrentPodcast = podcast && recommendedPodcast._id === podcast._id;
     
@@ -516,7 +516,7 @@ const PodcastDetail = () => {
         return `${backendUrl}${recommendedPodcast.coverImage.startsWith('/') ? '' : '/'}${recommendedPodcast.coverImage}`;
       }
       
-      // Calculer une image par défaut stable basée sur l'ID
+      // Calculate a stable default image based on ID
       const idSum = recommendedPodcast._id.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
       return `/images/podcast-${(idSum % 6) + 1}.jpg`;
     };
@@ -551,12 +551,12 @@ const PodcastDetail = () => {
     );
   };
 
-  // États de chargement et d'erreur
+  // Loading and error states
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
         <FontAwesomeIcon icon={faSpinner} spin className={styles.spinnerIcon} />
-        <p>Chargement du podcast...</p>
+        <p>Loading podcast...</p>
       </div>
     );
   }
@@ -565,9 +565,9 @@ const PodcastDetail = () => {
     return (
       <div className={styles.errorContainer}>
         <FontAwesomeIcon icon={faExclamationTriangle} className={styles.errorIcon} />
-        <p>{error || 'Podcast non trouvé'}</p>
+        <p>{error || 'Podcast not found'}</p>
         <Link to="/dashboard/podcast" className={styles.backButton}>
-          <FontAwesomeIcon icon={faArrowLeft} /> Retour aux podcasts
+          <FontAwesomeIcon icon={faArrowLeft} /> Back to podcasts
         </Link>
       </div>
     );
@@ -577,7 +577,7 @@ const PodcastDetail = () => {
 
   return (
     <div className={styles.throwbackPodcastBg}>
-      {/* Utiliser le nouveau composant PlaylistSelectionModal */}
+      {/* Use the new PlaylistSelectionModal component */}
       {showPlaylistModal && (
         <PlaylistSelectionModal 
           podcastId={id} 
@@ -715,7 +715,7 @@ const PodcastDetail = () => {
             )}
           </div>
           
-          {/* Intégrer le composant MemoryList au lieu du champ de saisie direct */}
+          {/* Include the MemoryList component instead of direct input field */}
           <div className={styles.memoriesContainer}>
             <MemoryList podcastId={id} />
           </div>
@@ -773,7 +773,7 @@ const PodcastDetail = () => {
           </div>
         </main>
 
-        {/* Pas besoin d'afficher les mémoires dans la barre latérale car elles sont déjà gérées par le composant MemoryList */}
+        {/* No need to display memories in the sidebar as they're already handled by the MemoryList component */}
         <aside className={styles.rightCards}>
           <h3 className={styles.memoriesSectionTitle}>Featured Podcasts</h3>
           {allPodcasts.length > 0 && (

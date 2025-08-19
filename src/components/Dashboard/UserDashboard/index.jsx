@@ -28,7 +28,7 @@ const UserDashboard = () => {
 
   useEffect(() => { fetch(); }, [fetch]);
 
-  if (loading) return <div className={styles.loading}>Chargement…</div>;
+  if (loading) return <div className={styles.loading}>Loading...</div>;
 
   return (
     <div className={styles.layout}>

@@ -27,6 +27,20 @@ import { useAuth } from '../../../../contexts/AuthContext';
 // Importer le service de recherche
 import { searchAPI } from '../../../../utils/api';
 
+// Styles pour le badge "Coming Soon"
+const comingSoonStyle = {
+  fontSize: '0.6rem',
+  padding: '2px 4px',
+  backgroundColor: '#8b0000',
+  color: 'white',
+  borderRadius: '4px',
+  marginLeft: '8px',
+  fontWeight: 'bold',
+  display: 'inline-block',
+  verticalAlign: 'middle',
+  lineHeight: 1,
+};
+
 const Header = ({ toggleSidebar, isSidebarOpen }) => {
   const { user, logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -194,11 +208,12 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
     navigate('/login');
   };
 
+  // Modifié pour rediriger vers la page temporaire
   const handleNotificationsClick = () => {
-    navigate('/dashboard/notifications');
-    setUnreadNotifications(0);
+    navigate('/dashboard/notifications', { state: { title: 'Notifications' } });
   };
 
+  // Modifié pour simplement ouvrir/fermer le dropdown
   const handleCreateClick = () => {
     setIsCreateDropdownOpen(!isCreateDropdownOpen);
   };
@@ -214,14 +229,14 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
     setShowSuggestions(false);
   };
 
-  // Fonctions de navigation pour le menu "Create"
+  // Modifiés pour rediriger vers la page temporaire
   const handleUploadShortClick = () => {
-    navigate('/dashboard/upload/short');
+    navigate('/dashboard/upload/short', { state: { title: 'Upload Short' } });
     setIsCreateDropdownOpen(false);
   };
 
   const handleUploadVideoClick = () => {
-    navigate('/dashboard/upload/video');
+    navigate('/dashboard/upload/video', { state: { title: 'Upload Video' } });
     setIsCreateDropdownOpen(false);
   };
 
@@ -231,29 +246,24 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
   };
 
   const handleCreatePostClick = () => {
-    navigate('/dashboard/posts/create');
+    navigate('/dashboard/posts/create', { state: { title: 'Create Post' } });
     setIsCreateDropdownOpen(false);
   };
 
   const handleCreateGroupClick = () => {
-    navigate('/dashboard/groups/create');
+    navigate('/dashboard/groups/create', { state: { title: 'Create Group' } });
     setIsCreateDropdownOpen(false);
+  };
+
+  const handleHistoryClick = () => {
+    navigate('/dashboard/history', { state: { title: 'History' } });
+    setIsDropdownOpen(false);
   };
 
   return (
     <header className={styles.header}>
       <div className={styles.headerLeft}>
-        {/* <button 
-          className={`${styles.menuButton} ${isSidebarOpen ? styles.active : ''}`} 
-          onClick={handleMenuButtonClick} 
-          aria-label={isSidebarOpen ? "Close menu" : "Open menu"}
-          title={isSidebarOpen ? "Close menu" : "Open menu"}
-        >
-          <FontAwesomeIcon icon={faBars} />
-        </button> */}
-        
         <Link to="/dashboard" className={styles.logoLink}>
-          {/* <img src='/images/Logo.png' alt="ThrowBack" className={styles.logo} /> */}
           <span className={styles.logoText}>ThrowBack Connect</span>
         </Link>
       </div>
@@ -288,7 +298,7 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
                 {isLoadingSuggestions ? (
                   <div className={styles.suggestionLoading}>
                     <FontAwesomeIcon icon={faSearch} spin />
-                    <span>Recherche en cours...</span>
+                    <span>Searching...</span>
                   </div>
                 ) : suggestions.length > 0 ? (
                   suggestions.map((suggestion, index) => (
@@ -313,7 +323,7 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
                   ))
                 ) : searchTerm.length >= 2 ? (
                   <div className={styles.noSuggestions}>
-                    <span>Aucune suggestion trouvée</span>
+                    <span>No suggestions found</span>
                   </div>
                 ) : null}
               </div>
@@ -356,6 +366,7 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
           >
             <FontAwesomeIcon icon={faPlus} />
             <span className={styles.createText}>Create</span>
+            <span style={comingSoonStyle}>Coming Soon</span>
           </button>
           
           {isCreateDropdownOpen && (
@@ -364,6 +375,7 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
                 <button className={styles.dropdownItem} onClick={handleUploadShortClick}>
                   <FontAwesomeIcon icon={faFilm} className={styles.dropdownIcon} />
                   <span>Upload Short</span>
+                  <span style={comingSoonStyle}>Coming Soon</span>
                 </button>
                 
                 <button className={styles.dropdownItem} onClick={handleCreatePlaylistClick}>
@@ -374,17 +386,20 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
                 <button className={styles.dropdownItem} onClick={handleCreatePostClick}>
                   <FontAwesomeIcon icon={faEdit} className={styles.dropdownIcon} />
                   <span>Create Post</span>
+                  <span style={comingSoonStyle}>Coming Soon</span>
                 </button>
                 
                 <button className={styles.dropdownItem} onClick={handleCreateGroupClick}>
                   <FontAwesomeIcon icon={faUsers} className={styles.dropdownIcon} />
                   <span>Create Group</span>
+                  <span style={comingSoonStyle}>Coming Soon</span>
                 </button>
               </div>
             </div>
           )}
         </div>
         
+        {/* Les notifications */}
         <button 
           className={styles.notificationButton} 
           onClick={handleNotificationsClick}
@@ -394,6 +409,14 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
           {unreadNotifications > 0 && (
             <span className={styles.notificationBadge}>{unreadNotifications}</span>
           )}
+          <span style={{
+            ...comingSoonStyle,
+            position: 'absolute',
+            bottom: '-18px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            whiteSpace: 'nowrap'
+          }}>Coming Soon</span>
         </button>
         
         <div className={styles.profileContainer} ref={dropdownRef}>
@@ -440,9 +463,10 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
                   <span>Your Playlists</span>
                 </button>
                 
-                <button className={styles.dropdownItem} onClick={() => navigate('/dashboard/history')}>
+                <button className={styles.dropdownItem} onClick={handleHistoryClick}>
                   <FontAwesomeIcon icon={faHistory} className={styles.dropdownIcon} />
                   <span>History</span>
+                  <span style={comingSoonStyle}>Coming Soon</span>
                 </button>
                 
                 <div className={styles.dropdownDivider}></div>

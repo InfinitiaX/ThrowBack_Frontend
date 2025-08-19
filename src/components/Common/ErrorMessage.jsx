@@ -36,7 +36,7 @@ const ErrorMessage = ({
         {onRetry && (
           <button className={styles.retryButton} onClick={onRetry}>
             <i className="fas fa-redo"></i>
-            Réessayer
+            Retry
           </button>
         )}
       </div>

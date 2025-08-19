@@ -7,16 +7,16 @@ import {
 } from 'react-icons/fa';
 import axios from 'axios';
 
-// Configuration Axios avec intercepteurs
+// Axios configuration with interceptors
 axios.interceptors.request.use(
   config => {
-    // Ajouter l'URL de base si ce n'est pas déjà fait
+    // Add base URL if not already done
     if (config.url && !config.url.startsWith('http')) {
       const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
       config.url = `${apiBaseUrl}${config.url}`;
     }
     
-    // Ajouter le token d'authentification s'il existe
+    // Add authentication token if it exists
     const token = localStorage.getItem('token');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -27,18 +27,18 @@ axios.interceptors.request.use(
   error => Promise.reject(error)
 );
 
-// Intercepteur pour toutes les réponses Axios
+// Interceptor for all Axios responses
 axios.interceptors.response.use(
   response => response,
   error => {
     console.error('Axios error:', error);
     
-    // Gérer les timeouts
+    // Handle timeouts
     if (error.code === 'ECONNABORTED') {
-      console.error('Request timeout - La requête a pris trop de temps');
+      console.error('Request timeout - The request took too long');
     }
     
-    // Gérer les erreurs CORS
+    // Handle CORS errors
     if (error.message && error.message.includes('Network Error')) {
       console.error('Possible CORS issue or network problem');
     }
@@ -47,24 +47,24 @@ axios.interceptors.response.use(
   }
 );
 
-// Fonction pour convertir les chemins relatifs en URLs absolues
+// Function to convert relative paths to absolute URLs
 function getFullVideoUrl(path) {
   if (!path) return '';
   
-  // Si l'URL est déjà absolue, la retourner telle quelle
+  // If the URL is already absolute, return it as is
   if (path.startsWith('http')) return path;
   
-  // S'assurer que le chemin commence par un slash
+  // Make sure the path starts with a slash
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   
-  // Toujours utiliser une URL de base, jamais une chaîne vide
+  // Always use a base URL, never an empty string
   const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
   const fullUrl = `${backendUrl}${normalizedPath}`;
   
   return fullUrl;
 }
 
-// Fonction utilitaire pour formater les secondes en mm:ss
+// Utility function to format seconds as mm:ss
 function formatTime(sec) {
   if (!sec || isNaN(sec)) return '00:00';
   const m = Math.floor(sec / 60);
@@ -73,7 +73,7 @@ function formatTime(sec) {
 }
 
 export default function Shorts() {
-  // Index dynamique de la vidéo centrale (mise en avant)
+  // Dynamic index of the center video (featured)
   const [centerIdx, setCenterIdx] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ titre: '', artiste: '', description: '', video: null });
@@ -88,23 +88,23 @@ export default function Shorts() {
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   
-  // États pour la navigation et les animations
+  // States for navigation and animations
   const [dragging, setDragging] = useState(false);
   const [direction, setDirection] = useState(null);
   const [transition, setTransition] = useState(false);
   
-  // États pour l'upload et la progression
+  // States for upload and progress
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   
-  // États pour le chargement et la pagination
+  // States for loading and pagination
   const [isLoadingShorts, setIsLoadingShorts] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMoreShorts, setHasMoreShorts] = useState(true);
   
-  // États pour les commentaires et interactions
+  // States for comments and interactions
   const [comments, setComments] = useState([]);
   const [commentInput, setCommentInput] = useState('');
   const [isCommentsVisible, setIsCommentsVisible] = useState(false);
@@ -113,15 +113,15 @@ export default function Shorts() {
   const [isShareLoading, setIsShareLoading] = useState(false);
   const [feedback, setFeedback] = useState({ visible: false, message: '', type: '' });
 
-  // Fonction pour charger les shorts avec mécanisme de retry
+  // Function to load shorts with retry mechanism
   const fetchShorts = async () => {
     try {
       setIsLoadingShorts(true);
       
-      // Utiliser l'URL absolue du backend
+      // Use absolute backend URL
       const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
       
-      // Implémentation d'un mécanisme de retry
+      // Implementation of a retry mechanism
       let attempts = 0;
       const maxAttempts = 3;
       let success = false;
@@ -138,17 +138,17 @@ export default function Shorts() {
               page: 1,
               limit: 12
             },
-            timeout: 10000 * attempts, // Augmenter le timeout à chaque tentative
+            timeout: 10000 * attempts, // Increase timeout with each attempt
             withCredentials: true
           });
           
           success = true;
           
         } catch (err) {
-          console.error(`Erreur tentative ${attempts}:`, err);
+          console.error(`Error attempt ${attempts}:`, err);
           finalError = err;
           
-          // Attendre avant de réessayer (backoff exponentiel)
+          // Wait before retrying (exponential backoff)
           if (attempts < maxAttempts) {
             const delay = 1000 * Math.pow(2, attempts - 1); // 1s, 2s, 4s...
             await new Promise(resolve => setTimeout(resolve, delay));
@@ -157,10 +157,10 @@ export default function Shorts() {
       }
       
       if (!success) {
-        throw finalError || new Error("Échec après plusieurs tentatives");
+        throw finalError || new Error("Failed after multiple attempts");
       }
       
-      // Traitement de la réponse
+      // Process the response
       let shortsData = [];
       
       if (response.data && Array.isArray(response.data.data)) {
@@ -173,12 +173,12 @@ export default function Shorts() {
         shortsData = response.data.videos;
         setHasMoreShorts(response.data.pagination?.page < response.data.pagination?.totalPages);
       } else {
-        console.warn('Format de réponse inattendu:', response.data);
+        console.warn('Unexpected response format:', response.data);
         shortsData = [];
         setHasMoreShorts(false);
       }
       
-      // Traiter les URLs de vidéos pour qu'elles soient absolues
+      // Process video URLs to make them absolute
       shortsData = shortsData.map(short => {
         const videoUrl = getFullVideoUrl(short.youtubeUrl);
         return {
@@ -189,21 +189,21 @@ export default function Shorts() {
       
       setShorts(shortsData);
       
-      // Si des shorts ont été chargés, définir le premier comme actif
+      // If shorts have been loaded, set the first as active
       if (shortsData.length > 0) {
         setActiveShortId(shortsData[0]._id);
       }
       
     } catch (err) {
-      console.error('Erreur détaillée lors du chargement des shorts:', err);
+      console.error('Detailed error while loading shorts:', err);
       
-      // Détection d'erreurs spécifiques
+      // Detection of specific errors
       if (err.code === 'ECONNABORTED') {
-        showFeedback('Le serveur met trop de temps à répondre. Veuillez réessayer.', 'error');
+        showFeedback('The server is taking too long to respond. Please try again.', 'error');
       } else if (err.response?.status === 401) {
-        showFeedback('Votre session a expiré. Veuillez vous reconnecter.', 'error');
+        showFeedback('Your session has expired. Please log in again.', 'error');
       } else {
-        showFeedback('Erreur lors du chargement des shorts. Veuillez réessayer.', 'error');
+        showFeedback('Error loading shorts. Please try again.', 'error');
       }
       
       setShorts([]);
@@ -213,7 +213,7 @@ export default function Shorts() {
     }
   };
 
-  // Charger plus de shorts
+  // Load more shorts
   const loadMoreShorts = async () => {
     if (!hasMoreShorts || isLoadingMore) return;
     
@@ -221,7 +221,7 @@ export default function Shorts() {
       setIsLoadingMore(true);
       const nextPage = page + 1;
       
-      // Utiliser l'URL absolue du backend
+      // Use absolute backend URL
       const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
       
       const response = await axios.get(`${apiBaseUrl}/api/videos`, {
@@ -243,7 +243,7 @@ export default function Shorts() {
         newShorts = response.data.videos;
       }
       
-      // Traiter les URLs de vidéos pour qu'elles soient absolues
+      // Process video URLs to make them absolute
       newShorts = newShorts.map(short => ({
         ...short,
         youtubeUrl: getFullVideoUrl(short.youtubeUrl)
@@ -262,28 +262,28 @@ export default function Shorts() {
         }
       }
     } catch (err) {
-      console.error('Erreur lors du chargement de plus de shorts:', err);
-      showFeedback('Impossible de charger plus de shorts', 'error');
+      console.error('Error loading more shorts:', err);
+      showFeedback('Unable to load more shorts', 'error');
     } finally {
       setIsLoadingMore(false);
     }
   };
 
-  // Chargement des commentaires
+  // Loading comments
   const fetchComments = async (shortId) => {
     if (!shortId) return;
     
     try {
-      // Utiliser l'URL absolue du backend
+      // Use absolute backend URL
       const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
       
-      // Tentative de récupération des commentaires via l'API
+      // Attempt to retrieve comments via the API
       const response = await axios.get(`${apiBaseUrl}/api/videos/${shortId}/memories`, {
         timeout: 15000,
         withCredentials: true
       });
       
-      // Vérifier si la réponse contient des données
+      // Check if the response contains data
       let commentsData = [];
       
       if (response.data && Array.isArray(response.data.data)) {
@@ -293,14 +293,14 @@ export default function Shorts() {
       } else if (response.data && response.data.memories && Array.isArray(response.data.memories)) {
         commentsData = response.data.memories;
       } else {
-        console.warn('Format de réponse inattendu pour les commentaires:', response.data);
+        console.warn('Unexpected response format for comments:', response.data);
         commentsData = [];
       }
       
-      // Normaliser le format des commentaires
+      // Normalize the comment format
       const normalizedComments = commentsData.map(comment => ({
         id: comment._id || comment.id || Math.random().toString(36).substr(2, 9),
-        username: comment.auteur?.nom || comment.username || 'Utilisateur',
+        username: comment.auteur?.nom || comment.username || 'User',
         content: comment.contenu || comment.content || comment.texte || '',
         createdAt: comment.createdAt || comment.date || new Date().toISOString(),
         imageUrl: getFullVideoUrl(comment.auteur?.photo_profil) || comment.imageUrl || '/images/default-avatar.jpg'
@@ -308,23 +308,23 @@ export default function Shorts() {
       
       setComments(normalizedComments);
     } catch (err) {
-      console.error('Erreur détaillée lors de la récupération des commentaires:', err);
+      console.error('Detailed error while retrieving comments:', err);
       setComments([]);
     }
   };
 
-  // Ajout de commentaire
+  // Add comment
   const addComment = async () => {
     if (!commentInput.trim() || !activeShortId) return;
     
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        showFeedback('Vous devez être connecté pour commenter', 'error');
+        showFeedback('You must be logged in to comment', 'error');
         return;
       }
       
-      // Utiliser l'URL absolue du backend
+      // Use absolute backend URL
       const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
       
       await axios.post(`${apiBaseUrl}/api/videos/${activeShortId}/memories`, 
@@ -336,13 +336,13 @@ export default function Shorts() {
         }
       );
       
-      showFeedback('Commentaire ajouté avec succès', 'success');
+      showFeedback('Comment added successfully', 'success');
       setCommentInput('');
       
-      // Mettre à jour le nombre de commentaires dans le short actif
+      // Update the comment count in the active short
       const updatedShorts = shorts.map(short => {
         if (short._id === activeShortId) {
-          // Incrémenter le compteur de commentaires
+          // Increment the comment counter
           const currentCount = short.meta?.commentCount || 0;
           return {
             ...short,
@@ -356,15 +356,15 @@ export default function Shorts() {
       });
       setShorts(updatedShorts);
       
-      // Recharger les commentaires
+      // Reload comments
       fetchComments(activeShortId);
     } catch (err) {
-      console.error('Erreur lors de l\'ajout du commentaire:', err);
-      showFeedback('Erreur lors de l\'ajout du commentaire', 'error');
+      console.error('Error adding comment:', err);
+      showFeedback('Error adding comment', 'error');
     }
   };
 
-  // Affichage du feedback
+  // Display feedback
   const showFeedback = (message, type = 'info') => {
     setFeedback({
       visible: true,
@@ -377,21 +377,21 @@ export default function Shorts() {
     }, 3000);
   };
 
-  // Initialisation
+  // Initialization
   useEffect(() => {
     fetchShorts();
   }, []);
 
-  // Gestion de la navigation horizontale
+  // Handle horizontal navigation
   const handleHorizontalScroll = useCallback((dir) => {
     if (shorts.length <= 1 || transition) return;
     
-    // Pauser la vidéo actuelle
+    // Pause the current video
     if (centerVideoRef.current) {
       centerVideoRef.current.pause();
     }
     
-    // Calculer le nouvel index central
+    // Calculate the new center index
     const newIndex = dir === 'right' 
       ? Math.min(centerIdx + 1, shorts.length - 1)
       : Math.max(centerIdx - 1, 0);
@@ -400,17 +400,17 @@ export default function Shorts() {
       setDirection(dir);
       setTransition(true);
       
-      // Appliquer la transition avec délai
+      // Apply transition with delay
       setTimeout(() => {
         setCenterIdx(newIndex);
         setIsCenterPlaying(false);
         
-        // Mettre à jour l'ID du short actif
+        // Update the active short ID
         if (shorts[newIndex]) {
           setActiveShortId(shorts[newIndex]._id);
         }
         
-        // Réinitialiser après la transition
+        // Reset after transition
         setTimeout(() => {
           setDirection(null);
           setTransition(false);
@@ -419,7 +419,7 @@ export default function Shorts() {
     }
   }, [shorts, centerIdx, transition]);
 
-  // Mettre en pause toutes les vidéos du carousel lors des changements
+  // Pause all videos in the carousel on changes
   useEffect(() => {
     const videos = document.querySelectorAll(`.${styles.carouselRow} video`);
     videos.forEach((video) => {
@@ -427,23 +427,23 @@ export default function Shorts() {
       video.currentTime = 0;
     });
     
-    // Si un nouveau short est au centre, mettre à jour l'ID actif
+    // If a new short is in the center, update the active ID
     if (shorts.length > 0 && centerIdx >= 0 && centerIdx < shorts.length) {
       setActiveShortId(shorts[centerIdx]._id);
       
-      // Réinitialiser la visibilité des commentaires lors du changement de short
+      // Reset comment visibility when changing short
       setIsCommentsVisible(false);
     }
   }, [centerIdx, shorts]);
 
-  // Charger les commentaires quand un nouveau short est actif
+  // Load comments when a new short is active
   useEffect(() => {
     if (activeShortId && isCommentsVisible) {
       fetchComments(activeShortId);
     }
   }, [activeShortId, isCommentsVisible]);
 
-  // Gestion des événements de lecture/pause
+  // Handle play/pause events
   useEffect(() => {
     const video = centerVideoRef.current;
     if (!video) return;
@@ -461,7 +461,7 @@ export default function Shorts() {
     const handleEnded = () => {
       setIsCenterPaused(true);
       setIsCenterPlaying(false);
-      // Optionnel: avancer automatiquement au short suivant
+      // Optional: automatically advance to the next short
       if (centerIdx < shorts.length - 1) {
         handleHorizontalScroll('right');
       }
@@ -478,7 +478,7 @@ export default function Shorts() {
     };
   }, [centerIdx, shorts, handleHorizontalScroll]);
 
-  // Gestion de la progression de la vidéo
+  // Handle video progress
   useEffect(() => {
     const video = centerVideoRef.current;
     if (!video) return;
@@ -497,16 +497,16 @@ export default function Shorts() {
     };
   }, [centerIdx, shorts]);
 
-  // Gestion de la visibilité
+  // Handle visibility
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        // Si la vidéo n'est plus visible, la mettre en pause
+        // If the video is no longer visible, pause it
         if (!entry.isIntersecting && isCenterPlaying && centerVideoRef.current) {
           centerVideoRef.current.pause();
         }
       },
-      { threshold: 0.5 } // 50% de la vidéo doit être visible
+      { threshold: 0.5 } // 50% of the video must be visible
     );
     
     if (centerVideoRef.current) {
@@ -520,7 +520,7 @@ export default function Shorts() {
     };
   }, [isCenterPlaying]);
 
-  // Gestion des touches du clavier
+  // Handle keyboard keys
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'ArrowLeft') {
@@ -528,10 +528,10 @@ export default function Shorts() {
       } else if (e.key === 'ArrowRight') {
         handleHorizontalScroll('right');
       } else if (e.key === ' ' || e.key === 'Spacebar') {
-        // Empêcher le défilement de la page sur espace
+        // Prevent page scrolling on space
         e.preventDefault();
         
-        // Basculer lecture/pause sur espace
+        // Toggle play/pause on space
         if (centerVideoRef.current) {
           if (isCenterPlaying) {
             centerVideoRef.current.pause();
@@ -546,7 +546,7 @@ export default function Shorts() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleHorizontalScroll, isCenterPlaying]);
 
-  // Gestionnaire de glisser-déposer pour la vidéo
+  // Drag and drop handler for video
   const handleDragOver = (e) => {
     e.preventDefault();
     setDragActive(true);
@@ -566,7 +566,7 @@ export default function Shorts() {
     }
   };
 
-  // Traitement du fichier vidéo sélectionné
+  // Process the selected video file
   const handleFileSelected = (file) => {
     setErrDuree('');
     
@@ -574,16 +574,16 @@ export default function Shorts() {
       return;
     }
     
-    // Vérifier le type de fichier
+    // Check file type
     if (!file.type.startsWith('video/')) {
-      setErrDuree('Le fichier sélectionné n\'est pas une vidéo.');
+      setErrDuree('The selected file is not a video.');
       setForm(f => ({ ...f, video: null }));
       return;
     }
     
-    // Vérifier la taille du fichier (max 100MB)
+    // Check file size (max 100MB)
     if (file.size > 100 * 1024 * 1024) {
-      setErrDuree('Le fichier est trop volumineux (max 100MB).');
+      setErrDuree('The file is too large (max 100MB).');
       setForm(f => ({ ...f, video: null }));
       return;
     }
@@ -597,7 +597,7 @@ export default function Shorts() {
       const duration = video.duration;
       
       if (duration < 10 || duration > 30) {
-        setErrDuree('La vidéo doit durer entre 10 et 30 secondes.');
+        setErrDuree('The video must be between 10 and 30 seconds long.');
         setForm(f => ({ ...f, video: null }));
       } else {
         setErrDuree('');
@@ -606,41 +606,41 @@ export default function Shorts() {
     };
     
     video.onerror = () => {
-      setErrDuree('Impossible de lire ce fichier vidéo.');
+      setErrDuree('Unable to read this video file.');
       setForm(f => ({ ...f, video: null }));
     };
     
     video.src = url;
   };
 
-  // Gestion du changement de fichier
+  // Handle file change
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     handleFileSelected(file);
   };
 
-  // Gestion des changements de formulaire
+  // Handle form changes
   const handleChange = (e) => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
   };
 
-  // Soumission du formulaire
+  // Form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Vérifications de base
+    // Basic validations
     if (!form.titre.trim()) {
-      showFeedback('Le titre est requis', 'error');
+      showFeedback('Title is required', 'error');
       return;
     }
     
     if (!form.artiste.trim()) {
-      showFeedback('L\'artiste est requis', 'error');
+      showFeedback('Artist is required', 'error');
       return;
     }
     
     if (!form.video) {
-      setErrDuree('Veuillez sélectionner une vidéo valide.');
+      setErrDuree('Please select a valid video.');
       return;
     }
     
@@ -661,15 +661,15 @@ export default function Shorts() {
 
       const token = localStorage.getItem('token');
       if (!token) {
-        showFeedback('Vous devez être connecté pour ajouter un short', 'error');
+        showFeedback('You must be logged in to add a short', 'error');
         setIsUploading(false);
         return;
       }
       
-      // Utiliser l'URL absolue du backend
+      // Use absolute backend URL
       const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
       
-      // Configurer la requête avec rapport de progression
+      // Configure the request with progress reporting
       const response = await axios.post(`${apiBaseUrl}/api/videos/shorts`, data, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -683,20 +683,20 @@ export default function Shorts() {
         }
       });
       
-      showFeedback('Short ajouté avec succès !', 'success');
+      showFeedback('Short added successfully!', 'success');
       setShowModal(false);
       setForm({ titre: '', artiste: '', video: null, description: '' });
       setErrDuree('');
       setUploadProgress(0);
       
-      // Attendre un court délai avant de recharger la liste
+      // Wait a short delay before reloading the list
       setTimeout(() => {
         fetchShorts();
       }, 1000);
       
     } catch (err) {
-      console.error('Erreur lors de l\'ajout du short:', err);
-      const errorMessage = err.response?.data?.message || err.message || 'Erreur lors de l\'upload';
+      console.error('Error adding short:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Error during upload';
       setErrDuree(errorMessage);
       showFeedback(errorMessage, 'error');
     } finally {
@@ -704,16 +704,16 @@ export default function Shorts() {
     }
   };
 
-  // Gestion des clics sur les cartes latérales
+  // Handle clicks on side cards
   const handleSideCardClick = (realIdx) => {
     if (realIdx === centerIdx) return;
     
-    // Déterminer la direction
+    // Determine the direction
     const direction = realIdx > centerIdx ? 'right' : 'left';
     handleHorizontalScroll(direction);
   };
 
-  // Gestion du basculement muet/son
+  // Handle mute/unmute toggle
   const handleMuteToggle = () => {
     setIsMuted(m => !m);
     if (centerVideoRef.current) {
@@ -721,26 +721,26 @@ export default function Shorts() {
     }
   };
 
-  // Gestion de la lecture/pause
+  // Handle play/pause
   const handlePlayPause = () => {
     if (!centerVideoRef.current) return;
     
     if (isCenterPlaying) {
       centerVideoRef.current.pause();
     } else {
-      // Tenter de jouer la vidéo
+      // Try to play the video
       const playPromise = centerVideoRef.current.play();
       
       if (playPromise !== undefined) {
         playPromise.catch(err => {
-          console.error('Erreur de lecture automatique:', err);
-          showFeedback('Cliquez à nouveau pour lire la vidéo', 'info');
+          console.error('Autoplay error:', err);
+          showFeedback('Click again to play the video', 'info');
         });
       }
     }
   };
 
-  // Gestion des likes
+  // Handle likes
   const handleLike = async (shortId) => {
     if (isLikeLoading) return;
     
@@ -749,11 +749,11 @@ export default function Shorts() {
       const token = localStorage.getItem('token');
       
       if (!token) {
-        showFeedback('Vous devez être connecté pour aimer un short', 'error');
+        showFeedback('You must be logged in to like a short', 'error');
         return;
       }
       
-      // Utiliser l'URL absolue du backend
+      // Use absolute backend URL
       const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
       
       const response = await axios.post(`${apiBaseUrl}/api/videos/${shortId}/like`, {}, {
@@ -763,7 +763,7 @@ export default function Shorts() {
       });
       
       if (response.data && response.data.data) {
-        // Mettre à jour l'état local pour refléter le changement
+        // Update the local state to reflect the change
         const updatedShorts = shorts.map(short => {
           if (short._id === shortId) {
             return { 
@@ -782,15 +782,15 @@ export default function Shorts() {
         setShorts(updatedShorts);
         
         if (response.data.data.liked) {
-          showFeedback('Vous avez aimé ce short', 'success');
+          showFeedback('You liked this short', 'success');
         } else {
-          showFeedback('Vous n\'aimez plus ce short', 'info');
+          showFeedback('You no longer like this short', 'info');
         }
       } else {
-        // Fallback simple si le format de réponse est différent
-        showFeedback('Action enregistrée', 'success');
+        // Simple fallback if the response format is different
+        showFeedback('Action recorded', 'success');
         
-        // Mettre à jour de manière optimiste
+        // Update optimistically
         const updatedShorts = shorts.map(short => {
           if (short._id === shortId) {
             const currentLikes = short.likes || 0;
@@ -811,14 +811,14 @@ export default function Shorts() {
         setShorts(updatedShorts);
       }
     } catch (err) {
-      console.error('Erreur lors du like:', err);
-      showFeedback('Erreur lors du like', 'error');
+      console.error('Error during like:', err);
+      showFeedback('Error during like', 'error');
     } finally {
       setIsLikeLoading(false);
     }
   };
 
-  // Gestion des partages
+  // Handle shares
   const handleShare = async (shortId) => {
     if (isShareLoading) return;
     
@@ -827,35 +827,35 @@ export default function Shorts() {
       const token = localStorage.getItem('token');
       
       if (!token) {
-        showFeedback('Vous devez être connecté pour partager un short', 'error');
+        showFeedback('You must be logged in to share a short', 'error');
         return;
       }
       
-      // Utiliser l'URL absolue du backend
+      // Use absolute backend URL
       const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
       
       try {
-        // Tenter d'appeler l'API de partage
+        // Try to call the share API
         await axios.post(`${apiBaseUrl}/api/videos/${shortId}/share`, {}, {
           headers: { 'Authorization': `Bearer ${token}` },
           timeout: 15000,
           withCredentials: true
         });
       } catch (shareError) {
-        // Ignorer les erreurs d'API pour cette fonction non critique
-        console.warn('Erreur API de partage (ignorée):', shareError);
+        // Ignore API errors for this non-critical function
+        console.warn('Share API error (ignored):', shareError);
       }
       
-      // Copier le lien dans le presse-papiers
+      // Copy the link to the clipboard
       const shareLink = `${window.location.origin}/shorts/${shortId}`;
       
       try {
         await navigator.clipboard.writeText(shareLink);
-        showFeedback('Lien copié dans le presse-papiers !', 'success');
+        showFeedback('Link copied to clipboard!', 'success');
       } catch (clipboardError) {
-        console.error('Erreur de clipboard:', clipboardError);
+        console.error('Clipboard error:', clipboardError);
         
-        // Fallback pour les navigateurs qui ne supportent pas clipboard API
+        // Fallback for browsers that don't support clipboard API
         const textarea = document.createElement('textarea');
         textarea.value = shareLink;
         textarea.style.position = 'fixed';
@@ -866,25 +866,25 @@ export default function Shorts() {
         try {
           const successful = document.execCommand('copy');
           if (successful) {
-            showFeedback('Lien copié dans le presse-papiers !', 'success');
+            showFeedback('Link copied to clipboard!', 'success');
           } else {
-            throw new Error('Copie manuelle échouée');
+            throw new Error('Manual copy failed');
           }
         } catch (err) {
-          showFeedback('Impossible de copier le lien: ' + shareLink, 'info');
+          showFeedback('Unable to copy link: ' + shareLink, 'info');
         }
         
         document.body.removeChild(textarea);
       }
     } catch (err) {
-      console.error('Erreur lors du partage:', err);
-      showFeedback('Erreur lors du partage', 'error');
+      console.error('Error during share:', err);
+      showFeedback('Error during share', 'error');
     } finally {
       setIsShareLoading(false);
     }
   };
 
-  // Basculer la visibilité des commentaires
+  // Toggle comment visibility
   const toggleComments = () => {
     setIsCommentsVisible(!isCommentsVisible);
     if (!isCommentsVisible && activeShortId) {
@@ -897,20 +897,20 @@ export default function Shorts() {
       <div className={styles.shortsContentBg}>
         <div className={styles.headerRow}>
           <button className={styles.newPostBtn} onClick={() => setShowModal(true)}>
-            <FaCloudUploadAlt /> Ajouter un Short
+            <FaCloudUploadAlt /> Add a Short
           </button>
         </div>
         
         {isLoadingShorts ? (
           <div className={styles.loadingContainer}>
             <div className={styles.spinner}></div>
-            <p>Chargement des shorts...</p>
+            <p>Loading shorts...</p>
           </div>
         ) : shorts.length === 0 ? (
           <div className={styles.noContent}>
-            <p>Aucun short disponible pour le moment.</p>
+            <p>No shorts available at the moment.</p>
             <button className={styles.newPostBtn} onClick={() => setShowModal(true)}>
-              Soyez le premier à ajouter un Short !
+              Be the first to add a Short!
             </button>
           </div>
         ) : (
@@ -922,7 +922,7 @@ export default function Shorts() {
               onTouchMove={() => setDragging(true)}
               onTouchEnd={(e) => {
                 if (dragging) {
-                  // Logique de swipe
+                  // Swipe logic
                   const touchEndX = e.changedTouches[0].clientX;
                   const touchStartX = e.target.dataset.touchStartX;
                   
@@ -938,7 +938,7 @@ export default function Shorts() {
               data-touch-start-x={(e) => e.touches[0].clientX}
             >
               {(() => {
-                // Calcul de la fenêtre de 5 shorts centrée sur centerIdx
+                // Calculate the window of 5 shorts centered on centerIdx
                 let window = [];
                 for (let i = centerIdx - 2; i <= centerIdx + 2; i++) {
                   if (i < 0 || i >= shorts.length) {
@@ -956,7 +956,7 @@ export default function Shorts() {
                   const { short, realIdx } = item;
                   
                   if (idx === 2) {
-                    // Card centrale
+                    // Center card
                     return (
                       <div className={styles.centerCard} key={short._id}>
                         <div className={styles.centerImgWrap}>
@@ -972,7 +972,7 @@ export default function Shorts() {
                             playsInline
                             crossOrigin="anonymous"
                             onError={(e) => {
-                              console.error('Erreur de chargement vidéo:', e);
+                              console.error('Video loading error:', e);
                               e.target.src = '/images/video-error.jpg';
                             }}
                           />
@@ -996,7 +996,7 @@ export default function Shorts() {
                           </button>
                         </div>
                         
-                        {/* Barre de progression */}
+                        {/* Progress bar */}
                         <div className={styles.progressContainer}>
                           <input
                             type="range"
@@ -1027,10 +1027,10 @@ export default function Shorts() {
                         
                         <div className={styles.centerInfo}>
                           <div className={styles.centerUserRow}>
-                            <span className={styles.username}>{short.artiste || 'Artiste inconnu'}</span>
+                            <span className={styles.username}>{short.artiste || 'Unknown artist'}</span>
                           </div>
-                          <div className={styles.centerDesc}>{short.description || short.titre || 'Pas de description'}</div>
-                          <div className={styles.centerMusic}>🎵 {short.artiste || 'Artiste inconnu'}</div>
+                          <div className={styles.centerDesc}>{short.description || short.titre || 'No description'}</div>
+                          <div className={styles.centerMusic}>🎵 {short.artiste || 'Unknown artist'}</div>
                           <div className={styles.centerActions}>
                             <span className={styles.featured}><FaStar /> Featured</span>
                             <button 
@@ -1061,11 +1061,11 @@ export default function Shorts() {
                           </div>
                         </div>
                         
-                        {/* Section des commentaires */}
+                        {/* Comments section */}
                         {isCommentsVisible && (
                           <div className={styles.commentsSection}>
                             <div className={styles.commentsHeader}>
-                              <h3>Commentaires</h3>
+                              <h3>Comments</h3>
                               <button 
                                 className={styles.collapseBtn}
                                 onClick={toggleComments}
@@ -1077,7 +1077,7 @@ export default function Shorts() {
                             
                             <div className={styles.commentsList}>
                               {comments.length === 0 ? (
-                                <p className={styles.noComments}>Aucun commentaire pour le moment.</p>
+                                <p className={styles.noComments}>No comments yet.</p>
                               ) : (
                                 comments.map(comment => (
                                   <div key={comment.id} className={styles.commentItem}>
@@ -1108,7 +1108,7 @@ export default function Shorts() {
                                 type="text"
                                 value={commentInput}
                                 onChange={e => setCommentInput(e.target.value)}
-                                placeholder="Ajouter un commentaire..."
+                                placeholder="Add a comment..."
                                 onKeyPress={e => e.key === 'Enter' && addComment()}
                                 aria-label="Add comment"
                               />
@@ -1117,7 +1117,7 @@ export default function Shorts() {
                                 disabled={!commentInput.trim()}
                                 aria-label="Send comment"
                               >
-                                Envoyer
+                                Send
                               </button>
                             </div>
                           </div>
@@ -1125,7 +1125,7 @@ export default function Shorts() {
                       </div>
                     );
                   } else {
-                    // Cards latérales, cliquables pour changer le centre
+                    // Side cards, clickable to change the center
                     return (
                       <div 
                         className={styles.sideCard} 
@@ -1133,7 +1133,7 @@ export default function Shorts() {
                         onClick={() => handleSideCardClick(realIdx)}
                         role="button"
                         tabIndex="0"
-                        aria-label={`Voir le short ${short.titre}`}
+                        aria-label={`View short ${short.titre}`}
                       >
                         <video
                           src={short.youtubeUrl}
@@ -1143,7 +1143,7 @@ export default function Shorts() {
                           muted
                           crossOrigin="anonymous"
                           onError={(e) => {
-                            console.error('Erreur de chargement vidéo:', e);
+                            console.error('Video loading error:', e);
                             e.target.src = '/images/video-error.jpg';
                           }}
                         />
@@ -1157,7 +1157,7 @@ export default function Shorts() {
               })()}
             </div>
             
-            {/* Boutons de navigation */}
+            {/* Navigation buttons */}
             {shorts.length > 1 && (
               <>
                 {centerIdx > 0 && (
@@ -1182,7 +1182,7 @@ export default function Shorts() {
               </>
             )}
             
-            {/* Indicateur de position */}
+            {/* Position indicator */}
             {shorts.length > 1 && (
               <div className={styles.paginationIndicator}>
                 {shorts.map((_, idx) => (
@@ -1192,7 +1192,7 @@ export default function Shorts() {
                     onClick={() => setCenterIdx(idx)}
                     role="button"
                     tabIndex="0"
-                    aria-label={`Aller au short ${idx + 1}`}
+                    aria-label={`Go to short ${idx + 1}`}
                   />
                 ))}
               </div>
@@ -1200,7 +1200,7 @@ export default function Shorts() {
           </div>
         )}
         
-        {/* Bouton pour charger plus de shorts */}
+        {/* Button to load more shorts */}
         {hasMoreShorts && shorts.length > 0 && (
           <div className={styles.loadMoreContainer}>
             <button 
@@ -1212,20 +1212,20 @@ export default function Shorts() {
               {isLoadingMore ? (
                 <>
                   <div className={styles.smallSpinner}></div>
-                  <span>Chargement...</span>
+                  <span>Loading...</span>
                 </>
-              ) : 'Charger plus de shorts'}
+              ) : 'Load more shorts'}
             </button>
           </div>
         )}
       </div>
       
-      {/* Modal d'ajout de short */}
+      {/* Add short modal */}
       {showModal && (
         <div className={styles.modalOverlay} onClick={() => !isUploading && setShowModal(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h2>Ajouter un Short</h2>
+              <h2>Add a Short</h2>
               <button 
                 className={styles.closeBtn} 
                 onClick={() => !isUploading && setShowModal(false)}
@@ -1238,7 +1238,7 @@ export default function Shorts() {
             
             <form onSubmit={handleSubmit} className={styles.modalForm}>
               <div className={styles.formGroup}>
-                <label htmlFor="titre">Titre</label>
+                <label htmlFor="titre">Title</label>
                 <input
                   id="titre"
                   name="titre"
@@ -1247,13 +1247,13 @@ export default function Shorts() {
                   onChange={handleChange}
                   required
                   disabled={isUploading}
-                  placeholder="Donnez un titre à votre short"
+                  placeholder="Give your short a title"
                   aria-required="true"
                 />
               </div>
               
               <div className={styles.formGroup}>
-                <label htmlFor="artiste">Artiste</label>
+                <label htmlFor="artiste">Artist</label>
                 <input
                   id="artiste"
                   name="artiste"
@@ -1262,13 +1262,13 @@ export default function Shorts() {
                   onChange={handleChange}
                   required
                   disabled={isUploading}
-                  placeholder="Nom de l'artiste"
+                  placeholder="Artist name"
                   aria-required="true"
                 />
               </div>
               
               <div className={styles.formGroup}>
-                <label htmlFor="description">Description (optionnelle)</label>
+                <label htmlFor="description">Description (optional)</label>
                 <input
                   id="description"
                   name="description"
@@ -1276,12 +1276,12 @@ export default function Shorts() {
                   value={form.description}
                   onChange={handleChange}
                   disabled={isUploading}
-                  placeholder="Décrivez votre short (optionnel)"
+                  placeholder="Describe your short (optional)"
                 />
               </div>
               
               <div className={styles.formGroup}>
-                <label>Vidéo (10–30 s)</label>
+                <label>Video (10–30 s)</label>
                 <div 
                   className={`${styles.fileUploadContainer} ${dragActive ? styles.dragActive : ''}`}
                   onDragOver={handleDragOver}
@@ -1292,10 +1292,10 @@ export default function Shorts() {
                     <FaCloudUploadAlt />
                   </div>
                   <div className={styles.fileUploadText}>
-                    Glissez et déposez votre fichier vidéo ou cliquez pour sélectionner
+                    Drag and drop your video file or click to select
                   </div>
                   <div className={styles.fileUploadSubtext}>
-                    MP4, WebM, MOV ou AVI • 10-30 secondes • 100 MB maximum
+                    MP4, WebM, MOV or AVI • 10-30 seconds • 100 MB maximum
                   </div>
                   <input
                     id="videoFile"
@@ -1306,7 +1306,7 @@ export default function Shorts() {
                     onChange={handleFileChange}
                     ref={videoRef}
                     disabled={isUploading}
-                    aria-label="Sélectionner une vidéo"
+                    aria-label="Select a video"
                   />
                 </div>
                 
@@ -1321,7 +1321,7 @@ export default function Shorts() {
                     <div className={styles.fileInfo}>
                       <div className={styles.fileName}>{form.video.name}</div>
                       <div className={styles.fileSize}>
-                        {(form.video.size / (1024 * 1024)).toFixed(2)} MB • {form.duree || '?'} secondes
+                        {(form.video.size / (1024 * 1024)).toFixed(2)} MB • {form.duree || '?'} seconds
                       </div>
                     </div>
                   </div>
@@ -1353,7 +1353,7 @@ export default function Shorts() {
                 disabled={isUploading}
                 aria-label="Cancel"
               >
-                Annuler
+                Cancel
               </button>
               <button
                 type="button"
@@ -1367,7 +1367,7 @@ export default function Shorts() {
                     <div className={styles.smallSpinner}></div>
                     <span>Uploading...</span>
                   </>
-                ) : 'Mettre en ligne'}
+                ) : 'Upload'}
               </button>
             </div>
           </div>

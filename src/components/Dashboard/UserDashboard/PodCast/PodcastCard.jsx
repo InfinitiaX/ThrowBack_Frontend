@@ -11,22 +11,22 @@ import styles from './WeeklyPodcast.module.css';
 const DEFAULT_IMAGE_PATH = '/images/podcast-default.jpg';
 
 const PodcastCard = ({ podcast, onPlay, isPlaying, getImagePath, handleImageError }) => {
-  // Formater l'épisode (ex: EP.01)
+  // Format episode number (e.g., EP.01)
   const formatEpisodeNumber = (episode) => {
     return `EP.${episode.toString().padStart(2, '0')}`;
   };
 
-  // Formater la date pour affichage
+  // Format date for display
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', { 
+    return date.toLocaleDateString('en-US', { 
       year: 'numeric',
       month: 'short', 
       day: 'numeric' 
     });
   };
 
-  // Gérer les erreurs d'image avec fallback
+  // Handle image errors with fallback
   const onImageError = (e) => {
     if (handleImageError) {
       handleImageError(e);
@@ -36,7 +36,7 @@ const PodcastCard = ({ podcast, onPlay, isPlaying, getImagePath, handleImageErro
     }
   };
 
-  // Obtenir le chemin de l'image sécurisé
+  // Get secure image path
   const getImageSrc = () => {
     if (getImagePath) {
       return getImagePath(podcast);
@@ -46,7 +46,7 @@ const PodcastCard = ({ podcast, onPlay, isPlaying, getImagePath, handleImageErro
       return podcast.coverImage;
     }
     
-    // Fallback: créer un numéro à partir de l'ID string
+    // Fallback: create a number from the string ID
     const idSum = podcast._id.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
     return `/images/podcast-${(idSum % 6) + 1}.jpg`;
   };

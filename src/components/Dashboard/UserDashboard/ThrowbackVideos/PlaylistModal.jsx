@@ -1,4 +1,4 @@
-// Correction pour PlaylistModal.jsx
+// Correction for PlaylistModal.jsx
 import React, { useState, useEffect } from 'react';
 import api from '../../../../utils/api'; 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -21,20 +21,20 @@ const PlaylistModal = ({ videoId, onClose, onSuccess }) => {
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Récupérer les playlists de l'utilisateur
+  // Fetch user playlists
   useEffect(() => {
     const fetchUserPlaylists = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/api/playlists/user'); // Utiliser api au lieu de axios
+        const response = await api.get('/api/playlists/user'); // Use api instead of axios
         if (response.data.success) {
           setUserPlaylists(response.data.data);
         } else {
-          setError('Erreur lors de la récupération de vos playlists');
+          setError('Error retrieving your playlists');
         }
       } catch (err) {
-        console.error('Erreur lors du chargement des playlists:', err);
-        setError('Erreur lors du chargement de vos playlists');
+        console.error('Error loading playlists:', err);
+        setError('Error loading your playlists');
       } finally {
         setLoading(false);
       }
@@ -43,7 +43,7 @@ const PlaylistModal = ({ videoId, onClose, onSuccess }) => {
     fetchUserPlaylists();
   }, []);
 
-  // Ajouter la vidéo à une playlist existante
+  // Add video to existing playlist
   const handleAddToPlaylist = async (playlistId) => {
     try {
       setSubmitting(true);
@@ -52,37 +52,37 @@ const PlaylistModal = ({ videoId, onClose, onSuccess }) => {
       });
 
       if (response.data.success) {
-        setSuccess(`Vidéo ajoutée à la playlist avec succès!`);
+        setSuccess(`Video added to playlist successfully!`);
         
-        // Rafraîchir la liste des playlists
+        // Refresh playlist list
         const updatedPlaylistsResponse = await api.get('/api/playlists/user');
         if (updatedPlaylistsResponse.data.success) {
           setUserPlaylists(updatedPlaylistsResponse.data.data);
         }
         
-        // Notifier le composant parent
+        // Notify parent component
         if (onSuccess) {
           setTimeout(() => {
             onSuccess();
           }, 1500);
         }
       } else {
-        setError(response.data.message || 'Erreur lors de l\'ajout à la playlist');
+        setError(response.data.message || 'Error adding to playlist');
       }
     } catch (err) {
-      console.error('Erreur lors de l\'ajout à la playlist:', err);
-      setError(err.response?.data?.message || 'Erreur lors de l\'ajout à la playlist');
+      console.error('Error adding to playlist:', err);
+      setError(err.response?.data?.message || 'Error adding to playlist');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Créer une nouvelle playlist et y ajouter la vidéo
+  // Create a new playlist and add the video
   const handleCreatePlaylist = async (e) => {
     e.preventDefault();
 
     if (!newPlaylistName.trim()) {
-      setError('Le nom de la playlist est requis');
+      setError('Playlist name is required');
       return;
     }
 
@@ -95,35 +95,35 @@ const PlaylistModal = ({ videoId, onClose, onSuccess }) => {
       });
 
       if (response.data.success) {
-        setSuccess('Nouvelle playlist créée avec succès!');
+        setSuccess('New playlist created successfully!');
         setNewPlaylistName('');
         setNewPlaylistDescription('');
         setCreateMode(false);
         
-        // Rafraîchir la liste des playlists
+        // Refresh playlist list
         const updatedPlaylistsResponse = await api.get('/api/playlists/user');
         if (updatedPlaylistsResponse.data.success) {
           setUserPlaylists(updatedPlaylistsResponse.data.data);
         }
         
-        // Notifier le composant parent
+        // Notify parent component
         if (onSuccess) {
           setTimeout(() => {
             onSuccess();
           }, 1500);
         }
       } else {
-        setError(response.data.message || 'Erreur lors de la création de la playlist');
+        setError(response.data.message || 'Error creating playlist');
       }
     } catch (err) {
-      console.error('Erreur lors de la création de la playlist:', err);
-      setError(err.response?.data?.message || 'Erreur lors de la création de la playlist');
+      console.error('Error creating playlist:', err);
+      setError(err.response?.data?.message || 'Error creating playlist');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Vérifier si la vidéo est déjà dans une playlist
+  // Check if video is already in a playlist
   const isVideoInPlaylist = (playlist) => {
     return playlist.videos && playlist.videos.some(v => 
       (v.video_id === videoId) || 
@@ -135,7 +135,7 @@ const PlaylistModal = ({ videoId, onClose, onSuccess }) => {
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
-          <h3>{createMode ? 'Créer une nouvelle playlist' : 'Ajouter à une playlist'}</h3>
+          <h3>{createMode ? 'Create a new playlist' : 'Add to playlist'}</h3>
           <button className={styles.closeButton} onClick={onClose}>
             <FontAwesomeIcon icon={faTimes} />
           </button>
@@ -158,7 +158,7 @@ const PlaylistModal = ({ videoId, onClose, onSuccess }) => {
             {loading ? (
               <div className={styles.loadingContainer}>
                 <FontAwesomeIcon icon={faSpinner} spin className={styles.spinnerIcon} />
-                <p>Chargement de vos playlists...</p>
+                <p>Loading your playlists...</p>
               </div>
             ) : (
               <>
@@ -168,7 +168,7 @@ const PlaylistModal = ({ videoId, onClose, onSuccess }) => {
                       <div key={playlist._id} className={styles.playlistItem}>
                         <div className={styles.playlistInfo}>
                           <h4>{playlist.nom}</h4>
-                          <span>{playlist.nb_videos || playlist.videos?.length || 0} vidéos</span>
+                          <span>{playlist.nb_videos || playlist.videos?.length || 0} videos</span>
                         </div>
                         <button 
                           className={`${styles.addButton} ${isVideoInPlaylist(playlist) ? styles.addedButton : ''}`}
@@ -176,11 +176,11 @@ const PlaylistModal = ({ videoId, onClose, onSuccess }) => {
                           disabled={isVideoInPlaylist(playlist) || submitting}
                         >
                           {isVideoInPlaylist(playlist) ? (
-                            <><FontAwesomeIcon icon={faCheck} /> Ajoutée</>
+                            <><FontAwesomeIcon icon={faCheck} /> Added</>
                           ) : submitting ? (
                             <FontAwesomeIcon icon={faSpinner} spin />
                           ) : (
-                            <><FontAwesomeIcon icon={faPlus} /> Ajouter</>
+                            <><FontAwesomeIcon icon={faPlus} /> Add</>
                           )}
                         </button>
                       </div>
@@ -188,7 +188,7 @@ const PlaylistModal = ({ videoId, onClose, onSuccess }) => {
                   </div>
                 ) : (
                   <div className={styles.emptyMessage}>
-                    <p>Vous n'avez pas encore de playlist.</p>
+                    <p>You don't have any playlists yet.</p>
                   </div>
                 )}
 
@@ -196,7 +196,7 @@ const PlaylistModal = ({ videoId, onClose, onSuccess }) => {
                   className={styles.createButton}
                   onClick={() => setCreateMode(true)}
                 >
-                  <FontAwesomeIcon icon={faPlus} /> Créer une nouvelle playlist
+                  <FontAwesomeIcon icon={faPlus} /> Create a new playlist
                 </button>
               </>
             )}
@@ -204,25 +204,25 @@ const PlaylistModal = ({ videoId, onClose, onSuccess }) => {
         ) : (
           <form onSubmit={handleCreatePlaylist} className={styles.createForm}>
             <div className={styles.formGroup}>
-              <label htmlFor="playlistName">Nom de la playlist*</label>
+              <label htmlFor="playlistName">Playlist name*</label>
               <input
                 type="text"
                 id="playlistName"
                 value={newPlaylistName}
                 onChange={(e) => setNewPlaylistName(e.target.value)}
-                placeholder="Ma playlist awesome"
+                placeholder="My awesome playlist"
                 required
                 className={styles.input}
               />
             </div>
 
             <div className={styles.formGroup}>
-              <label htmlFor="playlistDescription">Description (optionnelle)</label>
+              <label htmlFor="playlistDescription">Description (optional)</label>
               <textarea
                 id="playlistDescription"
                 value={newPlaylistDescription}
                 onChange={(e) => setNewPlaylistDescription(e.target.value)}
-                placeholder="Une description de votre playlist..."
+                placeholder="A description of your playlist..."
                 className={styles.textarea}
               />
             </div>
@@ -233,7 +233,7 @@ const PlaylistModal = ({ videoId, onClose, onSuccess }) => {
                 className={styles.cancelButton}
                 onClick={() => setCreateMode(false)}
               >
-                Annuler
+                Cancel
               </button>
               <button 
                 type="submit" 
@@ -243,7 +243,7 @@ const PlaylistModal = ({ videoId, onClose, onSuccess }) => {
                 {submitting ? (
                   <FontAwesomeIcon icon={faSpinner} spin />
                 ) : (
-                  <><FontAwesomeIcon icon={faPlus} /> Créer et ajouter</>
+                  <><FontAwesomeIcon icon={faPlus} /> Create and add</>
                 )}
               </button>
             </div>

@@ -356,7 +356,7 @@ const LiveThrowback = () => {
     const checkExpiration = () => {
       if (!isStreamValid(currentStream)) {
         logger.debug('Current stream has expired');
-        setError('Ce direct est terminé');
+        setError('This livestream has ended');
         setCurrentStream(null);
         // Recharger la liste des streams
         cache.clear();
@@ -377,7 +377,7 @@ const LiveThrowback = () => {
     }
 
     if (!isStreamValid(currentStream)) {
-      setError('Ce direct n\'est plus actif');
+      setError('This livestream is no longer active');
       return;
     }
 
@@ -403,7 +403,7 @@ const LiveThrowback = () => {
       logger.error('Error toggling like:', error);
       
       if (error.response && error.response.status === 400) {
-        setError('Ce direct n\'est plus actif');
+        setError('This livestream is no longer active');
       }
     }
   };
@@ -452,7 +452,7 @@ const LiveThrowback = () => {
     if (!comment.trim() || !user || !currentStream) return;
     
     if (!isStreamValid(currentStream)) {
-      setError('Ce direct n\'est plus actif');
+      setError('This livestream is no longer active');
       return;
     }
     
@@ -480,14 +480,14 @@ const LiveThrowback = () => {
       // Vérifier si l'erreur indique un bannissement ou une désactivation du chat
       if (error.response) {
         if (error.response.status === 403) {
-          if (error.response.data?.message?.includes('chat est désactivé')) {
+          if (error.response.data?.message?.includes('chat is disabled')) {
             setChatDisabled(true);
-            setError('Le chat a été désactivé pour ce direct.');
-          } else if (error.response.data?.message?.includes('banni')) {
-            setError('Vous avez été banni de ce chat par le modérateur.');
+            setError('Chat has been disabled for this livestream.');
+          } else if (error.response.data?.message?.includes('banned')) {
+            setError('You have been banned from this chat by the moderator.');
           }
         } else if (error.response.status === 400) {
-          setError('Ce direct n\'est plus actif');
+          setError('This livestream is no longer active');
         }
       }
     }
@@ -510,7 +510,7 @@ const LiveThrowback = () => {
       <div className={styles.compilationProgress}>
         <div className={styles.progressInfo}>
           <span className={styles.videoTitle}>
-            {currentVideo?.title || `Vidéo ${currentIndex + 1}`}
+            {currentVideo?.title || `Video ${currentIndex + 1}`}
           </span>
           <span className={styles.videoCounter}>
             {currentIndex + 1} / {videos.length}
@@ -564,7 +564,7 @@ const LiveThrowback = () => {
       <div className={styles.noStreamContainer}>
         <FontAwesomeIcon icon={faClock} className={styles.noStreamIcon} />
         <h2>No live streams available</h2>
-        <p>There are no active ThrowBack compilations at the moment. Please check back later !</p>
+        <p>There are no active ThrowBack compilations at the moment. Please check back later!</p>
         <button 
           className={styles.refreshButton}
           onClick={() => {
@@ -609,9 +609,9 @@ const LiveThrowback = () => {
                   {!isStreamValid(currentStream) && (
                     <div className={styles.streamExpired}>
                       <FontAwesomeIcon icon={faExclamationTriangle} className={styles.expiredIcon} />
-                      <div className={styles.expiredMessage}>Ce direct est terminé</div>
+                      <div className={styles.expiredMessage}>This livestream has ended</div>
                       <div className={styles.expiredSubtext}>
-                        Merci d'avoir suivi cette compilation ThrowBack !
+                        Thank you for watching this ThrowBack compilation!
                       </div>
                     </div>
                   )}
@@ -704,12 +704,12 @@ const LiveThrowback = () => {
             ) : (
               <div className={styles.commentsDisabled}>
                 <h3 className={styles.commentsTitle}>
-                  {!isStreamValid(currentStream) ? 'Direct terminé' : 'Chat désactivé'}
+                  {!isStreamValid(currentStream) ? 'Livestream ended' : 'Chat disabled'}
                 </h3>
                 <p>
                   {!isStreamValid(currentStream) 
-                    ? 'Le chat est fermé car le direct est terminé' 
-                    : 'Le chat a été désactivé pour ce direct'
+                    ? 'The chat is closed because the livestream has ended' 
+                    : 'The chat has been disabled for this livestream'
                   }
                 </p>
               </div>

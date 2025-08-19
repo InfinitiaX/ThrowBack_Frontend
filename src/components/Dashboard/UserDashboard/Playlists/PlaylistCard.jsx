@@ -9,13 +9,13 @@ import {
 import styles from './PlaylistCard.module.css';
 
 /**
- * Composant de carte réutilisable pour afficher une playlist
+ * Reusable card component to display a playlist
  * 
- * @param {Object} playlist - Données de la playlist à afficher
- * @param {Function} onDelete - Fonction à appeler pour supprimer la playlist
- * @param {Function} onToggleFavorite - Fonction à appeler pour ajouter/retirer des favoris
- * @param {Function} onShare - Fonction à appeler pour partager la playlist
- * @param {boolean} isOwner - Indique si l'utilisateur courant est le propriétaire de la playlist
+ * @param {Object} playlist - Playlist data to display
+ * @param {Function} onDelete - Function to call to delete the playlist
+ * @param {Function} onToggleFavorite - Function to call to add/remove from favorites
+ * @param {Function} onShare - Function to call to share the playlist
+ * @param {boolean} isOwner - Indicates if the current user is the owner of the playlist
  */
 const PlaylistCard = ({ 
   playlist, 
@@ -27,31 +27,31 @@ const PlaylistCard = ({
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   
-  // Naviguer vers la page de détail de la playlist
+  // Navigate to playlist detail page
   const handleClick = () => {
     navigate(`/dashboard/playlists/${playlist._id}`);
   };
   
-  // Lancer la lecture de la playlist
+  // Start playing the playlist
   const handlePlay = (e) => {
     e.stopPropagation();
     navigate(`/dashboard/playlists/${playlist._id}/play`);
   };
   
-  // Afficher/masquer le menu contextuel
+  // Show/hide the context menu
   const handleToggleDropdown = (e) => {
     e.stopPropagation();
     setShowDropdown(!showDropdown);
   };
   
-  // Éditer la playlist
+  // Edit the playlist
   const handleEdit = (e) => {
     e.stopPropagation();
     navigate(`/dashboard/playlists/${playlist._id}/edit`);
     setShowDropdown(false);
   };
   
-  // Partager la playlist
+  // Share the playlist
   const handleShare = (e) => {
     e.stopPropagation();
     if (onShare) {
@@ -60,7 +60,7 @@ const PlaylistCard = ({
     setShowDropdown(false);
   };
   
-  // Supprimer la playlist
+  // Delete the playlist
   const handleDelete = (e) => {
     e.stopPropagation();
     if (onDelete) {
@@ -69,7 +69,7 @@ const PlaylistCard = ({
     setShowDropdown(false);
   };
   
-  // Ajouter/retirer des favoris
+  // Add/remove from favorites
   const handleToggleFavorite = (e) => {
     e.stopPropagation();
     if (onToggleFavorite) {
@@ -77,7 +77,7 @@ const PlaylistCard = ({
     }
   };
   
-  // Formater le nombre de lectures/favoris
+  // Format the view/favorites count
   const formatCount = (count) => {
     if (count >= 1000000) {
       return `${(count / 1000000).toFixed(1)}M`;
@@ -87,15 +87,15 @@ const PlaylistCard = ({
     return count;
   };
   
-  // Afficher l'icône de visibilité correspondante
+  // Display the corresponding visibility icon
   const renderVisibilityIcon = (visibility) => {
     switch (visibility) {
       case 'PUBLIC':
         return <FontAwesomeIcon icon={faGlobe} title="Public" />;
       case 'PRIVE':
-        return <FontAwesomeIcon icon={faLock} title="Privé" />;
+        return <FontAwesomeIcon icon={faLock} title="Private" />;
       case 'AMIS':
-        return <FontAwesomeIcon icon={faUserFriends} title="Amis uniquement" />;
+        return <FontAwesomeIcon icon={faUserFriends} title="Friends only" />;
       default:
         return <FontAwesomeIcon icon={faGlobe} title="Public" />;
     }
@@ -113,7 +113,7 @@ const PlaylistCard = ({
           <button 
             className={styles.playButton}
             onClick={handlePlay}
-            aria-label="Lire la playlist"
+            aria-label="Play playlist"
           >
             <FontAwesomeIcon icon={faPlay} />
           </button>
@@ -129,12 +129,12 @@ const PlaylistCard = ({
         </div>
         
         <p className={styles.description}>
-          {playlist.description || "Aucune description"}
+          {playlist.description || "No description"}
         </p>
         
         <div className={styles.stats}>
           <span className={styles.count}>
-            <FontAwesomeIcon icon={faMusic} /> {playlist.nb_videos || 0} vidéos
+            <FontAwesomeIcon icon={faMusic} /> {playlist.nb_videos || 0} videos
           </span>
           <span className={styles.count}>
             <FontAwesomeIcon icon={faEye} /> {formatCount(playlist.nb_lectures || 0)}
@@ -148,11 +148,11 @@ const PlaylistCard = ({
           <div className={styles.owner}>
             <img 
               src={playlist.proprietaire.photo_profil || "https://via.placeholder.com/30"}
-              alt={`${playlist.proprietaire.prenom || 'Utilisateur'} ${playlist.proprietaire.nom || ''}`}
+              alt={`${playlist.proprietaire.prenom || 'User'} ${playlist.proprietaire.nom || ''}`}
               className={styles.ownerAvatar}
             />
             <span className={styles.ownerName}>
-              {`${playlist.proprietaire.prenom || 'Utilisateur'} ${playlist.proprietaire.nom || ''}`}
+              {`${playlist.proprietaire.prenom || 'User'} ${playlist.proprietaire.nom || ''}`}
             </span>
           </div>
         )}
@@ -162,7 +162,7 @@ const PlaylistCard = ({
         <button 
           className={styles.actionButton}
           onClick={handleToggleFavorite}
-          aria-label={playlist.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+          aria-label={playlist.isFavorite ? "Remove from favorites" : "Add to favorites"}
         >
           <FontAwesomeIcon icon={playlist.isFavorite ? faHeartBroken : faHeart} />
         </button>
@@ -171,7 +171,7 @@ const PlaylistCard = ({
           <button 
             className={styles.actionButton}
             onClick={handleToggleDropdown}
-            aria-label="Plus d'options"
+            aria-label="More options"
           >
             <FontAwesomeIcon icon={faEllipsisV} />
           </button>
@@ -184,7 +184,7 @@ const PlaylistCard = ({
                   onClick={handleEdit}
                 >
                   <FontAwesomeIcon icon={faEdit} />
-                  <span>Modifier</span>
+                  <span>Edit</span>
                 </button>
               )}
               
@@ -193,7 +193,7 @@ const PlaylistCard = ({
                 onClick={handleShare}
               >
                 <FontAwesomeIcon icon={faShare} />
-                <span>Partager</span>
+                <span>Share</span>
               </button>
               
               {isOwner && (
@@ -202,7 +202,7 @@ const PlaylistCard = ({
                   onClick={handleDelete}
                 >
                   <FontAwesomeIcon icon={faTrash} />
-                  <span>Supprimer</span>
+                  <span>Delete</span>
                 </button>
               )}
             </div>

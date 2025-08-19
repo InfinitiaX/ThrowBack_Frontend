@@ -105,6 +105,12 @@ function App() {
             <Route path="chat" element={<UserTempPage title="ThrowBack Chat" />} />
             <Route path="discover" element={<UserTempPage title="Discover" />} />
             <Route path="favorites" element={<UserTempPage title="Your Favorites" />} />
+            <Route path="notifications" element={<UserTempPage title="Notifications" />} />
+            <Route path="upload/short" element={<UserTempPage title="Upload Short" />} />
+            <Route path="upload/video" element={<UserTempPage title="Upload Video" />} />
+            <Route path="posts/create" element={<UserTempPage title="Create Post" />} />
+            <Route path="groups/create" element={<UserTempPage title="Create Group" />} />
+            <Route path="history" element={<UserTempPage title="History" />} />
           </Route>
 
           {/* Admin Dashboard */}

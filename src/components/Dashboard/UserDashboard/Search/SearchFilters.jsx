@@ -9,33 +9,33 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 const SearchFilters = ({ activeTab, filters, onFilterChange }) => {
-  // Options de tri pour les vidéos
+  // Video sort options
   const videoSortOptions = [
-    { value: 'relevance', label: 'Pertinence', icon: faSort },
-    { value: 'views', label: 'Vues', icon: faSort },
-    { value: 'newest', label: 'Plus récentes', icon: faSort },
-    { value: 'oldest', label: 'Plus anciennes', icon: faSort },
+    { value: 'relevance', label: 'Relevance', icon: faSort },
+    { value: 'views', label: 'Views', icon: faSort },
+    { value: 'newest', label: 'Newest', icon: faSort },
+    { value: 'oldest', label: 'Oldest', icon: faSort },
     { value: 'likes', label: 'Likes', icon: faSort }
   ];
   
-  // Options de tri pour les playlists
+  // Playlist sort options
   const playlistSortOptions = [
-    { value: 'popularity', label: 'Popularité', icon: faSort },
-    { value: 'newest', label: 'Plus récentes', icon: faSort },
-    { value: 'oldest', label: 'Plus anciennes', icon: faSort },
-    { value: 'favorites', label: 'Favoris', icon: faSort }
+    { value: 'popularity', label: 'Popularity', icon: faSort },
+    { value: 'newest', label: 'Newest', icon: faSort },
+    { value: 'oldest', label: 'Oldest', icon: faSort },
+    { value: 'favorites', label: 'Favorites', icon: faSort }
   ];
   
-  // Options de tri pour les podcasts
+  // Podcast sort options
   const podcastSortOptions = [
-    { value: 'newest', label: 'Plus récents', icon: faSort },
-    { value: 'popular', label: 'Populaires', icon: faSort },
+    { value: 'newest', label: 'Newest', icon: faSort },
+    { value: 'popular', label: 'Popular', icon: faSort },
     { value: 'likes', label: 'Likes', icon: faSort }
   ];
   
-  // Options de genre musical
+  // Music genre options
   const genreOptions = [
-    { value: null, label: 'Tous les genres' },
+    { value: null, label: 'All genres' },
     { value: 'Pop', label: 'Pop' },
     { value: 'Rock', label: 'Rock' },
     { value: 'Hip-Hop', label: 'Hip-Hop' },
@@ -52,48 +52,48 @@ const SearchFilters = ({ activeTab, filters, onFilterChange }) => {
     { value: 'Disco', label: 'Disco' }
   ];
   
-  // Options de décennie
+  // Decade options
   const decennieOptions = [
-    { value: null, label: 'Toutes les décennies' },
-    { value: '60s', label: 'Années 60' },
-    { value: '70s', label: 'Années 70' },
-    { value: '80s', label: 'Années 80' },
-    { value: '90s', label: 'Années 90' },
-    { value: '2000s', label: 'Années 2000' },
-    { value: '2010s', label: 'Années 2010' },
-    { value: '2020s', label: 'Années 2020' }
+    { value: null, label: 'All decades' },
+    { value: '60s', label: '60s' },
+    { value: '70s', label: '70s' },
+    { value: '80s', label: '80s' },
+    { value: '90s', label: '90s' },
+    { value: '2000s', label: '2000s' },
+    { value: '2010s', label: '2010s' },
+    { value: '2020s', label: '2020s' }
   ];
   
-  // Options de catégorie de podcast
+  // Podcast category options
   const podcastCategoryOptions = [
-    { value: null, label: 'Toutes les catégories' },
+    { value: null, label: 'All categories' },
     { value: 'PERSONAL BRANDING', label: 'Personal Branding' },
     { value: 'MUSIC BUSINESS', label: 'Music Business' },
     { value: 'ARTIST INTERVIEW', label: 'Artist Interview' },
     { value: 'INDUSTRY INSIGHTS', label: 'Industry Insights' },
     { value: 'THROWBACK HISTORY', label: 'Throwback History' },
-    { value: 'OTHER', label: 'Autre' }
+    { value: 'OTHER', label: 'Other' }
   ];
   
-  // Options de statut de livestream
+  // Livestream status options
   const livestreamStatusOptions = [
-    { value: 'all', label: 'Tous' },
-    { value: 'LIVE', label: 'En direct' },
-    { value: 'SCHEDULED', label: 'Programmés' }
+    { value: 'all', label: 'All' },
+    { value: 'LIVE', label: 'Live' },
+    { value: 'SCHEDULED', label: 'Scheduled' }
   ];
   
-  // Options de catégorie de livestream
+  // Livestream category options
   const livestreamCategoryOptions = [
-    { value: null, label: 'Toutes les catégories' },
-    { value: 'MUSIC_PERFORMANCE', label: 'Performance musicale' },
+    { value: null, label: 'All categories' },
+    { value: 'MUSIC_PERFORMANCE', label: 'Music Performance' },
     { value: 'TALK_SHOW', label: 'Talk Show' },
     { value: 'Q_AND_A', label: 'Q&A' },
     { value: 'BEHIND_THE_SCENES', label: 'Behind the Scenes' },
     { value: 'THROWBACK_SPECIAL', label: 'Throwback Special' },
-    { value: 'OTHER', label: 'Autre' }
+    { value: 'OTHER', label: 'Other' }
   ];
   
-  // Rendu conditionnel des filtres en fonction de l'onglet actif
+  // Conditional rendering of filters based on active tab
   const renderFilters = () => {
     switch (activeTab) {
       case 'videos':
@@ -102,7 +102,7 @@ const SearchFilters = ({ activeTab, filters, onFilterChange }) => {
             <div className={styles.filterSection}>
               <h3>
                 <FontAwesomeIcon icon={faSort} />
-                <span>Trier par</span>
+                <span>Sort by</span>
               </h3>
               <div className={styles.filterOptions}>
                 {videoSortOptions.map(option => (
@@ -140,7 +140,7 @@ const SearchFilters = ({ activeTab, filters, onFilterChange }) => {
             <div className={styles.filterSection}>
               <h3>
                 <FontAwesomeIcon icon={faCalendarAlt} />
-                <span>Décennie</span>
+                <span>Decade</span>
               </h3>
               <div className={styles.filterOptions}>
                 <select
@@ -165,7 +165,7 @@ const SearchFilters = ({ activeTab, filters, onFilterChange }) => {
             <div className={styles.filterSection}>
               <h3>
                 <FontAwesomeIcon icon={faSort} />
-                <span>Trier par</span>
+                <span>Sort by</span>
               </h3>
               <div className={styles.filterOptions}>
                 {playlistSortOptions.map(option => (
@@ -188,7 +188,7 @@ const SearchFilters = ({ activeTab, filters, onFilterChange }) => {
             <div className={styles.filterSection}>
               <h3>
                 <FontAwesomeIcon icon={faSort} />
-                <span>Trier par</span>
+                <span>Sort by</span>
               </h3>
               <div className={styles.filterOptions}>
                 {podcastSortOptions.map(option => (
@@ -206,7 +206,7 @@ const SearchFilters = ({ activeTab, filters, onFilterChange }) => {
             <div className={styles.filterSection}>
               <h3>
                 <FontAwesomeIcon icon={faFilter} />
-                <span>Catégorie</span>
+                <span>Category</span>
               </h3>
               <div className={styles.filterOptions}>
                 <select
@@ -231,7 +231,7 @@ const SearchFilters = ({ activeTab, filters, onFilterChange }) => {
             <div className={styles.filterSection}>
               <h3>
                 <FontAwesomeIcon icon={faFilter} />
-                <span>Statut</span>
+                <span>Status</span>
               </h3>
               <div className={styles.filterOptions}>
                 {livestreamStatusOptions.map(option => (
@@ -249,7 +249,7 @@ const SearchFilters = ({ activeTab, filters, onFilterChange }) => {
             <div className={styles.filterSection}>
               <h3>
                 <FontAwesomeIcon icon={faFilter} />
-                <span>Catégorie</span>
+                <span>Category</span>
               </h3>
               <div className={styles.filterOptions}>
                 <select
@@ -273,7 +273,7 @@ const SearchFilters = ({ activeTab, filters, onFilterChange }) => {
         return (
           <div className={styles.filterGroup}>
             <div className={styles.filterInfo}>
-              <p>Sélectionnez un type de contenu spécifique pour afficher plus de filtres</p>
+              <p>Select a specific content type to display more filters</p>
             </div>
           </div>
         );

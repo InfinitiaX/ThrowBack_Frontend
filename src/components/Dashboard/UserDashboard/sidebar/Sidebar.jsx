@@ -76,8 +76,9 @@ const libraryItems = [
   },
   {
     label: 'Find friends',
-    to: '/dashboard/search',
-    icon: faUserFriends
+    to: '/dashboard/friends',
+    icon: faUserFriends,
+    inDevelopment: true
   }, 
   {
     label: 'Your favorites',

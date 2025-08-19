@@ -104,8 +104,8 @@ const FilterBar = ({ filters, onFilterChange, loading }) => {
               onChange={(e) => handleFilterChange('type', e.target.value)}
               disabled={loading}
             >
-              <option value="all">Tous les types</option>
-              <option value="music">Musique</option>
+              <option value="all">All types</option>
+              <option value="music">Music</option>
               <option value="podcast">Podcast</option>
               <option value="short">Short</option>
             </select>
@@ -113,13 +113,13 @@ const FilterBar = ({ filters, onFilterChange, loading }) => {
 
           {/* Genre Filter */}
           <div className={styles.filterGroup}>
-            <label>Genre</label>
+            <label>Gendre</label>
             <select
               value={filters.genre}
               onChange={(e) => handleFilterChange('genre', e.target.value)}
               disabled={loading}
             >
-              <option value="all">Tous les genres</option>
+              <option value="all"> All gendres</option>
               {GENRES.map(genre => (
                 <option key={genre} value={genre}>{genre}</option>
               ))}
@@ -128,13 +128,13 @@ const FilterBar = ({ filters, onFilterChange, loading }) => {
 
           {/* Decade Filter */}
           <div className={styles.filterGroup}>
-            <label>Décennie</label>
+            <label>Decade</label>
             <select
               value={filters.decade}
               onChange={(e) => handleFilterChange('decade', e.target.value)}
               disabled={loading}
             >
-              <option value="all">Toutes les décennies</option>
+              <option value="all">All decades</option>
               {DECADES.map(decade => (
                 <option key={decade} value={decade}>{decade}</option>
               ))}
@@ -165,7 +165,7 @@ const FilterBar = ({ filters, onFilterChange, loading }) => {
               disabled={loading}
             >
               <i className="fas fa-times"></i>
-              Réinitialiser
+              Reset
             </button>
           )}
         </div>

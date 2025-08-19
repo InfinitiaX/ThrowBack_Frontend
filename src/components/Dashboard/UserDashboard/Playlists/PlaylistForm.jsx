@@ -19,7 +19,7 @@ const PlaylistForm = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // États du formulaire
+  // Form states
   const [formData, setFormData] = useState({
     nom: '',
     description: '',
@@ -27,14 +27,14 @@ const PlaylistForm = () => {
     image_couverture: ''
   });
 
-  // États pour la gestion des vidéos
+  // Video management states
   const [playlistVideos, setPlaylistVideos] = useState([]);
   const [availableVideos, setAvailableVideos] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
 
-  // États pour la gestion du formulaire
+  // Form management states
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -43,34 +43,34 @@ const PlaylistForm = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success');
 
-  // Charger les données si en mode édition
+  // Load data if in edit mode
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         
-        // Charger les vidéos disponibles
+        // Load available videos
         const videosData = await videoAPI.getAllVideos();
         setAvailableVideos(videosData);
         
-        // Si en mode édition, charger les données de la playlist
+        // If in edit mode, load playlist data
         if (isEditing) {
           const playlistData = await playlistAPI.getPlaylistById(id);
           
           if (!playlistData) {
-            setError('Playlist introuvable');
+            setError('Playlist not found');
             setLoading(false);
             return;
           }
           
-          // Vérifier que l'utilisateur est le propriétaire
+          // Check that the user is the owner
           if (playlistData.proprietaire._id !== user?.id) {
-            setError('Vous n\'avez pas les permissions nécessaires pour modifier cette playlist');
+            setError('You do not have permission to edit this playlist');
             setLoading(false);
             return;
           }
           
-          // Remplir le formulaire avec les données de la playlist
+          // Fill the form with playlist data
           setFormData({
             nom: playlistData.nom || '',
             description: playlistData.description || '',
@@ -78,15 +78,15 @@ const PlaylistForm = () => {
             image_couverture: playlistData.image_couverture || ''
           });
           
-          // Trier les vidéos par ordre
+          // Sort videos by order
           const sortedVideos = [...playlistData.videos].sort((a, b) => a.ordre - b.ordre);
           setPlaylistVideos(sortedVideos.map(item => item.video_id));
         }
         
         setLoading(false);
       } catch (err) {
-        console.error('Erreur lors du chargement des données:', err);
-        setError('Une erreur est survenue lors du chargement des données');
+        console.error('Error loading data:', err);
+        setError('An error occurred while loading data');
         setLoading(false);
       }
     };
@@ -94,7 +94,7 @@ const PlaylistForm = () => {
     fetchData();
   }, [id, isEditing, user?.id]);
 
-  // Filtrer les vidéos disponibles en fonction de la recherche
+  // Filter available videos based on search
   useEffect(() => {
     if (searchTerm.trim() === '') {
       setSearchResults([]);
@@ -110,7 +110,7 @@ const PlaylistForm = () => {
     setSearchResults(results);
   }, [searchTerm, availableVideos]);
 
-  // Gérer les changements dans les champs du formulaire
+  // Handle form field changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -118,7 +118,7 @@ const PlaylistForm = () => {
       [name]: value
     });
     
-    // Effacer l'erreur pour ce champ
+    // Clear error for this field
     if (formErrors[name]) {
       setFormErrors({
         ...formErrors,
@@ -127,15 +127,15 @@ const PlaylistForm = () => {
     }
   };
 
-  // Gérer la recherche de vidéos
+  // Handle video search
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
     setShowSearchResults(true);
   };
 
-  // Ajouter une vidéo à la playlist
+  // Add a video to the playlist
   const handleAddVideo = (video) => {
-    // Vérifier si la vidéo n'est pas déjà dans la playlist
+    // Check if the video is not already in the playlist
     if (!playlistVideos.some(v => v._id === video._id)) {
       setPlaylistVideos([...playlistVideos, video]);
     }
@@ -144,12 +144,12 @@ const PlaylistForm = () => {
     setShowSearchResults(false);
   };
 
-  // Supprimer une vidéo de la playlist
+  // Remove a video from the playlist
   const handleRemoveVideo = (videoId) => {
     setPlaylistVideos(playlistVideos.filter(video => video._id !== videoId));
   };
 
-  // Gérer le glisser-déposer pour réorganiser les vidéos
+  // Handle drag and drop for video reordering
   const handleDragStart = (e, index) => {
     e.dataTransfer.setData('index', index.toString());
   };
@@ -171,30 +171,30 @@ const PlaylistForm = () => {
     setPlaylistVideos(videos);
   };
 
-  // Gérer l'upload d'image de couverture
+  // Handle cover image upload
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     
-    // Vérifier le type de fichier
+    // Check file type
     if (!file.type.startsWith('image/')) {
       setFormErrors({
         ...formErrors,
-        image_couverture: 'Le fichier doit être une image'
+        image_couverture: 'The file must be an image'
       });
       return;
     }
     
-    // Vérifier la taille du fichier (max 2MB)
+    // Check file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       setFormErrors({
         ...formErrors,
-        image_couverture: 'L\'image ne doit pas dépasser 2MB'
+        image_couverture: 'The image must not exceed 2MB'
       });
       return;
     }
     
-    // Créer une URL pour prévisualiser l'image
+    // Create a URL to preview the image
     const reader = new FileReader();
     reader.onload = (event) => {
       setFormData({
@@ -204,7 +204,7 @@ const PlaylistForm = () => {
     };
     reader.readAsDataURL(file);
     
-    // Effacer l'erreur pour ce champ
+    // Clear error for this field
     if (formErrors.image_couverture) {
       setFormErrors({
         ...formErrors,
@@ -213,7 +213,7 @@ const PlaylistForm = () => {
     }
   };
 
-  // Supprimer l'image de couverture
+  // Remove the cover image
   const handleRemoveImage = () => {
     setFormData({
       ...formData,
@@ -221,35 +221,35 @@ const PlaylistForm = () => {
     });
   };
 
-  // Valider le formulaire
+  // Validate the form
   const validateForm = () => {
     const errors = {};
     
     if (!formData.nom || formData.nom.trim() === '') {
-      errors.nom = 'Le nom de la playlist est requis';
+      errors.nom = 'Playlist name is required';
     }
     
     if (formData.nom && formData.nom.length > 100) {
-      errors.nom = 'Le nom de la playlist ne doit pas dépasser 100 caractères';
+      errors.nom = 'Playlist name must not exceed 100 characters';
     }
     
     if (formData.description && formData.description.length > 500) {
-      errors.description = 'La description ne doit pas dépasser 500 caractères';
+      errors.description = 'Description must not exceed 500 characters';
     }
     
     if (!formData.visibilite) {
-      errors.visibilite = 'La visibilité est requise';
+      errors.visibilite = 'Visibility is required';
     }
     
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  // Soumettre le formulaire
+  // Submit the form
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Valider le formulaire
+    // Validate the form
     if (!validateForm()) {
       return;
     }
@@ -257,7 +257,7 @@ const PlaylistForm = () => {
     try {
       setSaving(true);
       
-      // Préparer les données pour l'API
+      // Prepare data for the API
       const playlistData = {
         ...formData,
         videos: playlistVideos.map((video, index) => ({
@@ -269,37 +269,37 @@ const PlaylistForm = () => {
       let response;
       
       if (isEditing) {
-        // Mettre à jour la playlist existante
+        // Update existing playlist
         response = await playlistAPI.updatePlaylist(id, playlistData);
       } else {
-        // Créer une nouvelle playlist
+        // Create a new playlist
         response = await playlistAPI.createPlaylist(playlistData);
       }
       
       setSaving(false);
       
-      // Afficher un message de succès
-      setToastMessage(isEditing ? 'Playlist mise à jour avec succès' : 'Playlist créée avec succès');
+      // Display a success message
+      setToastMessage(isEditing ? 'Playlist updated successfully' : 'Playlist created successfully');
       setToastType('success');
       setShowToast(true);
       
-      // Rediriger vers la page de détail de la playlist
+      // Redirect to the playlist detail page
       setTimeout(() => {
         navigate(`/dashboard/playlists/${isEditing ? id : response.data._id}`);
       }, 1500);
     } catch (err) {
-      console.error('Erreur lors de l\'enregistrement de la playlist:', err);
+      console.error('Error saving playlist:', err);
       
       setSaving(false);
       
-      // Afficher un message d'erreur
-      setToastMessage('Une erreur est survenue lors de l\'enregistrement de la playlist');
+      // Display an error message
+      setToastMessage('An error occurred while saving the playlist');
       setToastType('error');
       setShowToast(true);
     }
   };
 
-  // Annuler et retourner à la page précédente
+  // Cancel and return to the previous page
   const handleCancel = () => {
     navigate(isEditing ? `/dashboard/playlists/${id}` : '/dashboard/playlists');
   };
@@ -316,7 +316,7 @@ const PlaylistForm = () => {
           className={styles.retryButton}
           onClick={() => navigate('/dashboard/playlists')}
         >
-          Retour aux playlists
+          Back to playlists
         </button>
       </div>
     );
@@ -324,10 +324,10 @@ const PlaylistForm = () => {
 
   return (
     <div className={styles.playlistFormContainer}>
-      {/* En-tête avec titre et boutons d'action */}
+      {/* Header with title and action buttons */}
       <div className={styles.header}>
         <h1 className={styles.title}>
-          {isEditing ? 'Modifier la playlist' : 'Créer une playlist'}
+          {isEditing ? 'Edit playlist' : 'Create playlist'}
         </h1>
         
         <div className={styles.headerActions}>
@@ -337,7 +337,7 @@ const PlaylistForm = () => {
             onClick={handleCancel}
           >
             <FontAwesomeIcon icon={faArrowLeft} />
-            <span>Annuler</span>
+            <span>Cancel</span>
           </button>
           
           <button 
@@ -347,21 +347,21 @@ const PlaylistForm = () => {
             disabled={saving}
           >
             <FontAwesomeIcon icon={faSave} />
-            <span>{saving ? 'Enregistrement...' : 'Enregistrer'}</span>
+            <span>{saving ? 'Saving...' : 'Save'}</span>
           </button>
         </div>
       </div>
 
-      {/* Formulaire */}
+      {/* Form */}
       <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.formContent}>
-          {/* Informations de base */}
+          {/* Basic information */}
           <div className={styles.basicInfoSection}>
-            <h2 className={styles.sectionTitle}>Informations de base</h2>
+            <h2 className={styles.sectionTitle}>Basic Information</h2>
             
             <div className={styles.formGroup}>
               <label htmlFor="nom" className={styles.label}>
-                Nom de la playlist <span className={styles.required}>*</span>
+                Playlist name <span className={styles.required}>*</span>
               </label>
               <input 
                 type="text"
@@ -370,7 +370,7 @@ const PlaylistForm = () => {
                 value={formData.nom}
                 onChange={handleInputChange}
                 className={`${styles.input} ${formErrors.nom ? styles.inputError : ''}`}
-                placeholder="Entrez le nom de votre playlist"
+                placeholder="Enter your playlist name"
                 maxLength="100"
               />
               {formErrors.nom && (
@@ -394,7 +394,7 @@ const PlaylistForm = () => {
                 value={formData.description}
                 onChange={handleInputChange}
                 className={`${styles.textarea} ${formErrors.description ? styles.inputError : ''}`}
-                placeholder="Décrivez votre playlist (facultatif)"
+                placeholder="Describe your playlist (optional)"
                 maxLength="500"
                 rows="4"
               />
@@ -411,7 +411,7 @@ const PlaylistForm = () => {
             
             <div className={styles.formGroup}>
               <label className={styles.label}>
-                Visibilité <span className={styles.required}>*</span>
+                Visibility <span className={styles.required}>*</span>
               </label>
               <div className={styles.visibilityOptions}>
                 <label className={`${styles.visibilityOption} ${formData.visibilite === 'PUBLIC' ? styles.selected : ''}`}>
@@ -428,7 +428,7 @@ const PlaylistForm = () => {
                   <div className={styles.visibilityInfo}>
                     <span className={styles.visibilityTitle}>Public</span>
                     <span className={styles.visibilityDescription}>
-                      Visible par tous les utilisateurs
+                      Visible to all users
                     </span>
                   </div>
                 </label>
@@ -445,9 +445,9 @@ const PlaylistForm = () => {
                     <FontAwesomeIcon icon={faUserFriends} />
                   </div>
                   <div className={styles.visibilityInfo}>
-                    <span className={styles.visibilityTitle}>Amis uniquement</span>
+                    <span className={styles.visibilityTitle}>Friends only</span>
                     <span className={styles.visibilityDescription}>
-                      Visible par vos amis seulement
+                      Visible to your friends only
                     </span>
                   </div>
                 </label>
@@ -464,9 +464,9 @@ const PlaylistForm = () => {
                     <FontAwesomeIcon icon={faLock} />
                   </div>
                   <div className={styles.visibilityInfo}>
-                    <span className={styles.visibilityTitle}>Privé</span>
+                    <span className={styles.visibilityTitle}>Private</span>
                     <span className={styles.visibilityDescription}>
-                      Visible par vous uniquement
+                      Visible to you only
                     </span>
                   </div>
                 </label>
@@ -481,7 +481,7 @@ const PlaylistForm = () => {
             
             <div className={styles.formGroup}>
               <label className={styles.label}>
-                Image de couverture
+                Cover image
               </label>
               
               <div className={styles.coverImageContainer}>
@@ -489,7 +489,7 @@ const PlaylistForm = () => {
                   <div className={styles.previewContainer}>
                     <img 
                       src={formData.image_couverture}
-                      alt="Aperçu de la couverture"
+                      alt="Cover preview"
                       className={styles.coverPreview}
                     />
                     <button 
@@ -509,7 +509,7 @@ const PlaylistForm = () => {
                       className={styles.fileInput}
                     />
                     <FontAwesomeIcon icon={faImage} />
-                    <span>Choisir une image</span>
+                    <span>Choose an image</span>
                   </label>
                 )}
               </div>
@@ -521,14 +521,14 @@ const PlaylistForm = () => {
                 </div>
               )}
               <p className={styles.imageHint}>
-                Format recommandé : JPG ou PNG, 800x800px minimum
+                Recommended format: JPG or PNG, 800x800px minimum
               </p>
             </div>
           </div>
 
-          {/* Vidéos de la playlist */}
+          {/* Playlist videos */}
           <div className={styles.videosSection}>
-            <h2 className={styles.sectionTitle}>Vidéos</h2>
+            <h2 className={styles.sectionTitle}>Videos</h2>
             
             <div className={styles.searchContainer}>
               <div className={styles.searchInputContainer}>
@@ -538,7 +538,7 @@ const PlaylistForm = () => {
                   value={searchTerm}
                   onChange={handleSearchChange}
                   className={styles.searchInput}
-                  placeholder="Rechercher des vidéos à ajouter..."
+                  placeholder="Search for videos to add..."
                   onFocus={() => setShowSearchResults(true)}
                 />
               </div>
@@ -576,7 +576,7 @@ const PlaylistForm = () => {
                     ))
                   ) : (
                     <div className={styles.noResults}>
-                      <p>Aucune vidéo trouvée</p>
+                      <p>No videos found</p>
                     </div>
                   )}
                 </div>
@@ -585,7 +585,7 @@ const PlaylistForm = () => {
             
             <div className={styles.playlistVideosContainer}>
               <h3 className={styles.subSectionTitle}>
-                Vidéos dans la playlist ({playlistVideos.length})
+                Videos in playlist ({playlistVideos.length})
               </h3>
               
               {playlistVideos.length > 0 ? (
@@ -623,9 +623,9 @@ const PlaylistForm = () => {
               ) : (
                 <div className={styles.emptyVideos}>
                   <FontAwesomeIcon icon={faMusic} className={styles.emptyIcon} />
-                  <p>Aucune vidéo dans la playlist</p>
+                  <p>No videos in playlist</p>
                   <p className={styles.emptyHint}>
-                    Recherchez et ajoutez des vidéos à votre playlist
+                    Search and add videos to your playlist
                   </p>
                 </div>
               )}
@@ -633,14 +633,14 @@ const PlaylistForm = () => {
           </div>
         </div>
 
-        {/* Boutons d'action en bas du formulaire */}
+        {/* Action buttons at the bottom of the form */}
         <div className={styles.formActions}>
           <button 
             type="button"
             className={styles.cancelButton}
             onClick={handleCancel}
           >
-            Annuler
+            Cancel
           </button>
           
           <button 
@@ -648,12 +648,12 @@ const PlaylistForm = () => {
             className={styles.submitButton}
             disabled={saving}
           >
-            {saving ? 'Enregistrement...' : isEditing ? 'Mettre à jour' : 'Créer la playlist'}
+            {saving ? 'Saving...' : isEditing ? 'Update' : 'Create playlist'}
           </button>
         </div>
       </form>
 
-      {/* Toast pour les notifications */}
+      {/* Toast for notifications */}
       <Toast
         show={showToast}
         message={toastMessage}

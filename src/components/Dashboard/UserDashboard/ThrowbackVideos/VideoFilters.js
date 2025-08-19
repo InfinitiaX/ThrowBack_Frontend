@@ -2,29 +2,29 @@ import React from 'react';
 import styles from './VideoFilters.module.css';
 
 const VideoFilters = ({ onFilterChange, activeFilters, videoCount = 0 }) => {
-  // Genres musicaux disponibles spécifiques à la musique
+  // Available music genres specific to music
   const genres = [
-    'Tous genres', 'Pop', 'Rock', 'Hip-Hop', 'Rap', 'R&B', 'Soul', 'Jazz', 'Blues', 'Electronic', 
+    'All genres', 'Pop', 'Rock', 'Hip-Hop', 'Rap', 'R&B', 'Soul', 'Jazz', 'Blues', 'Electronic', 
     'Dance', 'House', 'Techno', 'Country', 'Folk', 'Classical', 'Opera', 'Reggae', 'Latin', 
     'World', 'Afro', 'Alternative', 'Indie', 'Metal', 'Punk', 'Gospel', 'Funk', 'Disco', 
     'Ska', 'Salsa', 'Bachata', 'Merengue', 'Tango'
   ];
   
-  // Décennies disponibles
-  const decades = ['Toutes décennies', '60s', '70s', '80s', '90s', '2000s', '2010s', '2020s'];
+  // Available decades
+  const decades = ['All decades', '60s', '70s', '80s', '90s', '2000s', '2010s', '2020s'];
   
-  // Options de tri pour les vidéos musicales
-  const sortOptions = ['Plus récents', 'Plus populaires', 'Plus aimés'];
+  // Sort options for music videos
+  const sortOptions = ['Newest', 'Most popular', 'Most liked'];
   
-  // Gestionnaire de changement pour les select
+  // Change handler for selects
   const handleSelectChange = (e, filterType) => {
     const value = e.target.value;
     const newFilters = { ...activeFilters };
     
     if (filterType === 'genre') {
-      newFilters.genre = value === 'Tous genres' ? 'all' : value;
+      newFilters.genre = value === 'All genres' ? 'all' : value;
     } else if (filterType === 'decade') {
-      newFilters.decade = value === 'Toutes décennies' ? 'all' : value;
+      newFilters.decade = value === 'All decades' ? 'all' : value;
     } else if (filterType === 'sortBy') {
       newFilters.sortBy = value;
     }
@@ -32,12 +32,12 @@ const VideoFilters = ({ onFilterChange, activeFilters, videoCount = 0 }) => {
     onFilterChange(newFilters);
   };
   
-  // Fonction pour obtenir la valeur actuelle du select
+  // Function to get the current value of the select
   const getCurrentValue = (filterType) => {
     if (filterType === 'genre') {
-      return activeFilters.genre === 'all' ? 'Tous genres' : activeFilters.genre;
+      return activeFilters.genre === 'all' ? 'All genres' : activeFilters.genre;
     } else if (filterType === 'decade') {
-      return activeFilters.decade === 'all' ? 'Toutes décennies' : activeFilters.decade;
+      return activeFilters.decade === 'all' ? 'All decades' : activeFilters.decade;
     } else if (filterType === 'sortBy') {
       return activeFilters.sortBy;
     }
@@ -84,7 +84,7 @@ const VideoFilters = ({ onFilterChange, activeFilters, videoCount = 0 }) => {
         </div>
         
         <div className={styles.filterGroup}>
-          <label htmlFor="sort-select" className={styles.filterLabel}>Trier par:</label>
+          <label htmlFor="sort-select" className={styles.filterLabel}>Sort by:</label>
           <div className={styles.selectWrapper}>
             <select
               id="sort-select"

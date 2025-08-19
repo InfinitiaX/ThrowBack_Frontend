@@ -23,12 +23,12 @@ const UserPlaylistDetail = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  // États pour les données
+  // Data states
   const [playlist, setPlaylist] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // États pour le lecteur vidéo
+  // Video player states
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
@@ -38,7 +38,7 @@ const UserPlaylistDetail = () => {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   
-  // États pour l'interface
+  // Interface states
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -47,11 +47,11 @@ const UserPlaylistDetail = () => {
   const [showAddVideoModal, setShowAddVideoModal] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   
-  // Références
+  // References
   const videoRef = useRef(null);
   const progressBarRef = useRef(null);
   
-  // Charger les détails de la playlist
+  // Load playlist details
   useEffect(() => {
     const fetchPlaylistDetails = async () => {
       try {
@@ -60,8 +60,8 @@ const UserPlaylistDetail = () => {
         setPlaylist(data);
         setLoading(false);
       } catch (err) {
-        console.error('Erreur lors du chargement de la playlist:', err);
-        setError('Impossible de charger la playlist. Veuillez réessayer plus tard.');
+        console.error('Error loading playlist:', err);
+        setError('Unable to load playlist. Please try again later.');
         setLoading(false);
       }
     };
@@ -69,28 +69,28 @@ const UserPlaylistDetail = () => {
     fetchPlaylistDetails();
   }, [id]);
   
-  // Mettre à jour le lecteur vidéo lorsque la vidéo actuelle change
+  // Update video player when current video changes
   useEffect(() => {
     if (playlist?.videos && playlist.videos.length > 0 && videoRef.current) {
-      // Réinitialiser le lecteur
+      // Reset player
       videoRef.current.pause();
       setProgress(0);
       
-      // Charger la nouvelle vidéo
+      // Load new video
       const currentVideo = playlist.videos[currentVideoIndex].video_id;
       videoRef.current.src = currentVideo.youtubeUrl;
       
-      // Commencer la lecture si nécessaire
+      // Start playback if needed
       if (isPlaying) {
         videoRef.current.play().catch(err => {
-          console.error('Erreur lors de la lecture automatique:', err);
+          console.error('Error during automatic playback:', err);
           setIsPlaying(false);
         });
       }
     }
   }, [currentVideoIndex, playlist]);
   
-  // Gestionnaire d'événements pour le lecteur vidéo
+  // Event handlers for video player
   useEffect(() => {
     const videoElement = videoRef.current;
     
@@ -102,20 +102,20 @@ const UserPlaylistDetail = () => {
       
       const handleEnded = () => {
         if (repeat) {
-          // Rejouer la même vidéo
+          // Replay the same video
           videoElement.currentTime = 0;
           videoElement.play().catch(err => {
-            console.error('Erreur lors de la lecture répétée:', err);
+            console.error('Error during repeated playback:', err);
           });
         } else if (shuffle) {
-          // Passer à une vidéo aléatoire
+          // Move to a random video
           const randomIndex = Math.floor(Math.random() * playlist.videos.length);
           setCurrentVideoIndex(randomIndex);
         } else if (currentVideoIndex < playlist.videos.length - 1) {
-          // Passer à la vidéo suivante
+          // Move to next video
           setCurrentVideoIndex(currentVideoIndex + 1);
         } else {
-          // Fin de la playlist
+          // End of playlist
           setIsPlaying(false);
         }
       };
@@ -130,7 +130,7 @@ const UserPlaylistDetail = () => {
     }
   }, [currentVideoIndex, playlist, repeat, shuffle]);
   
-  // Formater le temps (secondes -> MM:SS)
+  // Format time (seconds -> MM:SS)
   const formatTime = (seconds) => {
     if (isNaN(seconds) || seconds === 0) return '0:00';
     
@@ -139,14 +139,14 @@ const UserPlaylistDetail = () => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
   
-  // Contrôles du lecteur
+  // Player controls
   const handlePlayPause = () => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
       } else {
         videoRef.current.play().catch(err => {
-          console.error('Erreur lors de la lecture:', err);
+          console.error('Playback error:', err);
         });
       }
       setIsPlaying(!isPlaying);
@@ -201,7 +201,7 @@ const UserPlaylistDetail = () => {
     setRepeat(!repeat);
   };
   
-  // Gestion des actions sur la playlist
+  // Playlist action handlers
   const handleBackClick = () => {
     navigate('/dashboard/playlists');
   };
@@ -212,17 +212,17 @@ const UserPlaylistDetail = () => {
   };
   
   const handleSharePlaylist = () => {
-    // Copier le lien dans le presse-papier
+    // Copy link to clipboard
     const shareUrl = `${window.location.origin}/dashboard/playlists/${id}`;
     navigator.clipboard.writeText(shareUrl)
       .then(() => {
-        setToastMessage('Lien de la playlist copié dans le presse-papier');
+        setToastMessage('Playlist link copied to clipboard');
         setToastType('success');
         setShowToast(true);
       })
       .catch(err => {
-        console.error('Erreur lors de la copie du lien:', err);
-        setToastMessage('Erreur lors de la copie du lien');
+        console.error('Error copying link:', err);
+        setToastMessage('Error copying link');
         setToastType('error');
         setShowToast(true);
       });
@@ -234,7 +234,7 @@ const UserPlaylistDetail = () => {
     try {
       const response = await playlistAPI.toggleFavorite(id);
       
-      // Mettre à jour l'état local
+      // Update local state
       setPlaylist({
         ...playlist,
         isFavorite: response.isFavorite,
@@ -242,13 +242,13 @@ const UserPlaylistDetail = () => {
       });
       
       setToastMessage(response.isFavorite ? 
-        'Playlist ajoutée aux favoris' : 
-        'Playlist retirée des favoris');
+        'Playlist added to favorites' : 
+        'Playlist removed from favorites');
       setToastType('success');
       setShowToast(true);
     } catch (err) {
-      console.error('Erreur lors de la gestion des favoris:', err);
-      setToastMessage('Erreur lors de la gestion des favoris');
+      console.error('Error managing favorites:', err);
+      setToastMessage('Error managing favorites');
       setToastType('error');
       setShowToast(true);
     }
@@ -259,26 +259,26 @@ const UserPlaylistDetail = () => {
       await playlistAPI.deletePlaylist(id);
       navigate('/dashboard/playlists');
       
-      // Notification (s'affichera sur la page des playlists)
-      setToastMessage('Playlist supprimée avec succès');
+      // Notification (will show on playlists page)
+      setToastMessage('Playlist deleted successfully');
       setToastType('success');
       setShowToast(true);
     } catch (err) {
-      console.error('Erreur lors de la suppression de la playlist:', err);
-      setToastMessage('Erreur lors de la suppression de la playlist');
+      console.error('Error deleting playlist:', err);
+      setToastMessage('Error deleting playlist');
       setToastType('error');
       setShowToast(true);
       setShowConfirmDelete(false);
     }
   };
   
-  // Gestion des vidéos dans la playlist
+  // Video management
   const handlePlayVideo = (index) => {
     setCurrentVideoIndex(index);
     setIsPlaying(true);
     if (videoRef.current) {
       videoRef.current.play().catch(err => {
-        console.error('Erreur lors de la lecture:', err);
+        console.error('Playback error:', err);
         setIsPlaying(false);
       });
     }
@@ -288,24 +288,24 @@ const UserPlaylistDetail = () => {
     try {
       await playlistAPI.removeVideoFromPlaylist(id, videoId);
       
-      // Mettre à jour l'état local
+      // Update local state
       setPlaylist({
         ...playlist,
         videos: playlist.videos.filter(v => v.video_id._id !== videoId)
       });
       
-      setToastMessage('Vidéo supprimée de la playlist');
+      setToastMessage('Video removed from playlist');
       setToastType('success');
       setShowToast(true);
     } catch (err) {
-      console.error('Erreur lors de la suppression de la vidéo:', err);
-      setToastMessage('Erreur lors de la suppression de la vidéo');
+      console.error('Error removing video:', err);
+      setToastMessage('Error removing video');
       setToastType('error');
       setShowToast(true);
     }
   };
   
-  // Gestion du glisser-déposer pour réorganiser la playlist
+  // Drag-and-drop handler for playlist reordering
   const handleDragEnd = async (result) => {
     setIsDragging(false);
     
@@ -315,13 +315,13 @@ const UserPlaylistDetail = () => {
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
     
-    // Mettre à jour l'ordre localement
+    // Update order locally
     setPlaylist({
       ...playlist,
       videos: items.map((item, index) => ({ ...item, ordre: index + 1 }))
     });
     
-    // Mettre à jour l'ordre sur le serveur
+    // Update order on server
     try {
       const videoOrders = items.map((item, index) => ({
         videoId: item.video_id._id,
@@ -330,34 +330,34 @@ const UserPlaylistDetail = () => {
       
       await playlistAPI.reorderPlaylist(id, videoOrders);
     } catch (err) {
-      console.error('Erreur lors de la réorganisation de la playlist:', err);
-      setToastMessage('Erreur lors de la réorganisation de la playlist');
+      console.error('Error reordering playlist:', err);
+      setToastMessage('Error reordering playlist');
       setToastType('error');
       setShowToast(true);
     }
   };
   
-  // Afficher l'icône de visibilité correspondante
+  // Display the corresponding visibility icon
   const renderVisibilityIcon = (visibility) => {
     switch (visibility) {
       case 'PUBLIC':
         return <FontAwesomeIcon icon={faGlobe} title="Public" />;
       case 'PRIVE':
-        return <FontAwesomeIcon icon={faLock} title="Privé" />;
+        return <FontAwesomeIcon icon={faLock} title="Private" />;
       case 'AMIS':
-        return <FontAwesomeIcon icon={faUserFriends} title="Amis uniquement" />;
+        return <FontAwesomeIcon icon={faUserFriends} title="Friends only" />;
       default:
         return <FontAwesomeIcon icon={faGlobe} title="Public" />;
     }
   };
   
-  // Formater la date (ISO -> DD/MM/YYYY)
+  // Format date (ISO -> DD/MM/YYYY)
   const formatDate = (isoDate) => {
     const date = new Date(isoDate);
     return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
   };
   
-  // Formater le nombre de lectures
+  // Format view count
   const formatCount = (count) => {
     if (count >= 1000000) {
       return `${(count / 1000000).toFixed(1)}M`;
@@ -379,7 +379,7 @@ const UserPlaylistDetail = () => {
           className={styles.retryButton}
           onClick={() => window.location.reload()}
         >
-          Réessayer
+          Try again
         </button>
       </div>
     );
@@ -388,12 +388,12 @@ const UserPlaylistDetail = () => {
   if (!playlist) {
     return (
       <div className={styles.errorContainer}>
-        <p className={styles.errorMessage}>Playlist introuvable</p>
+        <p className={styles.errorMessage}>Playlist not found</p>
         <button 
           className={styles.retryButton}
           onClick={handleBackClick}
         >
-          Retour aux playlists
+          Back to playlists
         </button>
       </div>
     );
@@ -404,21 +404,21 @@ const UserPlaylistDetail = () => {
   
   return (
     <div className={styles.playlistDetailContainer}>
-      {/* En-tête avec retour et actions */}
+      {/* Header with back button and actions */}
       <div className={styles.header}>
         <button 
           className={styles.backButton}
           onClick={handleBackClick}
         >
           <FontAwesomeIcon icon={faArrowLeft} />
-          <span>Retour aux playlists</span>
+          <span>Back to playlists</span>
         </button>
         
         <div className={styles.playlistActions}>
           <button 
             className={styles.actionButton}
             onClick={handleToggleFavorite}
-            aria-label={playlist.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+            aria-label={playlist.isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
             <FontAwesomeIcon icon={playlist.isFavorite ? faHeartBroken : faHeart} />
           </button>
@@ -426,7 +426,7 @@ const UserPlaylistDetail = () => {
           <button 
             className={styles.actionButton}
             onClick={handleSharePlaylist}
-            aria-label="Partager la playlist"
+            aria-label="Share playlist"
           >
             <FontAwesomeIcon icon={faShare} />
           </button>
@@ -436,7 +436,7 @@ const UserPlaylistDetail = () => {
               <button 
                 className={styles.actionButton}
                 onClick={() => setShowDropdown(!showDropdown)}
-                aria-label="Plus d'options"
+                aria-label="More options"
               >
                 <FontAwesomeIcon icon={faEllipsisV} />
               </button>
@@ -448,7 +448,7 @@ const UserPlaylistDetail = () => {
                     onClick={handleEditPlaylist}
                   >
                     <FontAwesomeIcon icon={faEdit} />
-                    <span>Modifier</span>
+                    <span>Edit</span>
                   </button>
                   
                   <button 
@@ -456,7 +456,7 @@ const UserPlaylistDetail = () => {
                     onClick={() => setShowConfirmDelete(true)}
                   >
                     <FontAwesomeIcon icon={faTrash} />
-                    <span>Supprimer</span>
+                    <span>Delete</span>
                   </button>
                 </div>
               )}
@@ -465,7 +465,7 @@ const UserPlaylistDetail = () => {
         </div>
       </div>
 
-      {/* Informations sur la playlist */}
+      {/* Playlist information */}
       <div className={styles.playlistInfo}>
         <div className={styles.playlistCover}>
           <img 
@@ -479,35 +479,35 @@ const UserPlaylistDetail = () => {
           <div className={styles.playlistMeta}>
             <div className={styles.playlistVisibility}>
               {renderVisibilityIcon(playlist.visibilite)}
-              <span>{playlist.visibilite === 'PUBLIC' ? 'Public' : playlist.visibilite === 'PRIVE' ? 'Privé' : 'Amis uniquement'}</span>
+              <span>{playlist.visibilite === 'PUBLIC' ? 'Public' : playlist.visibilite === 'PRIVE' ? 'Private' : 'Friends only'}</span>
             </div>
           </div>
           
           <h1 className={styles.playlistTitle}>{playlist.nom}</h1>
           
           <p className={styles.playlistDescription}>
-            {playlist.description || "Aucune description"}
+            {playlist.description || "No description"}
           </p>
           
           <div className={styles.playlistStats}>
             <div className={styles.statItem}>
               <FontAwesomeIcon icon={faMusic} />
-              <span>{playlist.videos.length} vidéos</span>
+              <span>{playlist.videos.length} videos</span>
             </div>
             
             <div className={styles.statItem}>
               <FontAwesomeIcon icon={faEye} />
-              <span>{formatCount(playlist.nb_lectures)} lectures</span>
+              <span>{formatCount(playlist.nb_lectures)} views</span>
             </div>
             
             <div className={styles.statItem}>
               <FontAwesomeIcon icon={faHeart} />
-              <span>{formatCount(playlist.nb_favoris)} favoris</span>
+              <span>{formatCount(playlist.nb_favoris)} favorites</span>
             </div>
             
             <div className={styles.statItem}>
               <FontAwesomeIcon icon={faCalendarAlt} />
-              <span>Créée le {formatDate(playlist.creation_date)}</span>
+              <span>Created on {formatDate(playlist.creation_date)}</span>
             </div>
           </div>
           
@@ -515,11 +515,11 @@ const UserPlaylistDetail = () => {
             <div className={styles.creatorProfile}>
               <img 
                 src={playlist.proprietaire?.photo_profil || "https://via.placeholder.com/40"}
-                alt={`${playlist.proprietaire?.prenom || 'Utilisateur'} ${playlist.proprietaire?.nom || ''}`}
+                alt={`${playlist.proprietaire?.prenom || 'User'} ${playlist.proprietaire?.nom || ''}`}
                 className={styles.creatorAvatar}
               />
               <span className={styles.creatorName}>
-                {`${playlist.proprietaire?.prenom || 'Utilisateur'} ${playlist.proprietaire?.nom || ''}`}
+                {`${playlist.proprietaire?.prenom || 'User'} ${playlist.proprietaire?.nom || ''}`}
               </span>
             </div>
             
@@ -528,15 +528,15 @@ const UserPlaylistDetail = () => {
               onClick={() => handlePlayVideo(0)}
             >
               <FontAwesomeIcon icon={faPlay} />
-              <span>Lire tout</span>
+              <span>Play all</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Lecteur vidéo et liste */}
+      {/* Video player and list */}
       <div className={styles.playerSection}>
-        {/* Lecteur vidéo */}
+        {/* Video player */}
         <div className={styles.videoPlayerContainer}>
           {playlist.videos.length > 0 ? (
             <>
@@ -586,7 +586,7 @@ const UserPlaylistDetail = () => {
                   <button 
                     className={`${styles.controlButton} ${shuffle ? styles.active : ''}`}
                     onClick={handleShuffle}
-                    aria-label="Lecture aléatoire"
+                    aria-label="Shuffle"
                   >
                     <FontAwesomeIcon icon={faRandom} />
                   </button>
@@ -595,7 +595,7 @@ const UserPlaylistDetail = () => {
                     className={styles.controlButton}
                     onClick={handlePrevious}
                     disabled={currentVideoIndex === 0}
-                    aria-label="Précédent"
+                    aria-label="Previous"
                   >
                     <FontAwesomeIcon icon={faStepBackward} />
                   </button>
@@ -603,7 +603,7 @@ const UserPlaylistDetail = () => {
                   <button 
                     className={styles.playPauseButton}
                     onClick={handlePlayPause}
-                    aria-label={isPlaying ? "Pause" : "Lecture"}
+                    aria-label={isPlaying ? "Pause" : "Play"}
                   >
                     <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} />
                   </button>
@@ -612,7 +612,7 @@ const UserPlaylistDetail = () => {
                     className={styles.controlButton}
                     onClick={handleNext}
                     disabled={currentVideoIndex === playlist.videos.length - 1}
-                    aria-label="Suivant"
+                    aria-label="Next"
                   >
                     <FontAwesomeIcon icon={faStepForward} />
                   </button>
@@ -620,7 +620,7 @@ const UserPlaylistDetail = () => {
                   <button 
                     className={`${styles.controlButton} ${repeat ? styles.active : ''}`}
                     onClick={handleRepeat}
-                    aria-label="Répéter"
+                    aria-label="Repeat"
                   >
                     <FontAwesomeIcon icon={faRedo} />
                   </button>
@@ -630,7 +630,7 @@ const UserPlaylistDetail = () => {
                   <button 
                     className={styles.muteButton}
                     onClick={handleMuteToggle}
-                    aria-label={isMuted ? "Activer le son" : "Couper le son"}
+                    aria-label={isMuted ? "Unmute" : "Mute"}
                   >
                     <FontAwesomeIcon icon={isMuted ? faVolumeMute : faVolumeUp} />
                   </button>
@@ -650,19 +650,19 @@ const UserPlaylistDetail = () => {
             <div className={styles.emptyPlayerState}>
               <EmptyState 
                 icon={faMusic}
-                title="Aucune vidéo"
-                message="Cette playlist ne contient aucune vidéo. Ajoutez des vidéos pour commencer à profiter de votre playlist."
-                actionText={isOwner ? "Ajouter des vidéos" : null}
+                title="No videos"
+                message="This playlist doesn't contain any videos. Add videos to start enjoying your playlist."
+                actionText={isOwner ? "Add videos" : null}
                 onAction={isOwner ? () => setShowAddVideoModal(true) : null}
               />
             </div>
           )}
         </div>
 
-        {/* Liste des vidéos */}
+        {/* Video list */}
         <div className={styles.playlistVideosContainer}>
           <div className={styles.playlistVideosHeader}>
-            <h2 className={styles.videosTitle}>Vidéos dans cette playlist</h2>
+            <h2 className={styles.videosTitle}>Videos in this playlist</h2>
             
             {isOwner && (
               <button 
@@ -670,7 +670,7 @@ const UserPlaylistDetail = () => {
                 onClick={() => setShowAddVideoModal(true)}
               >
                 <FontAwesomeIcon icon={faPlus} />
-                <span>Ajouter des vidéos</span>
+                <span>Add videos</span>
               </button>
             )}
           </div>
@@ -742,7 +742,7 @@ const UserPlaylistDetail = () => {
                                       e.stopPropagation();
                                       handleRemoveVideo(video._id);
                                     }}
-                                    aria-label="Supprimer de la playlist"
+                                    aria-label="Remove from playlist"
                                   >
                                     <FontAwesomeIcon icon={faTrash} />
                                   </button>
@@ -760,24 +760,24 @@ const UserPlaylistDetail = () => {
             </DragDropContext>
           ) : (
             <p className={styles.emptyListMessage}>
-              Cette playlist ne contient aucune vidéo.
+              This playlist doesn't contain any videos.
             </p>
           )}
         </div>
       </div>
 
-      {/* Modal de confirmation de suppression */}
+      {/* Delete confirmation modal */}
       <ConfirmModal
         isOpen={showConfirmDelete}
-        title="Supprimer la playlist"
-        message={`Êtes-vous sûr de vouloir supprimer la playlist "${playlist.nom}" ? Cette action est irréversible.`}
-        confirmText="Supprimer"
-        cancelText="Annuler"
+        title="Delete playlist"
+        message={`Are you sure you want to delete the playlist "${playlist.nom}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
         onConfirm={handleDeletePlaylist}
         onCancel={() => setShowConfirmDelete(false)}
       />
 
-      {/* Toast pour les notifications */}
+      {/* Toast for notifications */}
       <Toast
         show={showToast}
         message={toastMessage}

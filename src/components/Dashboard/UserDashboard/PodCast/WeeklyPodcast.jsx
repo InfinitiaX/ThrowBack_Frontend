@@ -35,7 +35,7 @@ const WeeklyPodcast = () => {
     return `EP.${episode.toString().padStart(2, '0')}`;
   };
 
-  // Fetcher les podcasts - utilisant l'API centrale
+  // Fetch podcasts - using central API
   useEffect(() => {
     const fetchPodcasts = async () => {
       setIsLoading(true);
@@ -44,7 +44,7 @@ const WeeklyPodcast = () => {
       try {
         console.log('Fetching podcasts, page:', currentPage);
         
-        // Utiliser l'API centralisée au lieu de fetch direct
+        // Use centralized API instead of direct fetch
         const response = await api.get(`/api/podcasts/user`, {
           params: {
             page: currentPage,
@@ -58,11 +58,11 @@ const WeeklyPodcast = () => {
           setPodcasts(response.data.data || []);
           setTotalPages(response.data.pagination?.totalPages || 1);
           
-          // Utiliser le podcast en vedette fourni par l'API
+          // Use featured podcast provided by the API
           if (response.data.featuredPodcast) {
             setFeaturedPodcast(response.data.featuredPodcast);
           } else if (response.data.data && response.data.data.length > 0) {
-            // Fallback: utiliser le premier podcast comme featuredPodcast
+            // Fallback: use first podcast as featuredPodcast
             setFeaturedPodcast(response.data.data[0]);
           }
         } else {
@@ -70,9 +70,9 @@ const WeeklyPodcast = () => {
         }
       } catch (err) {
         console.error('Error fetching podcasts:', err);
-        setError(err.message || 'Une erreur est survenue lors du chargement des podcasts');
+        setError(err.message || 'An error occurred while loading podcasts');
         
-        // Si aucun podcast n'est chargé, utiliser des données factices
+        // If no podcasts are loaded, use dummy data
         if (podcasts.length === 0) {
           setupMockData();
         }
@@ -84,7 +84,7 @@ const WeeklyPodcast = () => {
     fetchPodcasts();
   }, [currentPage]);
 
-  // Configurer des données factices si nécessaire (pour la démo ou en cas d'erreur)
+  // Set up mock data if needed (for demo or in case of error)
   const setupMockData = () => {
     console.log('Setting up mock data');
     const mockPodcasts = [
@@ -184,32 +184,32 @@ const WeeklyPodcast = () => {
     setFeaturedPodcast(mockPodcasts[0]);
   };
 
-  // Gérer la lecture du podcast
+  // Handle podcast playback
   const handlePlay = (podcast) => {
     if (nowPlaying && nowPlaying._id === podcast._id) {
-      // Toggle pause/play si c'est le même podcast
+      // Toggle pause/play if it's the same podcast
       setIsPlaying(!isPlaying);
     } else {
-      // Jouer un nouveau podcast
+      // Play a new podcast
       setNowPlaying(podcast);
       setIsPlaying(true);
-      // En production, rediriger vers la page du podcast
+      // In production, redirect to podcast page
       navigate(`/dashboard/podcast/${podcast._id}`);
     }
   };
 
-  // Fonction pour gérer les erreurs d'image
+  // Function to handle image errors
   const handleImageError = (e) => {
     e.target.onerror = null;
     e.target.src = DEFAULT_IMAGE_PATH;
   };
 
-  // Fonction pour obtenir le chemin de l'image sécurisé
+  // Function to get secure image path
   const getImagePath = (podcast) => {
     if (podcast.coverImage) {
       return podcast.coverImage;
     }
-    // Utiliser un modulo sur une valeur numérique sécurisée
+    // Use modulo on a secure numeric value
     // Convert string ID to a number by summing char codes
     const idSum = podcast._id.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
     return `/images/podcast-${(idSum % 6) + 1}.jpg`;

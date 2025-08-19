@@ -76,7 +76,7 @@ const DashboardLayout = () => {
   if (isLoading) {
     return <div className={styles.loadingContainer}>
       <div className={styles.loadingSpinner}></div>
-      <p>Chargement de votre expérience ThrowBack...</p>
+      <p>Loading your ThrowBack experience...</p>
     </div>;
   }
 
@@ -115,7 +115,7 @@ const DashboardLayout = () => {
           <button 
             className={styles.floatingMenuButton}
             onClick={toggleSidebar}
-            aria-label="Ouvrir le menu"
+            aria-label="Open menu"
           >
             <span className={styles.floatingMenuIcon}></span>
             <span className={styles.floatingMenuIcon}></span>

@@ -22,18 +22,18 @@ const PlaylistSelectionModal = ({ podcastId, onClose, onSuccess }) => {
   const [successMessage, setSuccessMessage] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
   
-  // Vérifier si l'utilisateur est authentifié
+  // Check if user is authenticated
   useEffect(() => {
     const token = localStorage.getItem('token') || localStorage.getItem('authToken');
     setIsAuthenticated(!!token);
     
     if (!token) {
-      setError('Vous devez être connecté pour gérer vos playlists');
+      setError('You must be logged in to manage your playlists');
       setLoading(false);
     }
   }, []);
   
-  // Récupérer les playlists de l'utilisateur
+  // Fetch user playlists
   useEffect(() => {
     const fetchUserPlaylists = async () => {
       try {
@@ -45,11 +45,11 @@ const PlaylistSelectionModal = ({ podcastId, onClose, onSuccess }) => {
         setUserPlaylists(playlists || []);
       } catch (err) {
         console.error('Error fetching user playlists:', err);
-        setError('Erreur lors du chargement de vos playlists');
+        setError('Error loading your playlists');
         
         if (err.response?.status === 401) {
           setIsAuthenticated(false);
-          setError('Vous devez être connecté pour gérer vos playlists');
+          setError('You must be logged in to manage your playlists');
         }
       } finally {
         setLoading(false);
@@ -61,7 +61,7 @@ const PlaylistSelectionModal = ({ podcastId, onClose, onSuccess }) => {
     }
   }, [isAuthenticated]);
   
-  // Ajouter le podcast à une playlist existante
+  // Add podcast to existing playlist
   const handleAddToPlaylist = async (playlistId) => {
     if (submitting) return;
     
@@ -74,33 +74,33 @@ const PlaylistSelectionModal = ({ podcastId, onClose, onSuccess }) => {
       console.log('Add to playlist response:', response);
       
       if (response && response.success) {
-        setSuccessMessage('Podcast ajouté à la playlist avec succès!');
+        setSuccessMessage('Podcast added to playlist successfully!');
         
         setTimeout(() => {
           if (onSuccess) onSuccess();
         }, 1500);
       } else {
-        setError(response?.message || 'Erreur lors de l\'ajout à la playlist');
+        setError(response?.message || 'Error adding to playlist');
       }
     } catch (err) {
       console.error('Error adding podcast to playlist:', err);
-      setError(err.response?.data?.message || 'Erreur lors de l\'ajout à la playlist');
+      setError(err.response?.data?.message || 'Error adding to playlist');
       
       if (err.response?.status === 401) {
         setIsAuthenticated(false);
-        setError('Vous devez être connecté pour ajouter à une playlist');
+        setError('You must be logged in to add to a playlist');
       }
     } finally {
       setSubmitting(false);
     }
   };
   
-  // Créer une nouvelle playlist
+  // Create a new playlist
   const handleCreatePlaylist = async (e) => {
     e.preventDefault();
     
     if (!newPlaylistName.trim()) {
-      setError('Le nom de la playlist est requis');
+      setError('Playlist name is required');
       return;
     }
     
@@ -121,7 +121,7 @@ const PlaylistSelectionModal = ({ podcastId, onClose, onSuccess }) => {
       console.log('Create playlist response:', response);
       
       if (response && response.success) {
-        setSuccessMessage('Nouvelle playlist créée avec succès!');
+        setSuccessMessage('New playlist created successfully!');
         setNewPlaylistName('');
         setNewPlaylistDescription('');
         setCreateMode(false);
@@ -130,22 +130,22 @@ const PlaylistSelectionModal = ({ podcastId, onClose, onSuccess }) => {
           if (onSuccess) onSuccess();
         }, 1500);
       } else {
-        setError(response?.message || 'Erreur lors de la création de la playlist');
+        setError(response?.message || 'Error creating playlist');
       }
     } catch (err) {
       console.error('Error creating playlist:', err);
-      setError(err.response?.data?.message || 'Erreur lors de la création de la playlist');
+      setError(err.response?.data?.message || 'Error creating playlist');
       
       if (err.response?.status === 401) {
         setIsAuthenticated(false);
-        setError('Vous devez être connecté pour créer une playlist');
+        setError('You must be logged in to create a playlist');
       }
     } finally {
       setSubmitting(false);
     }
   };
   
-  // Vérifier si un podcast est déjà dans une playlist
+  // Check if podcast is already in a playlist
   const isPodcastInPlaylist = (playlist) => {
     if (!playlist.videos) return false;
     
@@ -157,7 +157,7 @@ const PlaylistSelectionModal = ({ podcastId, onClose, onSuccess }) => {
     });
   };
   
-  // Rediriger vers la page de connexion
+  // Redirect to login page
   const handleLogin = () => {
     window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
   };
@@ -166,7 +166,7 @@ const PlaylistSelectionModal = ({ podcastId, onClose, onSuccess }) => {
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
         <div className={styles.modalHeader}>
-          <h3>{createMode ? 'Créer une nouvelle playlist' : 'Ajouter à une playlist'}</h3>
+          <h3>{createMode ? 'Create a new playlist' : 'Add to playlist'}</h3>
           <button className={styles.closeButton} onClick={onClose}>
             <FontAwesomeIcon icon={faTimes} />
           </button>
@@ -180,7 +180,7 @@ const PlaylistSelectionModal = ({ podcastId, onClose, onSuccess }) => {
                 className={styles.loginButton}
                 onClick={handleLogin}
               >
-                Se connecter
+                Log in
               </button>
             )}
           </div>
@@ -197,7 +197,7 @@ const PlaylistSelectionModal = ({ podcastId, onClose, onSuccess }) => {
             {loading ? (
               <div className={styles.loadingContainer}>
                 <FontAwesomeIcon icon={faSpinner} spin className={styles.spinnerIcon} />
-                <p>Chargement de vos playlists...</p>
+                <p>Loading your playlists...</p>
               </div>
             ) : (
               <div className={styles.playlistsContainer}>
@@ -207,7 +207,7 @@ const PlaylistSelectionModal = ({ podcastId, onClose, onSuccess }) => {
                       <div key={playlist._id} className={styles.playlistItem}>
                         <div className={styles.playlistInfo}>
                           <h4>{playlist.nom}</h4>
-                          <span>{playlist.videos?.length || 0} éléments</span>
+                          <span>{playlist.videos?.length || 0} items</span>
                         </div>
                         <button 
                           className={`${styles.addButton} ${isPodcastInPlaylist(playlist) ? styles.addedButton : ''}`}
@@ -215,11 +215,11 @@ const PlaylistSelectionModal = ({ podcastId, onClose, onSuccess }) => {
                           disabled={isPodcastInPlaylist(playlist) || submitting}
                         >
                           {isPodcastInPlaylist(playlist) ? (
-                            <><FontAwesomeIcon icon={faCheck} /> Ajouté</>
+                            <><FontAwesomeIcon icon={faCheck} /> Added</>
                           ) : submitting ? (
                             <FontAwesomeIcon icon={faSpinner} spin />
                           ) : (
-                            <><FontAwesomeIcon icon={faPlus} /> Ajouter</>
+                            <><FontAwesomeIcon icon={faPlus} /> Add</>
                           )}
                         </button>
                       </div>
@@ -227,7 +227,7 @@ const PlaylistSelectionModal = ({ podcastId, onClose, onSuccess }) => {
                   </div>
                 ) : isAuthenticated ? (
                   <div className={styles.emptyMessage}>
-                    <p>Vous n'avez pas encore de playlist.</p>
+                    <p>You don't have any playlists yet.</p>
                   </div>
                 ) : null}
                 
@@ -236,7 +236,7 @@ const PlaylistSelectionModal = ({ podcastId, onClose, onSuccess }) => {
                     className={styles.createButton}
                     onClick={() => setCreateMode(true)}
                   >
-                    <FontAwesomeIcon icon={faPlus} /> Créer une nouvelle playlist
+                    <FontAwesomeIcon icon={faPlus} /> Create a new playlist
                   </button>
                 )}
               </div>
@@ -245,25 +245,25 @@ const PlaylistSelectionModal = ({ podcastId, onClose, onSuccess }) => {
         ) : (
           <form onSubmit={handleCreatePlaylist} className={styles.createForm}>
             <div className={styles.formGroup}>
-              <label htmlFor="playlistName">Nom de la playlist*</label>
+              <label htmlFor="playlistName">Playlist name*</label>
               <input
                 type="text"
                 id="playlistName"
                 value={newPlaylistName}
                 onChange={(e) => setNewPlaylistName(e.target.value)}
-                placeholder="Ma nouvelle playlist"
+                placeholder="My new playlist"
                 required
                 className={styles.input}
               />
             </div>
             
             <div className={styles.formGroup}>
-              <label htmlFor="playlistDescription">Description (optionnelle)</label>
+              <label htmlFor="playlistDescription">Description (optional)</label>
               <textarea
                 id="playlistDescription"
                 value={newPlaylistDescription}
                 onChange={(e) => setNewPlaylistDescription(e.target.value)}
-                placeholder="Description de votre playlist..."
+                placeholder="Description of your playlist..."
                 className={styles.textarea}
               />
             </div>
@@ -274,7 +274,7 @@ const PlaylistSelectionModal = ({ podcastId, onClose, onSuccess }) => {
                 className={styles.cancelButton}
                 onClick={() => setCreateMode(false)}
               >
-                Annuler
+                Cancel
               </button>
               <button 
                 type="submit" 
@@ -284,7 +284,7 @@ const PlaylistSelectionModal = ({ podcastId, onClose, onSuccess }) => {
                 {submitting ? (
                   <FontAwesomeIcon icon={faSpinner} spin />
                 ) : (
-                  <><FontAwesomeIcon icon={faPlus} /> Créer et ajouter</>
+                  <><FontAwesomeIcon icon={faPlus} /> Create and add</>
                 )}
               </button>
             </div>

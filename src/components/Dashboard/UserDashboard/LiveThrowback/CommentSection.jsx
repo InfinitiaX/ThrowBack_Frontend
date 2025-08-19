@@ -68,14 +68,14 @@ const CommentSection = ({ streamId }) => {
         
         // Vérifier si le chat est désactivé
         if (response.data?.data?.chatEnabled === false) {
-          setError('Le chat a été désactivé pour ce direct.');
+          setError('Chat has been disabled for this livestream.');
           setChatDisabled(true);
           return;
         }
         
         // Vérifier si l'utilisateur est banni (seulement si connecté)
         if (user && response.data?.data?.bannedUsers?.includes(user.id)) {
-          setError('Vous avez été banni de ce chat par le modérateur.');
+          setError('You have been banned from this chat by the moderator.');
           setIsBanned(true);
         }
       } catch (err) {
@@ -119,19 +119,19 @@ const CommentSection = ({ streamId }) => {
           setHasMore(fetchedComments.length === 10);
         } else {
           logger.error('API returned non-array data:', fetchedComments);
-          setError('Format de données incorrect reçu du serveur');
+          setError('Incorrect data format received from server');
         }
       } else {
         // Vérifier si l'utilisateur est banni ou si le chat est désactivé
         if (response.data?.chatDisabled) {
           setChatDisabled(true);
-          setError('Le chat a été désactivé pour ce direct.');
+          setError('Chat has been disabled for this livestream.');
         } else if (response.data?.userBanned) {
           setIsBanned(true);
-          setError('Vous avez été banni de ce chat par le modérateur.');
+          setError('You have been banned from this chat by the moderator.');
         } else {
           logger.warn('Received invalid data format from API');
-          setError('Format de données incorrect reçu du serveur');
+          setError('Incorrect data format received from server');
         }
       }
       
@@ -145,20 +145,20 @@ const CommentSection = ({ streamId }) => {
         if (error.response.status === 403) {
           if (error.response.data?.chatDisabled) {
             setChatDisabled(true);
-            setError('Le chat a été désactivé pour ce direct.');
+            setError('Chat has been disabled for this livestream.');
           } else if (error.response.data?.userBanned) {
             setIsBanned(true);
-            setError('Vous avez été banni de ce chat par le modérateur.');
+            setError('You have been banned from this chat by the moderator.');
           } else {
-            setError('Vous n\'avez pas accès à ce chat.');
+            setError('You do not have access to this chat.');
           }
         } else if (error.response.status === 401) {
-          setError('Vous devez être connecté pour accéder au chat.');
+          setError('You must be logged in to access the chat.');
         } else {
-          setError('Erreur lors du chargement des commentaires.');
+          setError('Error loading comments.');
         }
       } else {
-        setError('Erreur de connexion au serveur.');
+        setError('Connection error to server.');
       }
     }
   };
@@ -340,15 +340,15 @@ const CommentSection = ({ streamId }) => {
       // Vérifier si l'erreur indique un bannissement ou une désactivation du chat
       if (error.response) {
         if (error.response.status === 403) {
-          if (error.response.data?.message?.includes('chat est désactivé')) {
+          if (error.response.data?.message?.includes('chat is disabled')) {
             setChatDisabled(true);
-            setError('Le chat a été désactivé pour ce direct.');
-          } else if (error.response.data?.message?.includes('banni')) {
+            setError('Chat has been disabled for this livestream.');
+          } else if (error.response.data?.message?.includes('banned')) {
             setIsBanned(true);
-            setError('Vous avez été banni de ce chat par le modérateur.');
+            setError('You have been banned from this chat by the moderator.');
           }
         } else if (error.response.status === 401) {
-          setError('Vous devez être connecté pour envoyer un message.');
+          setError('You must be logged in to send a message.');
         }
       }
     }

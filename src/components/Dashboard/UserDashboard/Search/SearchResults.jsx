@@ -20,43 +20,43 @@ import PodcastCard from './Common/PodcastCard';
 import LivestreamCard from './Common/LivestreamCard';
 
 const SearchResults = ({ results, searchQuery, activeTab }) => {
-  // S'il n'y a pas de requête de recherche
+  // If there's no search query
   if (!searchQuery) {
     return (
       <div className={styles.emptyState}>
         <FontAwesomeIcon icon={faSearch} size="3x" className={styles.emptyIcon} />
-        <h2>Recherchez du contenu sur ThrowBack</h2>
-        <p>Entrez un terme de recherche pour trouver des vidéos, playlists, podcasts et livestreams</p>
+        <h2>Search for content on ThrowBack</h2>
+        <p>Enter a search term to find videos, playlists, podcasts, and livestreams</p>
       </div>
     );
   }
   
-  // S'il n'y a pas de résultats
+  // If there are no results
   if (!results || Object.keys(results).length === 0) {
     return (
       <div className={styles.emptyState}>
         <FontAwesomeIcon icon={faSearch} size="3x" className={styles.emptyIcon} />
-        <h2>Aucun résultat trouvé pour "{searchQuery}"</h2>
-        <p>Essayez avec d'autres termes ou filtres</p>
+        <h2>No results found for "{searchQuery}"</h2>
+        <p>Try different terms or filters</p>
       </div>
     );
   }
   
-  // Affichage des résultats pour la recherche globale
+  // Display results for global search
   if (activeTab === 'all') {
     return (
       <div className={styles.globalResults}>
-        {/* Vidéos */}
+        {/* Videos */}
         {results.videos && results.videos.items && results.videos.items.length > 0 && (
           <section className={styles.resultSection}>
             <div className={styles.sectionHeader}>
               <h2>
                 <FontAwesomeIcon icon={faVideo} />
-                <span>Vidéos</span>
+                <span>Videos</span>
               </h2>
               {results.videos.total > results.videos.items.length && (
                 <Link to={`/dashboard/search?q=${encodeURIComponent(searchQuery)}&type=videos`} className={styles.viewMore}>
-                  Voir plus ({results.videos.total})
+                  View more ({results.videos.total})
                 </Link>
               )}
             </div>
@@ -79,7 +79,7 @@ const SearchResults = ({ results, searchQuery, activeTab }) => {
               </h2>
               {results.playlists.total > results.playlists.items.length && (
                 <Link to={`/dashboard/search?q=${encodeURIComponent(searchQuery)}&type=playlists`} className={styles.viewMore}>
-                  Voir plus ({results.playlists.total})
+                  View more ({results.playlists.total})
                 </Link>
               )}
             </div>
@@ -102,7 +102,7 @@ const SearchResults = ({ results, searchQuery, activeTab }) => {
               </h2>
               {results.podcasts.total > results.podcasts.items.length && (
                 <Link to={`/dashboard/search?q=${encodeURIComponent(searchQuery)}&type=podcasts`} className={styles.viewMore}>
-                  Voir plus ({results.podcasts.total})
+                  View more ({results.podcasts.total})
                 </Link>
               )}
             </div>
@@ -125,7 +125,7 @@ const SearchResults = ({ results, searchQuery, activeTab }) => {
               </h2>
               {results.livestreams.total > results.livestreams.items.length && (
                 <Link to={`/dashboard/search?q=${encodeURIComponent(searchQuery)}&type=livestreams`} className={styles.viewMore}>
-                  Voir plus ({results.livestreams.total})
+                  View more ({results.livestreams.total})
                 </Link>
               )}
             </div>
@@ -138,29 +138,29 @@ const SearchResults = ({ results, searchQuery, activeTab }) => {
           </section>
         )}
         
-        {/* Si aucun résultat n'a été trouvé dans aucune catégorie */}
+        {/* If no results were found in any category */}
         {(!results.videos || results.videos.items.length === 0) &&
          (!results.playlists || results.playlists.items.length === 0) &&
          (!results.podcasts || results.podcasts.items.length === 0) &&
          (!results.livestreams || results.livestreams.items.length === 0) && (
           <div className={styles.emptyState}>
             <FontAwesomeIcon icon={faSearch} size="3x" className={styles.emptyIcon} />
-            <h2>Aucun résultat trouvé pour "{searchQuery}"</h2>
-            <p>Essayez avec d'autres termes ou filtres</p>
+            <h2>No results found for "{searchQuery}"</h2>
+            <p>Try different terms or filters</p>
           </div>
         )}
       </div>
     );
   }
   
-  // Affichage des résultats pour les vidéos
+  // Display results for videos
   if (activeTab === 'videos' && results.items) {
     return (
       <div className={styles.videosResults}>
         {results.items.length > 0 ? (
           <>
             <div className={styles.resultsHeader}>
-              <h2>{results.total} résultat(s) pour "{searchQuery}"</h2>
+              <h2>{results.total} result(s) for "{searchQuery}"</h2>
             </div>
             
             <div className={styles.videoGrid}>
@@ -169,32 +169,32 @@ const SearchResults = ({ results, searchQuery, activeTab }) => {
               ))}
             </div>
             
-            {/* Pagination si nécessaire */}
+            {/* Pagination if needed */}
             {results.totalPages > 1 && (
               <div className={styles.pagination}>
-                {/* Composant de pagination à implémenter */}
+                {/* Pagination component to be implemented */}
               </div>
             )}
           </>
         ) : (
           <div className={styles.emptyState}>
             <FontAwesomeIcon icon={faVideo} size="3x" className={styles.emptyIcon} />
-            <h2>Aucune vidéo trouvée pour "{searchQuery}"</h2>
-            <p>Essayez avec d'autres termes ou filtres</p>
+            <h2>No videos found for "{searchQuery}"</h2>
+            <p>Try different terms or filters</p>
           </div>
         )}
       </div>
     );
   }
   
-  // Affichage des résultats pour les playlists
+  // Display results for playlists
   if (activeTab === 'playlists' && results.items) {
     return (
       <div className={styles.playlistsResults}>
         {results.items.length > 0 ? (
           <>
             <div className={styles.resultsHeader}>
-              <h2>{results.total} résultat(s) pour "{searchQuery}"</h2>
+              <h2>{results.total} result(s) for "{searchQuery}"</h2>
             </div>
             
             <div className={styles.playlistGrid}>
@@ -203,32 +203,32 @@ const SearchResults = ({ results, searchQuery, activeTab }) => {
               ))}
             </div>
             
-            {/* Pagination si nécessaire */}
+            {/* Pagination if needed */}
             {results.totalPages > 1 && (
               <div className={styles.pagination}>
-                {/* Composant de pagination à implémenter */}
+                {/* Pagination component to be implemented */}
               </div>
             )}
           </>
         ) : (
           <div className={styles.emptyState}>
             <FontAwesomeIcon icon={faList} size="3x" className={styles.emptyIcon} />
-            <h2>Aucune playlist trouvée pour "{searchQuery}"</h2>
-            <p>Essayez avec d'autres termes ou filtres</p>
+            <h2>No playlists found for "{searchQuery}"</h2>
+            <p>Try different terms or filters</p>
           </div>
         )}
       </div>
     );
   }
   
-  // Affichage des résultats pour les podcasts
+  // Display results for podcasts
   if (activeTab === 'podcasts' && results.items) {
     return (
       <div className={styles.podcastsResults}>
         {results.items.length > 0 ? (
           <>
             <div className={styles.resultsHeader}>
-              <h2>{results.total} résultat(s) pour "{searchQuery}"</h2>
+              <h2>{results.total} result(s) for "{searchQuery}"</h2>
             </div>
             
             <div className={styles.podcastGrid}>
@@ -237,32 +237,32 @@ const SearchResults = ({ results, searchQuery, activeTab }) => {
               ))}
             </div>
             
-            {/* Pagination si nécessaire */}
+            {/* Pagination if needed */}
             {results.totalPages > 1 && (
               <div className={styles.pagination}>
-                {/* Composant de pagination à implémenter */}
+                {/* Pagination component to be implemented */}
               </div>
             )}
           </>
         ) : (
           <div className={styles.emptyState}>
             <FontAwesomeIcon icon={faMicrophone} size="3x" className={styles.emptyIcon} />
-            <h2>Aucun podcast trouvé pour "{searchQuery}"</h2>
-            <p>Essayez avec d'autres termes ou filtres</p>
+            <h2>No podcasts found for "{searchQuery}"</h2>
+            <p>Try different terms or filters</p>
           </div>
         )}
       </div>
     );
   }
   
-  // Affichage des résultats pour les livestreams
+  // Display results for livestreams
   if (activeTab === 'livestreams' && results.items) {
     return (
       <div className={styles.livestreamsResults}>
         {results.items.length > 0 ? (
           <>
             <div className={styles.resultsHeader}>
-              <h2>{results.total} résultat(s) pour "{searchQuery}"</h2>
+              <h2>{results.total} result(s) for "{searchQuery}"</h2>
             </div>
             
             <div className={styles.livestreamGrid}>
@@ -271,18 +271,18 @@ const SearchResults = ({ results, searchQuery, activeTab }) => {
               ))}
             </div>
             
-            {/* Pagination si nécessaire */}
+            {/* Pagination if needed */}
             {results.totalPages > 1 && (
               <div className={styles.pagination}>
-                {/* Composant de pagination à implémenter */}
+                {/* Pagination component to be implemented */}
               </div>
             )}
           </>
         ) : (
           <div className={styles.emptyState}>
             <FontAwesomeIcon icon={faStream} size="3x" className={styles.emptyIcon} />
-            <h2>Aucun livestream trouvé pour "{searchQuery}"</h2>
-            <p>Essayez avec d'autres termes ou filtres</p>
+            <h2>No livestreams found for "{searchQuery}"</h2>
+            <p>Try different terms or filters</p>
           </div>
         )}
       </div>
@@ -293,8 +293,8 @@ const SearchResults = ({ results, searchQuery, activeTab }) => {
   return (
     <div className={styles.emptyState}>
       <FontAwesomeIcon icon={faSearch} size="3x" className={styles.emptyIcon} />
-      <h2>Aucun résultat disponible</h2>
-      <p>Veuillez réessayer votre recherche</p>
+      <h2>No results available</h2>
+      <p>Please try your search again</p>
     </div>
   );
 };

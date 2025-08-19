@@ -31,7 +31,7 @@ const UserTempPage = ({ title }) => {
           marginBottom: '15px',
           lineHeight: '1.6'
         }}>
-          Cette fonctionnalité est en cours de développement. Restez à l'écoute pour découvrir bientôt cette nouvelle expérience !
+          This feature is currently under development. Stay tuned to discover this new experience soon!
         </p>
         
         <p style={{ 
@@ -39,7 +39,7 @@ const UserTempPage = ({ title }) => {
           marginBottom: '25px',
           lineHeight: '1.6'
         }}>
-          Nous travaillons activement pour vous offrir une expérience musicale nostalgique exceptionnelle.
+          We are actively working to bring you an exceptional nostalgic music experience.
         </p>
         
         <div style={{
@@ -54,7 +54,7 @@ const UserTempPage = ({ title }) => {
           fontWeight: 'bold',
           marginBottom: '10px'
         }}>
-          En attendant, découvrez les autres fonctionnalités disponibles :
+          In the meantime, check out these other available features:
         </p>
         
         <div style={{

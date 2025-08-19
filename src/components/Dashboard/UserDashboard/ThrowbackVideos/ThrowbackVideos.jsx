@@ -15,7 +15,7 @@ import MemoryCard from './MemoryCard';
 import VideoCard from './VideoCard';
 import VideoFilters from './VideoFilters';
 
-// Définition des données mockées pour le fallback
+// Definition of mock data for fallback
 const mockMemories = [
   {
     id: 'mock1',
@@ -85,41 +85,41 @@ const ThrowbackVideos = () => {
   const [memoriesLoading, setMemoriesLoading] = useState(true);
   const [memoriesError, setMemoriesError] = useState(null);
   const [activeFilters, setActiveFilters] = useState({
-    genre: 'all',        // Tous genres par défaut
-    decade: 'all',       // Toutes décennies par défaut
-    sortBy: 'Plus récents'
+    genre: 'all',        // All genres by default
+    decade: 'all',       // All decades by default
+    sortBy: 'Newest'
   });
   
-  // Construire l'URL de base en fonction de l'environnement
+  // Build base URL based on environment
   const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
   useEffect(() => {
-    // Récupérer uniquement les vidéos de type "music"
+    // Retrieve only "music" type videos
     fetchMusicVideos();
     
-    // Récupérer les souvenirs récents
+    // Retrieve recent memories
     fetchRecentMemories();
   }, []);
   
   useEffect(() => {
-    // Appliquer les filtres aux vidéos
+    // Apply filters to videos
     applyFilters();
   }, [activeFilters, videos]);
 
   const fetchMusicVideos = async () => {
     try {
       setLoading(true);
-      console.log('Chargement des vidéos musicales...');
+      console.log('Loading music videos...');
       
       try {
-        // Spécifier explicitement le type "music"
+        // Explicitly specify "music" type
         const response = await fetch(`${baseUrl}/api/public/videos?type=music`);
         
         if (response.ok) {
           const result = await response.json();
           const videosData = result.data || result.videos || [];
           
-          console.log('Vidéos musicales récupérées:', videosData);
+          console.log('Music videos retrieved:', videosData);
           
           if (videosData.length > 0) {
             setVideos(videosData);
@@ -129,11 +129,11 @@ const ThrowbackVideos = () => {
           }
         }
         
-        throw new Error('Échec avec la route publique');
+        throw new Error('Failed with public route');
       } catch (primaryError) {
-        console.warn('Route publique échouée, tentative avec route standard:', primaryError);
+        console.warn('Public route failed, trying standard route:', primaryError);
         
-        // Fallback: essayer l'ancienne route
+        // Fallback: try old route
         const fallbackResponse = await fetch(`${baseUrl}/api/videos?type=music`);
         
         if (fallbackResponse.ok) {
@@ -148,17 +148,17 @@ const ThrowbackVideos = () => {
           }
         }
         
-        // Si les deux routes échouent, utiliser les données mockées
-        console.warn('Aucune route ne fonctionne, utilisation des données mockées');
+        // If both routes fail, use mock data
+        console.warn('No route works, using mock data');
         setVideos(mockVideos);
         setFilteredVideos(mockVideos);
-        setError('Données temporaires affichées - Connexion au serveur impossible');
+        setError('Temporary data displayed - Unable to connect to server');
       }
     } catch (err) {
-      console.error('Exception lors du chargement des vidéos:', err);
+      console.error('Exception while loading videos:', err);
       setVideos(mockVideos);
       setFilteredVideos(mockVideos);
-      setError(`Données temporaires affichées - ${err.message}`);
+      setError(`Temporary data displayed - ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -167,16 +167,16 @@ const ThrowbackVideos = () => {
   const fetchRecentMemories = async () => {
     try {
       setMemoriesLoading(true);
-      console.log('Chargement des souvenirs récents...');
+      console.log('Loading recent memories...');
       
       try {
-        // Tentative avec la nouvelle route API
+        // Try with the new API route
         const response = await fetch(`${baseUrl}/api/public/memories/recent`);
         
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
-            console.log('Souvenirs récupérés avec succès:', result.data);
+            console.log('Memories retrieved successfully:', result.data);
             const formattedMemories = formatMemories(result.data);
             setMemories(formattedMemories);
             setMemoriesError(null);
@@ -184,17 +184,17 @@ const ThrowbackVideos = () => {
           }
         }
         
-        throw new Error('Échec avec la route principale');
+        throw new Error('Failed with main route');
       } catch (primaryError) {
-        console.warn('Route principale échouée, tentative avec route de secours:', primaryError);
+        console.warn('Main route failed, trying backup route:', primaryError);
         
-        // Fallback: essayer l'ancienne route
+        // Fallback: try old route
         const fallbackResponse = await fetch(`${baseUrl}/api/memories/recent`);
         
         if (fallbackResponse.ok) {
           const result = await fallbackResponse.json();
           if (result.success && result.data) {
-            console.log('Souvenirs récupérés avec route de secours:', result.data);
+            console.log('Memories retrieved with backup route:', result.data);
             const formattedMemories = formatMemories(result.data);
             setMemories(formattedMemories);
             setMemoriesError(null);
@@ -202,21 +202,21 @@ const ThrowbackVideos = () => {
           }
         }
         
-        // Si les deux routes échouent, utiliser les données mockées
-        console.warn('Aucune route ne fonctionne, utilisation des données mockées');
+        // If both routes fail, use mock data
+        console.warn('No route works, using mock data');
         setMemories(mockMemories);
-        setMemoriesError("Impossible de charger les souvenirs, affichage de données statiques");
+        setMemoriesError("Unable to load memories, displaying static data");
       }
     } catch (err) {
-      console.error('Erreur lors du chargement des souvenirs:', err);
+      console.error('Error loading memories:', err);
       setMemories(mockMemories);
-      setMemoriesError("Erreur lors du chargement des souvenirs, affichage de données statiques");
+      setMemoriesError("Error loading memories, displaying static data");
     } finally {
       setMemoriesLoading(false);
     }
   };
   
-  // Formater les données des souvenirs pour l'affichage
+  // Format memory data for display
   const formatMemories = (memoriesData) => {
     if (!Array.isArray(memoriesData) || memoriesData.length === 0) {
       return mockMemories;
@@ -225,28 +225,28 @@ const ThrowbackVideos = () => {
     return memoriesData.map(memory => ({
       id: memory._id || memory.id || `memory-${Math.random()}`,
       username: memory.auteur ? 
-        `${memory.auteur.prenom || ''} ${memory.auteur.nom || ''}`.trim() || 'Utilisateur' : 
-        'Utilisateur',
+        `${memory.auteur.prenom || ''} ${memory.auteur.nom || ''}`.trim() || 'User' : 
+        'User',
       type: memory.type || 'posted',
-      videoTitle: memory.video?.titre || memory.videoTitle || 'Vidéo sans titre',
-      videoArtist: memory.video?.artiste || memory.videoArtist || 'Artiste inconnu',
+      videoTitle: memory.video?.titre || memory.videoTitle || 'Untitled video',
+      videoArtist: memory.video?.artiste || memory.videoArtist || 'Unknown artist',
       videoYear: memory.video?.annee || memory.videoYear || '----',
       imageUrl: getImageUrl(memory.auteur?.photo_profil || memory.imageUrl),
-      content: memory.contenu || memory.content || 'Pas de contenu',
+      content: memory.contenu || memory.content || 'No content',
       likes: memory.likes || 0,
       comments: memory.nb_commentaires || memory.comments || 0
     }));
   };
   
-  // Appliquer les filtres aux vidéos
+  // Apply filters to videos
   const applyFilters = () => {
     if (!videos.length) return;
     
     let result = [...videos];
     
-    // Filtre par décennie
+    // Filter by decade
     if (activeFilters.decade !== 'all') {
-      const decade = activeFilters.decade.replace('s', ''); // Convertir "80s" en "80"
+      const decade = activeFilters.decade.replace('s', ''); // Convert "80s" to "80"
       const decadeStart = parseInt(decade);
       const decadeEnd = decadeStart + 9;
       
@@ -256,7 +256,7 @@ const ThrowbackVideos = () => {
       });
     }
     
-    // Filtre par genre
+    // Filter by genre
     if (activeFilters.genre !== 'all') {
       result = result.filter(video => {
         return video.genre === activeFilters.genre || 
@@ -264,15 +264,15 @@ const ThrowbackVideos = () => {
       });
     }
     
-    // Tri
+    // Sort
     switch(activeFilters.sortBy) {
-      case 'Plus récents':
+      case 'Newest':
         result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
         break;
-      case 'Plus populaires':
+      case 'Most popular':
         result.sort((a, b) => (b.vues || 0) - (a.vues || 0));
         break;
-      case 'Plus aimés':
+      case 'Most liked':
         result.sort((a, b) => (b.likes || 0) - (a.likes || 0));
         break;
       default:
@@ -282,20 +282,20 @@ const ThrowbackVideos = () => {
     setFilteredVideos(result);
   };
   
-  // Fonction pour construire des URLs complètes pour les images
+  // Function to build complete URLs for images
   const getImageUrl = (path) => {
     if (!path) return '/images/default-avatar.jpg';
     
-    // Si c'est déjà une URL absolue
+    // If it's already an absolute URL
     if (path.startsWith('http')) return path;
     
-    // Sinon, construire l'URL complète
+    // Otherwise, build the complete URL
     return `${baseUrl}${path}`;
   };
   
-  // Gestionnaire de changement de filtres
+  // Filter change handler
   const handleFilterChange = (newFilters) => {
-    console.log('Nouveaux filtres appliqués:', newFilters);
+    console.log('New filters applied:', newFilters);
     setActiveFilters(newFilters);
   };
 
@@ -305,7 +305,7 @@ const ThrowbackVideos = () => {
         <main className={styles.mainContent}>
           <h2 className={styles.sectionTitle}>Today's Pick</h2>
           
-          {/* Composant VideoFilters avec menus déroulants spécifiques pour la musique */}
+          {/* VideoFilters component with dropdowns specific to music */}
           <VideoFilters 
             onFilterChange={handleFilterChange}
             activeFilters={activeFilters}
@@ -334,7 +334,7 @@ const ThrowbackVideos = () => {
                 ))
               ) : (
                 <div className={styles.noVideosMessage}>
-                  <p>Aucune vidéo ne correspond à vos critères de recherche.</p>
+                  <p>No videos match your search criteria.</p>
                 </div>
               )}
             </div>
@@ -365,7 +365,7 @@ const ThrowbackVideos = () => {
                       baseUrl={baseUrl}
                     />
                   ))}
-                  {/* Duplication pour effet infini */}
+                  {/* Duplication for infinite effect */}
                   {memories.slice(0, 2).map((memory) => (
                     <MemoryCard 
                       key={`duplicate-${memory.id || Math.random()}`} 

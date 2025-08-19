@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './Search.module.css';
-import { searchAPI } from '../../../../utils/api'; // Importation corrigée
+import { searchAPI } from '../../../../utils/api'; // Corrected import
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faSearch, 
@@ -48,21 +48,21 @@ const Search = () => {
     }
   });
   
-  // Effectuer la recherche initiale au chargement
+  // Perform initial search on load
   useEffect(() => {
     if (searchQuery) {
       performSearch(searchQuery, activeTab);
     }
   }, [searchQuery, activeTab]);
   
-  // Mettre à jour l'URL lorsque le type de recherche change
+  // Update URL when search type changes
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     params.set('type', activeTab);
     navigate(`${location.pathname}?${params.toString()}`, { replace: true });
   }, [activeTab, location.pathname, navigate]);
   
-  // Fonction pour effectuer la recherche
+  // Function to perform search
   const performSearch = async (query, type) => {
     if (!query.trim()) return;
     
@@ -112,13 +112,13 @@ const Search = () => {
       
       setResults(response.data);
     } catch (error) {
-      console.error('Erreur lors de la recherche:', error);
+      console.error('Error during search:', error);
     } finally {
       setIsLoading(false);
     }
   };
   
-  // Gérer la soumission du formulaire
+  // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
     if (searchTerm.trim()) {
@@ -129,7 +129,7 @@ const Search = () => {
     }
   };
   
-  // Gérer le changement d'onglet
+  // Handle tab change
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     if (searchQuery) {
@@ -137,7 +137,7 @@ const Search = () => {
     }
   };
   
-  // Gérer le changement de filtres
+  // Handle filter change
   const handleFilterChange = (type, filterName, value) => {
     setFilters(prevFilters => ({
       ...prevFilters,
@@ -147,13 +147,13 @@ const Search = () => {
       }
     }));
     
-    // Relancer la recherche avec les nouveaux filtres
+    // Relaunch search with new filters
     if (searchQuery) {
       performSearch(searchQuery, activeTab);
     }
   };
   
-  // Effacer la recherche
+  // Clear search
   const clearSearch = () => {
     setSearchTerm('');
     navigate('/dashboard/search');
@@ -162,14 +162,14 @@ const Search = () => {
   return (
     <div className={styles.searchPage}>
       <div className={styles.searchHeader}>
-        <h1>Recherche</h1>
+        <h1>Search</h1>
         
         <form onSubmit={handleSubmit} className={styles.searchForm}>
           <div className={styles.searchInputWrapper}>
             <FontAwesomeIcon icon={faSearch} className={styles.searchIcon} />
             <input
               type="text"
-              placeholder="Rechercher de la musique, des playlists, des podcasts..."
+              placeholder="Search for music, playlists, podcasts..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={styles.searchInput}
@@ -217,7 +217,7 @@ const Search = () => {
           onClick={() => handleTabChange('all')}
         >
           <FontAwesomeIcon icon={faSearch} />
-          <span>Tout</span>
+          <span>All</span>
         </button>
         
         <button 
@@ -225,7 +225,7 @@ const Search = () => {
           onClick={() => handleTabChange('videos')}
         >
           <FontAwesomeIcon icon={faVideo} />
-          <span>Vidéos</span>
+          <span>Videos</span>
         </button>
         
         <button 
@@ -256,7 +256,7 @@ const Search = () => {
       {isLoading ? (
         <div className={styles.loading}>
           <FontAwesomeIcon icon={faSpinner} spin size="2x" />
-          <p>Recherche en cours...</p>
+          <p>Searching...</p>
         </div>
       ) : (
         <SearchResults 

@@ -4,10 +4,16 @@ import styles from '../Videos/Videos.module.css';
 const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
   if (!isOpen || !short) return null;
 
-  // Fonction plus robuste pour extraire l'ID YouTube
+  // Fonction plus robuste pour extraire l'ID YouTube et construire des URLs correctes
   const getYouTubeEmbedUrl = (url) => {
     try {
       if (!url) return null;
+      
+      // Si c'est un chemin local (/uploads/...), construire l'URL complète
+      if (url && url.startsWith('/uploads/')) {
+        const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+        return `${apiBaseUrl}${url}`;
+      }
       
       // Check if it's a YouTube URL
       if (url.includes('youtube.com') || url.includes('youtu.be')) {
@@ -44,7 +50,7 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
         return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
       }
       
-      // For local files, return the direct URL
+      // Return the URL as is if not YouTube or local
       return url;
     } catch (error) {
       console.error("Error parsing YouTube URL:", error);
@@ -91,10 +97,11 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
                   height: '100%',
                   borderRadius: '6px'
                 }}
+                crossOrigin="anonymous"
               >
-                <source src={short.youtubeUrl} type="video/mp4" />
-                <source src={short.youtubeUrl} type="video/webm" />
-                <source src={short.youtubeUrl} type="video/ogg" />
+                <source src={getYouTubeEmbedUrl(short.youtubeUrl)} type="video/mp4" />
+                <source src={getYouTubeEmbedUrl(short.youtubeUrl)} type="video/webm" />
+                <source src={getYouTubeEmbedUrl(short.youtubeUrl)} type="video/ogg" />
                 Votre navigateur ne supporte pas la lecture de vidéos.
               </video>
             </div>

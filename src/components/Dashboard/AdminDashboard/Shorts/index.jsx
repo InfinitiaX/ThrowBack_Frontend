@@ -21,6 +21,23 @@ const Shorts = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [stats, setStats] = useState({ total: 0, recent: [] });
   
+  // Fonction pour obtenir l'URL complète d'une vidéo
+  const getFullVideoUrl = (path) => {
+    if (!path) return '';
+    
+    // Si l'URL est déjà absolue, la retourner telle quelle
+    if (path.startsWith('http')) return path;
+    
+    // S'assurer que le chemin commence par un slash
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    
+    // Toujours utiliser une URL de base
+    const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+    const fullUrl = `${apiBaseUrl}${normalizedPath}`;
+    
+    return fullUrl;
+  };
+  
   // Fonction améliorée pour obtenir les headers d'authentification
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -72,7 +89,26 @@ const Shorts = () => {
       const data = await res.json();
       console.log("Shorts data received:", data);
       
-      setShorts(data.videos || []);
+      let shortsData = [];
+      
+      if (data.videos && Array.isArray(data.videos)) {
+        shortsData = data.videos;
+      } else if (data.data && Array.isArray(data.data)) {
+        shortsData = data.data;
+      } else if (Array.isArray(data)) {
+        shortsData = data;
+      }
+      
+      // Process video URLs to make them absolute
+      shortsData = shortsData.map(short => {
+        const videoUrl = getFullVideoUrl(short.youtubeUrl);
+        return {
+          ...short,
+          youtubeUrl: videoUrl
+        };
+      });
+      
+      setShorts(shortsData);
       setTotalPages(data.totalPages || 1);
       
     } catch (err) {
@@ -106,10 +142,14 @@ const Shorts = () => {
       const data = await res.json();
       if (data.success) {
         setStats(data.stats);
+      } else {
+        // Fallback: compter le nombre total de shorts
+        setStats({ total: shorts.length, recent: [] });
       }
     } catch (err) {
       console.error('Error fetching shorts stats:', err);
-      // Don't set the main error state for stats - this is not critical
+      // Fallback: utiliser le nombre de shorts récupérés
+      setStats({ total: shorts.length, recent: [] });
     }
   };
 
@@ -178,7 +218,7 @@ const Shorts = () => {
         throw new Error(errorData.message || `Erreur ${res.status}: ${res.statusText}`);
       }
       
-      const data = await res.json();
+      await res.json();
       
       setShorts(list => list.filter(s => s._id !== shortToDelete._id));
       fetchStats(); // Refresh stats
@@ -207,10 +247,9 @@ const Shorts = () => {
       if (videoId && videoId !== 'placeholder') {
         return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
       }
-    } else if (youtubeUrl && youtubeUrl.startsWith('/uploads/')) {
-      // For uploaded files, we could use the video file itself as poster
-      // or generate thumbnails server-side. For now, use placeholder.
-      return '/images/placeholder-video.jpg';
+    } else if (youtubeUrl && (youtubeUrl.startsWith('/uploads/') || youtubeUrl.includes('/uploads/'))) {
+      // For uploaded files, use a placeholder image
+      return `${API_BASE_URL}/images/video-thumbnail.jpg`;
     }
     
     // Default fallback
@@ -253,7 +292,7 @@ const Shorts = () => {
 
     const handleImageError = () => {
       // If YouTube thumbnail fails or uploaded file, try to generate thumbnail
-      if (short.youtubeUrl && short.youtubeUrl.startsWith('/uploads/') && !isGenerating) {
+      if (short.youtubeUrl && (short.youtubeUrl.startsWith('/uploads/') || short.youtubeUrl.includes('/uploads/')) && !isGenerating) {
         generateThumbnailFromVideo(short.youtubeUrl);
       } else {
         setThumbnailSrc('/images/placeholder-video.jpg');
@@ -265,6 +304,7 @@ const Shorts = () => {
         src={thumbnailSrc}
         alt={short.titre}
         onError={handleImageError}
+        crossOrigin="anonymous"
         style={{ 
           opacity: isGenerating ? 0.5 : 1,
           transition: 'opacity 0.3s ease'
@@ -312,14 +352,14 @@ const Shorts = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div>
-          <h1>Shorts Management</h1>
-          <p>Manage short videos (10-30 seconds) 🎬</p>
+          <h1>Gestion des Shorts</h1>
+          <p>Gérez les vidéos courtes (10-30 secondes) 🎬</p>
         </div>
         <button 
           className={styles.addButton} 
           onClick={() => { setEditShort(null); setShowModal(true); }}
         >
-          <i className="fas fa-plus"></i> Add short
+          <i className="fas fa-plus"></i> Ajouter un short
         </button>
       </div>
 
@@ -342,7 +382,7 @@ const Shorts = () => {
           <div className={styles.searchForm}>
             <input
               type="text"
-              placeholder="Search shorts..."
+              placeholder="Rechercher des shorts..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={handleKeyPress}
@@ -362,7 +402,7 @@ const Shorts = () => {
               }} 
               className={styles.resetButton}
             >
-              <i className="fas fa-times"></i> Clear
+              <i className="fas fa-times"></i> Effacer
             </button>
           )}
         </div>
@@ -373,7 +413,7 @@ const Shorts = () => {
           <i className="fas fa-exclamation-circle"></i>
           <span>{error}</span>
           <button className={styles.retryButton} onClick={fetchShorts}>
-            <i className="fas fa-redo"></i> Retry
+            <i className="fas fa-redo"></i> Réessayer
           </button>
         </div>
       )}
@@ -383,22 +423,22 @@ const Shorts = () => {
           <div className={styles.loadingSpinner}>
             <i className="fas fa-spinner fa-spin"></i>
           </div>
-          <div className={styles.loadingText}>Loading shorts...</div>
+          <div className={styles.loadingText}>Chargement des shorts...</div>
         </div>
       ) : shorts.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>
             <i className="fas fa-bolt"></i>
           </div>
-          <h3 className={styles.emptyTitle}>No shorts found</h3>
+          <h3 className={styles.emptyTitle}>Aucun short trouvé</h3>
           <p className={styles.emptyMessage}>
-            {searchQuery ? 'No shorts match your search' : 'Add your first short to get started'}
+            {searchQuery ? 'Aucun short ne correspond à votre recherche' : 'Ajoutez votre premier short pour commencer'}
           </p>
           <button 
             onClick={() => setShowModal(true)}
             className={styles.addEmptyButton}
           >
-            <i className="fas fa-plus"></i> Add your first short
+            <i className="fas fa-plus"></i> Ajouter votre premier short
           </button>
         </div>
       ) : (
@@ -406,7 +446,7 @@ const Shorts = () => {
           {/* Grid View */}
           <div className={styles.videoGrid}>
             {shorts.map(short => (
-              <div key={short._id} className={styles.videoCard}>
+              <div key={short._id} className={styles.videoCard} data-type="short">
                 <div className={styles.videoType}>SHORT</div>
                 <div 
                   className={styles.videoThumbnail}
@@ -424,7 +464,7 @@ const Shorts = () => {
                     {short.titre}
                   </h3>
                   <div className={styles.videoMeta}>
-                    <div className={styles.videoArtist}>{short.artiste || 'Unknown Artist'}</div>
+                    <div className={styles.videoArtist}>{short.artiste || 'Artiste inconnu'}</div>
                     <div className={styles.videoYear}>
                       {new Date(short.createdAt).toLocaleDateString()}
                     </div>
@@ -435,21 +475,21 @@ const Shorts = () => {
                   <button 
                     className={styles.actionButton} 
                     onClick={() => setViewShort(short)}
-                    title="View details"
+                    title="Voir les détails"
                   >
                     <i className="fas fa-eye"></i>
                   </button>
                   <button 
                     className={styles.actionButton} 
                     onClick={() => { setEditShort(short); setShowModal(true); }}
-                    title="Edit"
+                    title="Modifier"
                   >
                     <i className="fas fa-edit"></i>
                   </button>
                   <button 
                     className={styles.actionButton} 
                     onClick={() => handleDeleteClick(short)}
-                    title="Delete"
+                    title="Supprimer"
                     disabled={deleteLoading === short._id}
                   >
                     {deleteLoading === short._id ? (
@@ -471,7 +511,7 @@ const Shorts = () => {
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               >
-                <i className="fas fa-chevron-left"></i> Previous
+                <i className="fas fa-chevron-left"></i> Précédent
               </button>
               
               <div className={styles.pageNumbers}>
@@ -505,7 +545,7 @@ const Shorts = () => {
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               >
-                Next <i className="fas fa-chevron-right"></i>
+                Suivant <i className="fas fa-chevron-right"></i>
               </button>
             </div>
           )}
@@ -526,12 +566,12 @@ const Shorts = () => {
         short={viewShort}
       />
 
-      {/* Delete Confirmation Modal - Style like Video Management */}
+      {/* Delete Confirmation Modal */}
       {deleteModalOpen && shortToDelete && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent} style={{ maxWidth: '450px' }}>
             <div className={styles.modalHeader}>
-              <h2>Confirm Delete</h2>
+              <h2>Confirmer la suppression</h2>
               <button 
                 className={styles.closeButton} 
                 onClick={() => {
@@ -547,15 +587,15 @@ const Shorts = () => {
             <div className={styles.modalForm}>
               <div className={styles.deleteConfirmContent}>
                 <div className={styles.deleteIcon}>
-                  <i className="fas fa-exclamation-triangle"></i> Delete Short
+                  <i className="fas fa-exclamation-triangle"></i> Supprimer le Short
                 </div>
                 
                 <div className={styles.deleteMessage}>
-                  <p><strong>Are you sure you want to delete this video?</strong></p>
+                  <p><strong>Êtes-vous sûr de vouloir supprimer cette vidéo ?</strong></p>
                   
                   <div className={styles.deleteDetails}>
-                    <p>You are about to delete: <strong>{shortToDelete.titre}</strong></p>
-                    <p className={styles.deleteWarningText}>This action cannot be undone.</p>
+                    <p>Vous êtes sur le point de supprimer : <strong>{shortToDelete.titre}</strong></p>
+                    <p className={styles.deleteWarningText}>Cette action ne peut pas être annulée.</p>
                   </div>
                 </div>
               </div>
@@ -571,7 +611,7 @@ const Shorts = () => {
                 }}
                 disabled={deleteLoading}
               >
-                Cancel
+                Annuler
               </button>
               <button 
                 type="button"
@@ -581,10 +621,10 @@ const Shorts = () => {
               >
                 {deleteLoading ? (
                   <>
-                    <i className="fas fa-spinner fa-spin"></i> Deleting...
+                    <i className="fas fa-spinner fa-spin"></i> Suppression...
                   </>
                 ) : (
-                  'Delete'
+                  'Supprimer'
                 )}
               </button>
             </div>

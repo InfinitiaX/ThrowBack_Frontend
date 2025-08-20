@@ -10,7 +10,7 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
     titre: '',
     artiste: '',
     description: '',
-    youtubeUrl: ''
+    duree: null
   });
   const [file, setFile] = useState(null);
   const [videoDuration, setVideoDuration] = useState(null);
@@ -18,7 +18,7 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
-  const [uploadMode, setUploadMode] = useState('file');
+  const [uploadProgress, setUploadProgress] = useState(0);
   
   // Fonction pour obtenir les headers d'authentification
   const getAuthHeaders = (contentType = 'application/json') => {
@@ -44,24 +44,16 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
         titre: initialData.titre || '',
         artiste: initialData.artiste || '',
         description: initialData.description || '',
-        youtubeUrl: initialData.youtubeUrl || ''
+        duree: initialData.duree || null
       });
       
-      // Detect mode based on existing URL
-      if (initialData.youtubeUrl && initialData.youtubeUrl.includes('youtube')) {
-        setUploadMode('youtube');
-        
-        // Generate preview for YouTube
-        const videoId = getYouTubeVideoId(initialData.youtubeUrl);
-        if (videoId) {
-          setPreviewUrl(`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`);
-        }
-      } else {
-        setUploadMode('file');
+      // Si le short a une URL, essayer de créer une prévisualisation
+      if (initialData.youtubeUrl) {
+        // Pour les fichiers locaux, laisser vide - sera généré à la demande
+        setPreviewUrl('');
       }
     } else {
-      setForm({ titre: '', artiste: '', description: '', youtubeUrl: '' });
-      setUploadMode('file');
+      setForm({ titre: '', artiste: '', description: '', duree: null });
     }
     
     // Reset other states
@@ -70,68 +62,10 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
     setDurationError('');
     setError('');
     setPreviewUrl('');
+    setUploadProgress(0);
   }, [isEdit, initialData, isOpen]);
 
   if (!isOpen) return null;
-
-  const getYouTubeVideoId = (url) => {
-    try {
-      if (!url) return null;
-      
-      // Try with URL API first
-      try {
-        const videoUrl = new URL(url);
-        let videoId = '';
-        
-        if (videoUrl.hostname.includes('youtube.com')) {
-          // Classic format: youtube.com/watch?v=VIDEO_ID
-          if (videoUrl.searchParams.get('v')) {
-            videoId = videoUrl.searchParams.get('v');
-          }
-          // Shorts format: youtube.com/shorts/VIDEO_ID
-          else if (videoUrl.pathname.startsWith('/shorts/')) {
-            videoId = videoUrl.pathname.replace('/shorts/', '');
-          }
-          // Embed format: youtube.com/embed/VIDEO_ID
-          else if (videoUrl.pathname.startsWith('/embed/')) {
-            videoId = videoUrl.pathname.replace('/embed/', '');
-          }
-        } else if (videoUrl.hostname.includes('youtu.be')) {
-          // Short format: youtu.be/VIDEO_ID
-          videoId = videoUrl.pathname.substring(1);
-        }
-        
-        return videoId;
-      } catch (urlError) {
-        // Fallback method with regex
-        const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
-        if (match && match[1]) {
-          return match[1];
-        }
-        return null;
-      }
-    } catch (error) {
-      console.error("Error parsing YouTube URL:", error);
-      return null;
-    }
-  };
-
-  const handleChange = e => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
-    
-    // For YouTube URL, generate preview
-    if (name === 'youtubeUrl' && uploadMode === 'youtube') {
-      const videoId = getYouTubeVideoId(value);
-      if (videoId) {
-        setPreviewUrl(`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`);
-      } else {
-        setPreviewUrl('');
-      }
-    }
-    
-    if (error) setError('');
-  };
 
   const handleFileChange = e => {
     const selectedFile = e.target.files[0] || null;
@@ -143,13 +77,13 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
     if (selectedFile) {
       // Validate file type
       if (!selectedFile.type.startsWith('video/')) {
-        setDurationError('Please select a valid video file.');
+        setDurationError('Veuillez sélectionner un fichier vidéo valide.');
         return;
       }
       
       // Check file size (50MB max)
       if (selectedFile.size > 50 * 1024 * 1024) {
-        setDurationError('File is too large (max 50MB).');
+        setDurationError('Le fichier est trop volumineux (max 50MB).');
         return;
       }
       
@@ -162,16 +96,16 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
         setVideoDuration(video.duration);
         
         if (video.duration > 30) {
-          setDurationError('Video exceeds 30 seconds.');
+          setDurationError('La vidéo dépasse 30 secondes.');
         } else if (video.duration < 10) {
-          setDurationError('Video must be at least 10 seconds long.');
+          setDurationError('La vidéo doit durer au moins 10 secondes.');
         } else {
           setDurationError('');
         }
       };
       video.onerror = () => {
         window.URL.revokeObjectURL(url);
-        setDurationError('Unable to read video file.');
+        setDurationError('Impossible de lire ce fichier vidéo.');
       };
       video.src = url;
       
@@ -191,51 +125,37 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
     }
   };
 
+  const handleChange = e => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+    
+    if (error) setError('');
+  };
+
   const validateForm = () => {
     if (!form.titre.trim()) {
-      setError('Title is required');
+      setError('Le titre est requis');
       return false;
     }
     
-    if (uploadMode === 'youtube') {
-      if (!form.youtubeUrl.trim()) {
-        setError('YouTube URL is required');
-        return false;
-      }
-      
-      // Verify it's a valid YouTube URL
-      const isValidYouTubeUrl = 
-        form.youtubeUrl.includes('youtube.com/watch?v=') ||
-        form.youtubeUrl.includes('youtube.com/shorts/') ||
-        form.youtubeUrl.includes('youtube.com/embed/') ||
-        form.youtubeUrl.includes('youtu.be/');
-      
-      if (!isValidYouTubeUrl) {
-        setError('Please enter a valid YouTube URL (youtube.com or youtu.be)');
-        return false;
-      }
-      
-      const videoId = getYouTubeVideoId(form.youtubeUrl);
-      if (!videoId || videoId.length < 10) {
-        setError('Unable to extract video ID from this URL');
-        return false;
-      }
-    } else if (!isEdit) {
-      if (!file) {
-        setError('Please select a video file');
-        return false;
-      }
-      
-      if (durationError) {
-        setError(durationError);
-        return false;
-      }
+    if (!form.artiste.trim()) {
+      setError('L\'artiste est requis');
+      return false;
+    }
+    
+    if (!isEdit && !file) {
+      setError('Veuillez sélectionner un fichier vidéo');
+      return false;
+    }
+    
+    if (durationError) {
+      setError(durationError);
+      return false;
     }
     
     return true;
   };
 
-  // Version améliorée de handleSubmit
   const handleSubmit = async e => {
     e.preventDefault();
     
@@ -243,6 +163,7 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
     
     setLoading(true);
     setError('');
+    setUploadProgress(0);
     
     try {
       let res, data;
@@ -269,56 +190,64 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
           credentials: 'include'
         });
       } else {
-        // Creation mode
-        if (uploadMode === 'youtube') {
-          // Create with YouTube URL (admin)
-          const payload = {
-            titre: form.titre,
-            artiste: form.artiste,
-            description: form.description,
-            youtubeUrl: form.youtubeUrl,
-            type: 'short'
-          };
-          
-          const headers = getAuthHeaders();
-          if (!headers) {
-            setLoading(false);
-            return;
-          }
-          
-          console.log("Creating short with YouTube URL");
-          
-          res = await fetch(`${API_BASE_URL}/api/admin/shorts`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(payload),
-            credentials: 'include'
-          });
-        } else {
-          // Create with file upload
-          const formData = new FormData();
-          formData.append('titre', form.titre);
-          formData.append('artiste', form.artiste);
-          formData.append('description', form.description);
-          formData.append('type', 'short');
-          if (file) formData.append('videoFile', file);
-          if (videoDuration) formData.append('duree', Math.round(videoDuration));
-          
-          const headers = getAuthHeaders(null); // Pas de Content-Type pour FormData
-          if (!headers) {
-            setLoading(false);
-            return;
-          }
-          
-          console.log("Creating short with file upload");
-          
-          res = await fetch(`${API_BASE_URL}/api/admin/shorts`, {
-            method: 'POST',
-            headers,
-            body: formData,
-            credentials: 'include'
-          });
+        // Create with file upload
+        const formData = new FormData();
+        formData.append('titre', form.titre);
+        formData.append('artiste', form.artiste);
+        formData.append('description', form.description);
+        formData.append('type', 'short');
+        if (file) formData.append('videoFile', file);
+        if (videoDuration) formData.append('duree', Math.round(videoDuration));
+        
+        const headers = getAuthHeaders(null); // Pas de Content-Type pour FormData
+        if (!headers) {
+          setLoading(false);
+          return;
         }
+        
+        console.log("Creating short with file upload");
+        
+        // Utiliser XMLHttpRequest pour suivre la progression
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${API_BASE_URL}/api/admin/shorts`, true);
+        
+        // Ajouter les headers d'authentification
+        xhr.setRequestHeader('Authorization', headers.Authorization);
+        
+        // Suivre la progression
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress(percentComplete);
+          }
+        };
+        
+        // Gérer la réponse
+        xhr.onload = function() {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            const response = JSON.parse(xhr.responseText);
+            onShortSaved(response.data || response.video || response);
+            onClose();
+          } else {
+            let errorMsg = "Une erreur est survenue lors de l'upload";
+            try {
+              const errorData = JSON.parse(xhr.responseText);
+              errorMsg = errorData.message || errorMsg;
+            } catch (e) {}
+            setError(errorMsg);
+            setLoading(false);
+          }
+        };
+        
+        // Gérer les erreurs
+        xhr.onerror = function() {
+          setError("Erreur réseau lors de l'upload");
+          setLoading(false);
+        };
+        
+        // Envoyer la requête
+        xhr.send(formData);
+        return; // Sortir de la fonction ici car XMLHttpRequest gère déjà la réponse
       }
       
       console.log("Response status:", res.status);
@@ -354,7 +283,7 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
-          <h2>{isEdit ? 'Edit Short' : 'Add Short'}</h2>
+          <h2>{isEdit ? 'Modifier un Short' : 'Ajouter un Short'}</h2>
           <button className={styles.closeButton} onClick={handleClose} disabled={loading}>
             <i className="fas fa-times"></i>
           </button>
@@ -368,42 +297,9 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
             </div>
           )}
 
-          {/* Mode selection (creation only) */}
-          {!isEdit && (
-            <div className={styles.formGroup}>
-              <label>Upload Method</label>
-              <div className={styles.modeSelector}>
-                <button
-                  type="button"
-                  className={`${styles.modeButton} ${uploadMode === 'file' ? styles.active : ''}`}
-                  onClick={() => {
-                    setUploadMode('file');
-                    setForm(prev => ({ ...prev, youtubeUrl: '' }));
-                    setPreviewUrl('');
-                  }}
-                >
-                  <i className="fas fa-upload"></i> Upload File
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.modeButton} ${uploadMode === 'youtube' ? styles.active : ''}`}
-                  onClick={() => {
-                    setUploadMode('youtube');
-                    setFile(null);
-                    setVideoDuration(null);
-                    setDurationError('');
-                    setPreviewUrl('');
-                  }}
-                >
-                  <i className="fab fa-youtube"></i> YouTube URL
-                </button>
-              </div>
-            </div>
-          )}
-
           <div className={styles.formGroup}>
             <label htmlFor="titre">
-              Title <span className={styles.required}>*</span>
+              Titre <span className={styles.required}>*</span>
             </label>
             <input
               type="text"
@@ -411,87 +307,61 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
               name="titre"
               value={form.titre}
               onChange={handleChange}
-              placeholder="Enter short title"
+              placeholder="Entrez le titre du short"
               disabled={loading}
               required
             />
           </div>
 
-          {uploadMode === 'youtube' ? (
-            <div className={styles.formGroup}>
-              <label htmlFor="youtubeUrl">
-                YouTube URL <span className={styles.required}>*</span>
-              </label>
-              <input
-                type="url"
-                id="youtubeUrl"
-                name="youtubeUrl"
-                value={form.youtubeUrl}
-                onChange={handleChange}
-                placeholder="https://www.youtube.com/shorts/... or https://youtu.be/..."
-                disabled={loading}
-                required={uploadMode === 'youtube'}
-              />
-              {form.youtubeUrl && getYouTubeVideoId(form.youtubeUrl) && (
-                <div className={styles.durationInfo}>
-                  ✓ Valid YouTube URL detected
-                </div>
-              )}
-              {form.youtubeUrl && !getYouTubeVideoId(form.youtubeUrl) && form.youtubeUrl.length > 10 && (
-                <div className={styles.errorMessage}>
-                  <i className="fas fa-exclamation-triangle"></i>
-                  Invalid YouTube URL format
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className={styles.formGroup}>
-              <label htmlFor="videoFile">
-                Video File (10-30 seconds) <span className={styles.required}>*</span>
-              </label>
-              <input
-                type="file"
-                id="videoFile"
-                accept="video/*"
-                onChange={handleFileChange}
-                disabled={loading}
-                required={!isEdit && uploadMode === 'file'}
-              />
-              {videoDuration && (
-                <div className={styles.durationInfo}>
-                  Duration detected: {Math.round(videoDuration)} seconds
-                </div>
-              )}
-              {durationError && (
-                <div className={styles.errorMessage}>
-                  <i className="fas fa-exclamation-triangle"></i>
-                  {durationError}
-                </div>
-              )}
-            </div>
-          )}
-
-          {previewUrl && (
-            <div className={styles.previewContainer}>
-              <label>Preview</label>
-              <div className={styles.thumbnailPreview}>
-                <img src={previewUrl} alt="Video preview" />
-              </div>
-            </div>
-          )}
-
           <div className={styles.formGroup}>
-            <label htmlFor="artiste">Artist</label>
+            <label htmlFor="artiste">
+              Artiste <span className={styles.required}>*</span>
+            </label>
             <input
               type="text"
               id="artiste"
               name="artiste"
               value={form.artiste}
               onChange={handleChange}
-              placeholder="Artist name"
+              placeholder="Nom de l'artiste"
               disabled={loading}
+              required
             />
           </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="videoFile">
+              Fichier vidéo (10-30 secondes) <span className={styles.required}>*</span>
+            </label>
+            <input
+              type="file"
+              id="videoFile"
+              accept="video/*"
+              onChange={handleFileChange}
+              disabled={loading}
+              required={!isEdit}
+            />
+            {videoDuration && (
+              <div className={styles.durationInfo}>
+                Durée détectée: {Math.round(videoDuration)} secondes
+              </div>
+            )}
+            {durationError && (
+              <div className={styles.errorMessage}>
+                <i className="fas fa-exclamation-triangle"></i>
+                {durationError}
+              </div>
+            )}
+          </div>
+
+          {previewUrl && (
+            <div className={styles.previewContainer}>
+              <label>Aperçu</label>
+              <div className={styles.thumbnailPreview}>
+                <img src={previewUrl} alt="Aperçu de la vidéo" />
+              </div>
+            </div>
+          )}
 
           <div className={styles.formGroup}>
             <label htmlFor="description">Description</label>
@@ -500,11 +370,22 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
               name="description"
               value={form.description}
               onChange={handleChange}
-              placeholder="Optional description"
+              placeholder="Description optionnelle"
               disabled={loading}
               rows={3}
             />
           </div>
+          
+          {/* Barre de progression pour l'upload */}
+          {loading && uploadProgress > 0 && (
+            <div className={styles.uploadProgressContainer}>
+              <div 
+                className={styles.uploadProgressBar} 
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
+              <span className={styles.uploadProgressText}>{uploadProgress}% Téléchargement en cours...</span>
+            </div>
+          )}
         </div>
         
         <div className={styles.modalFooter}>
@@ -514,7 +395,7 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
             onClick={handleClose}
             disabled={loading}
           >
-            <i className="fas fa-times"></i> Cancel
+            <i className="fas fa-times"></i> Annuler
           </button>
           <button 
             type="button"
@@ -525,12 +406,12 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
             {loading ? (
               <>
                 <i className="fas fa-spinner fa-spin"></i> 
-                {isEdit ? 'Updating...' : 'Creating...'}
+                {isEdit ? 'Mise à jour...' : 'Création...'}
               </>
             ) : (
               <>
                 <i className={`fas fa-${isEdit ? 'save' : 'plus'}`}></i>
-                {isEdit ? 'Update Short' : 'Create Short'}
+                {isEdit ? 'Mettre à jour' : 'Créer le Short'}
               </>
             )}
           </button>

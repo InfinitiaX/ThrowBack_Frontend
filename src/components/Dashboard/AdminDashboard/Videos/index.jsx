@@ -583,9 +583,7 @@ const Videos = () => {
               }}
               className={styles.filterSelect}
             >
-              <option value="">All types</option>
               <option value="music">Music</option>
-              <option value="short">Short</option>
             </select>
           </div>
           

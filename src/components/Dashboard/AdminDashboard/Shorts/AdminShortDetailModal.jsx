@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from './Shorts.module.css';
+import styles from '../Videos/Videos.module.css';
 
 const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
   if (!isOpen || !short) return null;

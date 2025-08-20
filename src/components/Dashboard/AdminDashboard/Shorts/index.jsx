@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import AdminShortFormModal from './AdminShortFormModal';
 import AdminShortDetailModal from './AdminShortDetailModal';
-import styles from './Shorts.module.css';
+import styles from '../Videos/Videos.module.css';
 
 // Configuration de l'URL de l'API
 const API_BASE_URL = process.env.REACT_APP_API_URL || '';

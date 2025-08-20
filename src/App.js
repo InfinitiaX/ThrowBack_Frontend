@@ -156,6 +156,14 @@ function App() {
             {/* Système */}
             <Route path="security" element={<TempPage title="Sécurité" />} />
             <Route path="logs" element={<TempPage title="Logs Système" />} />
+
+
+              {/* Pages du header en développement */}
+            <Route path="profile" element={<TempPage title="My Profile" />} />
+            <Route path="settings" element={<TempPage title="Account Settings" />} />
+            <Route path="preferences" element={<TempPage title="Preferences" />} />
+            <Route path="help" element={<TempPage title="Help & Support" />} />
+            <Route path="notifications" element={<TempPage title="Notifications" />} />
           </Route>
 
           {/* fallback */}

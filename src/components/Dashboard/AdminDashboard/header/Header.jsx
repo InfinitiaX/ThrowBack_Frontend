@@ -58,6 +58,7 @@ const Header = ({ sidebarCollapsed, isMobile = false }) => {
       'settings': 'Account Settings',
       'preferences': 'Preferences',
       'help': 'Help & Support',
+      'notifications': 'Notifications'
     };
 
     const currentPage = pathSegments[pathSegments.length - 1];
@@ -85,6 +86,12 @@ const Header = ({ sidebarCollapsed, isMobile = false }) => {
         detail: { isOpen: newState } 
       })
     );
+  };
+
+  // Navigation vers page temporaire
+  const navigateToTempPage = (path, title) => {
+    navigate(path);
+    setShowDropdown(false);
   };
 
   // Close dropdown when clicking outside
@@ -133,17 +140,6 @@ const Header = ({ sidebarCollapsed, isMobile = false }) => {
     return 'Administrator';
   };
 
-  // Nouvelle fonction pour gérer les redirections avec le titre approprié
-  const handleTempPageNavigation = (title) => {
-    navigate(`/admin/${title.toLowerCase().replace(/\s+/g, '')}`, { state: { title } });
-    setShowDropdown(false);
-  };
-
-  // Gérer le clic sur les notifications
-  const handleNotificationsClick = () => {
-    navigate('/admin/notifications', { state: { title: 'Notifications' } });
-  };
-
   return (
     <div 
       className={`${styles.header} ${isMobile ? styles.mobile : ''}`}
@@ -172,7 +168,7 @@ const Header = ({ sidebarCollapsed, isMobile = false }) => {
           className={styles.headerIcon} 
           title="Notifications" 
           style={{ position: 'relative', cursor: 'pointer' }}
-          onClick={handleNotificationsClick}
+          onClick={() => navigateToTempPage('/admin/notifications', 'Notifications')}
         >
           <i className="fas fa-bell"></i>
           <span className={styles.notificationBadge}>5</span>
@@ -218,43 +214,43 @@ const Header = ({ sidebarCollapsed, isMobile = false }) => {
               
               <div className={styles.dropdownDivider}></div>
               
-              <div 
+              <button 
                 className={styles.dropdownItem}
-                onClick={() => handleTempPageNavigation('My Profile')}
+                onClick={() => navigateToTempPage('/admin/profile', 'My Profile')}
               >
                 <i className="fas fa-user"></i>
                 <span>My Profile</span>
                 <span style={comingSoonStyle}>Coming Soon</span>
-              </div>
+              </button>
               
-              <div 
+              <button 
                 className={styles.dropdownItem}
-                onClick={() => handleTempPageNavigation('Account Settings')}
+                onClick={() => navigateToTempPage('/admin/settings', 'Account Settings')}
               >
                 <i className="fas fa-cog"></i>
                 <span>Account Settings</span>
                 <span style={comingSoonStyle}>Coming Soon</span>
-              </div>
+              </button>
               
-              <div 
+              <button 
                 className={styles.dropdownItem}
-                onClick={() => handleTempPageNavigation('Preferences')}
+                onClick={() => navigateToTempPage('/admin/preferences', 'Preferences')}
               >
                 <i className="fas fa-palette"></i>
                 <span>Preferences</span>
                 <span style={comingSoonStyle}>Coming Soon</span>
-              </div>
+              </button>
               
               <div className={styles.dropdownDivider}></div>
               
-              <div 
+              <button 
                 className={styles.dropdownItem}
-                onClick={() => handleTempPageNavigation('Help & Support')}
+                onClick={() => navigateToTempPage('/admin/help', 'Help & Support')}
               >
                 <i className="fas fa-question-circle"></i>
                 <span>Help & Support</span>
                 <span style={comingSoonStyle}>Coming Soon</span>
-              </div>
+              </button>
               
               <div className={styles.dropdownDivider}></div>
               

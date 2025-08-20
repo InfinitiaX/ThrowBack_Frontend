@@ -1,7 +1,7 @@
 // Sidebar admin
 // This file contains the sidebar component for the admin dashoard
 import React, { useEffect, useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 
 // Style pour le badge Coming Soon
@@ -24,6 +24,7 @@ const comingSoonStyle = {
 
 const Sidebar = ({ collapsed, onToggle, isMobile = false }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [currentPath, setCurrentPath] = useState('');
   const [isOpen, setIsOpen] = useState(false); 
   
@@ -78,7 +79,22 @@ const Sidebar = ({ collapsed, onToggle, isMobile = false }) => {
   };
 
   // Fermer le sidebar mobile lors d'un clic sur un lien
-  const handleLinkClick = () => {
+  const handleLinkClick = (item) => {
+    if (item.comingSoon) {
+      // Pour les fonctionnalités en développement, rediriger vers TempPage
+      navigate(item.path, { state: { title: item.label } });
+      
+      if (isMobile && isOpen) {
+        setIsOpen(false);
+        window.dispatchEvent(
+          new CustomEvent('toggleMobileSidebar', { 
+            detail: { isOpen: false } 
+          })
+        );
+      }
+      return;
+    }
+    
     if (isMobile && isOpen) {
       setIsOpen(false);
       window.dispatchEvent(
@@ -165,7 +181,7 @@ const Sidebar = ({ collapsed, onToggle, isMobile = false }) => {
         ${isMobile ? styles.mobile : ''}
       `}>
         <div className={styles.sidebarHeader}>
-          <NavLink to="/admin" className={styles.logo} onClick={handleLinkClick}>
+          <NavLink to="/admin" className={styles.logo} onClick={() => handleLinkClick({})}>
             <img src="/images/Logo.png" alt="ThrowBack" className={styles.logoImg} />
             {(!collapsed || isMobile) && <span>ThrowBack</span>}
           </NavLink>
@@ -193,44 +209,65 @@ const Sidebar = ({ collapsed, onToggle, isMobile = false }) => {
                 {(!collapsed || isMobile) && category.category}
               </div>
               {category.items.map((item, itemIndex) => (
-                <NavLink 
-                  key={itemIndex}
-                  to={item.path} 
-                  className={({ isActive }) => `
-                    ${styles.menuItem} 
-                    ${(item.exact ? (currentPath === item.path) : isLinkActive(item.path)) ? styles.active : ''}
-                    ${item.comingSoon ? styles.comingSoon : ''}
-                  `}
-                  onClick={handleLinkClick}
-                  title={collapsed && !isMobile ? item.label : ''}
-                  style={{ position: 'relative' }}
-                >
-                  <i className={item.icon}></i>
-                  {(!collapsed || isMobile) && (
-                    <>
-                      <span>{item.label}</span>
-                      {item.comingSoon && (
+                item.comingSoon ? (
+                  // Pour les fonctionnalités en développement
+                  <div
+                    key={itemIndex}
+                    className={`
+                      ${styles.menuItem} 
+                      ${(item.exact ? (currentPath === item.path) : isLinkActive(item.path)) ? styles.active : ''}
+                      ${styles.comingSoon}
+                    `}
+                    onClick={() => handleLinkClick(item)}
+                    style={{ position: 'relative', cursor: 'pointer' }}
+                    title={collapsed && !isMobile ? item.label : ''}
+                  >
+                    <i className={item.icon}></i>
+                    {(!collapsed || isMobile) && (
+                      <>
+                        <span>{item.label}</span>
                         <span style={comingSoonStyle}>Coming Soon</span>
-                      )}
-                    </>
-                  )}
-                  {/* Afficher le badge même en mode collapsed */}
-                  {collapsed && !isMobile && item.comingSoon && (
-                    <span style={{
-                      ...comingSoonStyle,
-                      position: 'absolute',
-                      top: '-5px',
-                      right: '0px',
-                      fontSize: '0.45rem',
-                      padding: '1px 2px',
-                    }}>Soon</span>
-                  )}
-                  
-                  {/* Indicateur visuel pour l'élément actif */}
-                  {(item.exact ? (currentPath === item.path) : isLinkActive(item.path)) && (
-                    <span className={styles.activeIndicator}></span>
-                  )}
-                </NavLink>
+                      </>
+                    )}
+                    {/* Afficher le badge même en mode collapsed */}
+                    {collapsed && !isMobile && (
+                      <span style={{
+                        ...comingSoonStyle,
+                        position: 'absolute',
+                        top: '-5px',
+                        right: '0px',
+                        fontSize: '0.45rem',
+                        padding: '1px 2px',
+                      }}>Soon</span>
+                    )}
+                    
+                    {/* Indicateur visuel pour l'élément actif */}
+                    {(item.exact ? (currentPath === item.path) : isLinkActive(item.path)) && (
+                      <span className={styles.activeIndicator}></span>
+                    )}
+                  </div>
+                ) : (
+                  // Pour les fonctionnalités implémentées
+                  <NavLink 
+                    key={itemIndex}
+                    to={item.path} 
+                    className={({ isActive }) => `
+                      ${styles.menuItem} 
+                      ${(item.exact ? (currentPath === item.path) : isLinkActive(item.path)) ? styles.active : ''}
+                    `}
+                    onClick={() => handleLinkClick(item)}
+                    title={collapsed && !isMobile ? item.label : ''}
+                    style={{ position: 'relative' }}
+                  >
+                    <i className={item.icon}></i>
+                    {(!collapsed || isMobile) && <span>{item.label}</span>}
+                    
+                    {/* Indicateur visuel pour l'élément actif */}
+                    {(item.exact ? (currentPath === item.path) : isLinkActive(item.path)) && (
+                      <span className={styles.activeIndicator}></span>
+                    )}
+                  </NavLink>
+                )
               ))}
             </div>
           ))}

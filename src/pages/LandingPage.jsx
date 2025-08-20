@@ -33,7 +33,7 @@ export default function LandingPage() {
           />
           
           <h1 className={styles.slogan}>
-            Your music. Let’s connect!
+            Your memories. Your music. Let’s connect!
           </h1>
         </div>
         

@@ -9,13 +9,13 @@ import styles from './Videos.module.css';
 // Configuration de l'URL de l'API - Sans espace à la fin
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
-// Liste des genres disponibles (normalement importé du modèle Video)
+// Liste des genres disponibles (importée du modèle Video)
 const GENRES = [
   'Pop', 'Rock', 'Hip-Hop', 'Rap', 'R&B', 'Soul', 'Jazz', 'Blues', 
   'Electronic', 'Dance', 'House', 'Techno', 'Country', 'Folk', 
-  'Classical', 'Opera', 'Reggae', 'Reggaeton', 'Latin', 'World', 
-  'Alternative', 'Indie', 'Metal', 'Punk', 'Funk', 'Disco', 
-  'Gospel', 'Soundtrack', 'Kizomba'
+  'Classical', 'Opera', 'Reggae', 'Latin', 'World', 'Afro',
+  'Alternative', 'Indie', 'Metal', 'Punk', 'Gospel', 'Funk', 'Disco', 
+  'Ska', 'Salsa', 'Bachata', 'Merengue', 'Tango', 'Other'
 ];
 
 const Videos = () => {
@@ -31,9 +31,9 @@ const Videos = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
   
-  // Filters state
+  // Filters state - Par défaut, on filtre pour n'afficher que les vidéos musicales
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('music');
   const [decadeFilter, setDecadeFilter] = useState('');
   const [genreFilter, setGenreFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -161,7 +161,7 @@ const Videos = () => {
       }
       
       // Fetch video stats if we're on the first page with no filters
-      if (currentPage === 1 && !typeFilter && !decadeFilter && !genreFilter && !searchQuery) {
+      if (currentPage === 1 && !decadeFilter && !genreFilter && !searchQuery) {
         fetchVideoStats();
       }
     } catch (err) {
@@ -222,7 +222,7 @@ const Videos = () => {
   // Handle filters reset
   const handleReset = () => {
     setSearchQuery('');
-    setTypeFilter('');
+    setTypeFilter('music'); // Réinitialiser au type "music" par défaut
     setDecadeFilter('');
     setGenreFilter('');
     setCurrentPage(1);
@@ -238,18 +238,29 @@ const Videos = () => {
 
   // Handle video creation
   const handleVideoCreated = (newVideo) => {
-    setVideos(prevVideos => [newVideo, ...prevVideos]);
+    // Ajouter la nouvelle vidéo seulement si elle correspond au filtre actuel
+    if (!typeFilter || newVideo.type === typeFilter) {
+      setVideos(prevVideos => [newVideo, ...prevVideos]);
+    }
     setAddModalOpen(false);
     fetchVideoStats();
   };
 
   // Handle video update
   const handleVideoUpdated = (updatedVideo) => {
-    setVideos(prevVideos => 
-      prevVideos.map(video => 
-        video._id === updatedVideo._id ? updatedVideo : video
-      )
-    );
+    // Vérifier si la vidéo mise à jour correspond toujours au filtre actuel
+    if (!typeFilter || updatedVideo.type === typeFilter) {
+      setVideos(prevVideos => 
+        prevVideos.map(video => 
+          video._id === updatedVideo._id ? updatedVideo : video
+        )
+      );
+    } else {
+      // Si la vidéo a changé de type et ne correspond plus au filtre, la retirer
+      setVideos(prevVideos => 
+        prevVideos.filter(video => video._id !== updatedVideo._id)
+      );
+    }
     setEditModalOpen(false);
     setSelectedVideo(null);
   };
@@ -474,8 +485,8 @@ const Videos = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div>
-          <h1>Video Management</h1>
-          <p>Welcome to the videos management panel 👋</p>
+          <h1>Music Video Management</h1>
+          <p>Manage all your music videos 🎵</p>
         </div>
   
         <div className={styles.headerActions}>
@@ -520,16 +531,6 @@ const Videos = () => {
           </div>
         </div>
         
-        {/* <div className={styles.statCard}>
-          <div className={styles.statIcon} style={{backgroundColor: '#40c057'}}>
-            <i className="fas fa-podcast"></i>
-          </div>
-          <div className={styles.statContent}>
-            <div className={styles.statValue}>{stats.podcast || 0}</div>
-            <div className={styles.statLabel}>Podcasts</div>
-          </div>
-        </div> */}
-        
         <div className={styles.statCard}>
           <div className={styles.statIcon} style={{backgroundColor: '#fab005'}}>
             <i className="fas fa-bolt"></i>
@@ -558,13 +559,13 @@ const Videos = () => {
           </form>
           
           <div className={styles.filterButtons}>
-            {(searchQuery || typeFilter || decadeFilter || genreFilter) && (
+            {(searchQuery || typeFilter !== 'music' || decadeFilter || genreFilter) && (
               <button 
                 onClick={handleReset} 
                 className={styles.resetButton}
               >
                 <i className="fas fa-times"></i> 
-                <span>{isMobile ? 'Clear' : 'Clear filters'}</span>
+                <span>{isMobile ? 'Reset' : 'Reset filters'}</span>
               </button>
             )}
           </div>
@@ -584,7 +585,6 @@ const Videos = () => {
             >
               <option value="">All types</option>
               <option value="music">Music</option>
-              {/* <option value="podcast">Podcast</option> */}
               <option value="short">Short</option>
             </select>
           </div>
@@ -677,16 +677,16 @@ const Videos = () => {
           </div>
           <h3 className={styles.emptyTitle}>No videos found</h3>
           <p className={styles.emptyMessage}>
-            {searchQuery || typeFilter || decadeFilter || genreFilter ? 
+            {searchQuery || typeFilter !== 'music' || decadeFilter || genreFilter ? 
               'Try adjusting your filters or search query' :
-              'Add your first video to get started'
+              'Add your first music video to get started'
             }
           </p>
           <button 
             onClick={() => setAddModalOpen(true)}
             className={styles.addEmptyButton}
           >
-            <i className="fas fa-plus"></i> Add your first video
+            <i className="fas fa-plus"></i> Add your first music video
           </button>
         </div>
       ) : viewMode === 'grid' || isMobile ? (

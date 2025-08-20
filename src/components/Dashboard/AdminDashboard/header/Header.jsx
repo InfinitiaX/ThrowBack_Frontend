@@ -3,6 +3,20 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../../contexts/AuthContext';
 import styles from './Header.module.css';
 
+// Style pour le badge Coming Soon
+const comingSoonStyle = {
+  fontSize: '0.6rem',
+  padding: '2px 4px',
+  backgroundColor: '#8b0000',
+  color: 'white',
+  borderRadius: '4px',
+  marginLeft: '8px',
+  fontWeight: 'bold',
+  display: 'inline-block',
+  verticalAlign: 'middle',
+  lineHeight: 1,
+};
+
 const Header = ({ sidebarCollapsed, isMobile = false }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -149,9 +163,17 @@ const Header = ({ sidebarCollapsed, isMobile = false }) => {
       </div>
 
       <div className={styles.headerActions}>
-        <div className={styles.headerIcon} title="Notifications">
+        <div className={styles.headerIcon} title="Notifications" style={{ position: 'relative' }}>
           <i className="fas fa-bell"></i>
           <span className={styles.notificationBadge}>5</span>
+          <span style={{
+            ...comingSoonStyle,
+            position: 'absolute',
+            bottom: '-18px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            whiteSpace: 'nowrap'
+          }}>Coming Soon</span>
         </div>
 
         <div className={styles.userProfile} onClick={(e) => {
@@ -189,14 +211,17 @@ const Header = ({ sidebarCollapsed, isMobile = false }) => {
               <a href="/admin/profile" className={styles.dropdownItem}>
                 <i className="fas fa-user"></i>
                 <span>My Profile</span>
+                <span style={comingSoonStyle}>Coming Soon</span>
               </a>
               <a href="/admin/settings" className={styles.dropdownItem}>
                 <i className="fas fa-cog"></i>
                 <span>Account Settings</span>
+                <span style={comingSoonStyle}>Coming Soon</span>
               </a>
               <a href="/admin/preferences" className={styles.dropdownItem}>
                 <i className="fas fa-palette"></i>
                 <span>Preferences</span>
+                <span style={comingSoonStyle}>Coming Soon</span>
               </a>
               
               <div className={styles.dropdownDivider}></div>
@@ -204,6 +229,7 @@ const Header = ({ sidebarCollapsed, isMobile = false }) => {
               <a href="/admin/help" className={styles.dropdownItem}>
                 <i className="fas fa-question-circle"></i>
                 <span>Help & Support</span>
+                <span style={comingSoonStyle}>Coming Soon</span>
               </a>
               
               <div className={styles.dropdownDivider}></div>

@@ -4,6 +4,24 @@ import React, { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 
+// Style pour le badge Coming Soon
+const comingSoonStyle = {
+  fontSize: '0.55rem',
+  padding: '1px 3px',
+  backgroundColor: '#8b0000',
+  color: 'white',
+  borderRadius: '3px',
+  marginLeft: '5px',
+  fontWeight: 'bold',
+  display: 'inline-block',
+  verticalAlign: 'middle',
+  lineHeight: 1,
+  position: 'absolute',
+  right: '10px',
+  top: '50%',
+  transform: 'translateY(-50%)',
+};
+
 const Sidebar = ({ collapsed, onToggle, isMobile = false }) => {
   const location = useLocation();
   const [currentPath, setCurrentPath] = useState('');
@@ -84,39 +102,41 @@ const Sidebar = ({ collapsed, onToggle, isMobile = false }) => {
     return false;
   };
 
-const menuItems = [
-  {
-    category: 'GENERAL',
-    items: [
-      { path: '/admin', icon: 'fas fa-tachometer-alt', label: 'Dashboard', exact: true },
-      { path: '/admin/users', icon: 'fas fa-users', label: 'Manage Users' }
-    ]
-  },
-   {
-    category: 'Musique videos',
-    items: [
-      { path: '/admin/livestreams', icon: 'fas fa-broadcast-tower', label: 'Livethrowback' },
-      { path: '/admin/videos', icon: 'fas fa-video', label: 'Videos' },
-      { path: '/admin/shorts', icon: 'fas fa-bolt', label: 'Shorts' },
-      { path: '/admin/podcasts', icon: 'fas fa-podcast', label: 'Podcasts' }, 
-      { path: '/admin/playlists', icon: 'fas fa-list', label: 'Playlists' }
-    ]
-  },
+  // Basé sur App.js, on détermine quelles fonctionnalités sont implémentées
+  // et lesquelles sont en cours de développement
+  const menuItems = [
+    {
+      category: 'GENERAL',
+      items: [
+        { path: '/admin', icon: 'fas fa-tachometer-alt', label: 'Dashboard', exact: true },
+        { path: '/admin/users', icon: 'fas fa-users', label: 'Manage Users' }
+      ]
+    },
+    {
+      category: 'Musique videos',
+      items: [
+        { path: '/admin/livestreams', icon: 'fas fa-broadcast-tower', label: 'Livethrowback' },
+        { path: '/admin/videos', icon: 'fas fa-video', label: 'Videos' },
+        { path: '/admin/shorts', icon: 'fas fa-bolt', label: 'Shorts' },
+        { path: '/admin/podcasts', icon: 'fas fa-podcast', label: 'Podcasts' }, 
+        { path: '/admin/playlists', icon: 'fas fa-list', label: 'Playlists' }
+      ]
+    },
     {
       category: 'MODERATION',
       items: [
-        { path: '/admin/comments', icon: 'fas fa-comments', label: 'Comments' },
-        { path: '/admin/posts', icon: 'fas fa-file-alt', label: 'Posts' },
-        { path: '/admin/likes', icon: 'fas fa-thumbs-up', label: 'Likes' },
-        { path: '/admin/messages', icon: 'fas fa-envelope', label: 'Messages' },
-        { path: '/admin/friends', icon: 'fas fa-user-friends', label: 'Friends' }
+        { path: '/admin/comments', icon: 'fas fa-comments', label: 'Comments', comingSoon: true },
+        { path: '/admin/posts', icon: 'fas fa-file-alt', label: 'Posts', comingSoon: true },
+        { path: '/admin/likes', icon: 'fas fa-thumbs-up', label: 'Likes', comingSoon: true },
+        { path: '/admin/messages', icon: 'fas fa-envelope', label: 'Messages', comingSoon: true },
+        { path: '/admin/friends', icon: 'fas fa-user-friends', label: 'Friends', comingSoon: true }
       ]
     },
     {
       category: 'SYSTEM',
       items: [
-        { path: '/admin/security', icon: 'fas fa-shield-alt', label: 'Security' },
-        { path: '/admin/logs', icon: 'fas fa-history', label: 'Logs' }
+        { path: '/admin/security', icon: 'fas fa-shield-alt', label: 'Security', comingSoon: true },
+        { path: '/admin/logs', icon: 'fas fa-history', label: 'Logs', comingSoon: true }
       ]
     }
   ];
@@ -179,12 +199,37 @@ const menuItems = [
                   className={({ isActive }) => `
                     ${styles.menuItem} 
                     ${(item.exact ? (currentPath === item.path) : isLinkActive(item.path)) ? styles.active : ''}
+                    ${item.comingSoon ? styles.comingSoon : ''}
                   `}
                   onClick={handleLinkClick}
                   title={collapsed && !isMobile ? item.label : ''}
+                  style={{ position: 'relative' }}
                 >
                   <i className={item.icon}></i>
-                  {(!collapsed || isMobile) && <span>{item.label}</span>}
+                  {(!collapsed || isMobile) && (
+                    <>
+                      <span>{item.label}</span>
+                      {item.comingSoon && (
+                        <span style={comingSoonStyle}>Coming Soon</span>
+                      )}
+                    </>
+                  )}
+                  {/* Afficher le badge même en mode collapsed */}
+                  {collapsed && !isMobile && item.comingSoon && (
+                    <span style={{
+                      ...comingSoonStyle,
+                      position: 'absolute',
+                      top: '-5px',
+                      right: '0px',
+                      fontSize: '0.45rem',
+                      padding: '1px 2px',
+                    }}>Soon</span>
+                  )}
+                  
+                  {/* Indicateur visuel pour l'élément actif */}
+                  {(item.exact ? (currentPath === item.path) : isLinkActive(item.path)) && (
+                    <span className={styles.activeIndicator}></span>
+                  )}
                 </NavLink>
               ))}
             </div>

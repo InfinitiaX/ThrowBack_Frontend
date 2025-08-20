@@ -18,10 +18,15 @@ const VideoDetailModal = ({ isOpen, onClose, video }) => {
   
   if (!isOpen || !video) return null;
 
-  // Extract YouTube video ID
+  // Extract YouTube video ID or handle uploaded files
   const getYouTubeEmbedUrl = (url) => {
     try {
       if (!url) return null;
+      
+      // Si c'est un chemin local (/uploads/...), construire l'URL complète
+      if (url.startsWith('/uploads/')) {
+        return `${API_BASE_URL}${url}`;
+      }
       
       // Check if it's a YouTube URL
       if (url.includes('youtube.com') || url.includes('youtu.be')) {
@@ -102,6 +107,7 @@ const VideoDetailModal = ({ isOpen, onClose, video }) => {
 
   const isYouTubeVideo = video.youtubeUrl && (video.youtubeUrl.includes('youtube.com') || video.youtubeUrl.includes('youtu.be'));
   const isVimeoVideo = video.youtubeUrl && video.youtubeUrl.includes('vimeo.com');
+  const isLocalVideo = video.youtubeUrl && (video.youtubeUrl.startsWith('/uploads/') || video.youtubeUrl.startsWith('http') && !isYouTubeVideo && !isVimeoVideo);
   const embedUrl = getYouTubeEmbedUrl(video.youtubeUrl);
   const formattedDate = new Date(video.createdAt).toLocaleString();
 
@@ -194,13 +200,43 @@ const VideoDetailModal = ({ isOpen, onClose, video }) => {
                 </div>
               )}
             </div>
+          ) : isLocalVideo && embedUrl ? (
+            // Pour les vidéos locales uploadées
+            <div className={styles.videoEmbed}>
+              <video
+                controls
+                autoPlay={false}
+                muted
+                src={embedUrl}
+                className={styles.localVideo}
+                crossOrigin="anonymous"
+                onCanPlay={() => setIsVideoLoading(false)}
+                onError={(e) => {
+                  console.error("Error loading video:", e);
+                  setVideoError(true);
+                  setIsVideoLoading(false);
+                }}
+              >
+                <source src={embedUrl} type="video/mp4" />
+                <source src={embedUrl} type="video/webm" />
+                <source src={embedUrl} type="video/ogg" />
+                Your browser does not support the video tag.
+              </video>
+              
+              {isVideoLoading && (
+                <div className={styles.videoLoading}>
+                  <i className="fas fa-spinner fa-spin"></i>
+                  <p>Loading video...</p>
+                </div>
+              )}
+            </div>
           ) : (
             <div className={styles.videoUnavailable}>
               <i className="fas fa-film"></i>
               <p>Video preview unavailable</p>
               {video.youtubeUrl && (
                 <a 
-                  href={video.youtubeUrl} 
+                  href={video.youtubeUrl.startsWith('/uploads/') ? `${API_BASE_URL}${video.youtubeUrl}` : video.youtubeUrl} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className={styles.externalLink}
@@ -312,7 +348,7 @@ const VideoDetailModal = ({ isOpen, onClose, video }) => {
                 <h4>Video URL</h4>
                 <p className={styles.youtubeUrl}>
                   <a 
-                    href={video.youtubeUrl} 
+                    href={video.youtubeUrl.startsWith('/uploads/') ? `${API_BASE_URL}${video.youtubeUrl}` : video.youtubeUrl} 
                     target="_blank" 
                     rel="noopener noreferrer"
                   >
@@ -349,6 +385,10 @@ const VideoDetailModal = ({ isOpen, onClose, video }) => {
                   ) : isVimeoVideo ? (
                     <span style={{ color: '#1ab7ea', fontWeight: '600' }}>
                       <i className="fab fa-vimeo"></i> Vimeo
+                    </span>
+                  ) : isLocalVideo ? (
+                    <span style={{ color: '#2196f3', fontWeight: '600' }}>
+                      <i className="fas fa-upload"></i> Uploaded file
                     </span>
                   ) : (
                     <span style={{ color: '#555', fontWeight: '600' }}>

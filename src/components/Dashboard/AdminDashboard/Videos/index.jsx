@@ -68,6 +68,20 @@ const Videos = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [viewMode]);
 
+  // Fonction pour obtenir l'URL complète
+  const getFullVideoUrl = (path) => {
+    if (!path) return '';
+    
+    // Si l'URL est déjà absolue, la retourner telle quelle
+    if (path.startsWith('http')) return path;
+    
+    // S'assurer que le chemin commence par un slash
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    
+    // Utiliser l'URL de base de l'API
+    return `${API_BASE_URL}${normalizedPath}`;
+  };
+
   // Fetch videos with filters
   const fetchVideos = async () => {
     try {
@@ -117,6 +131,17 @@ const Videos = () => {
       } else if (Array.isArray(data)) {
         videosData = data;
       }
+      
+      // Traiter les URL vidéo pour les rendre absolues
+      videosData = videosData.map(video => {
+        if (video.youtubeUrl && video.youtubeUrl.startsWith('/uploads/')) {
+          return {
+            ...video,
+            youtubeUrl: getFullVideoUrl(video.youtubeUrl)
+          };
+        }
+        return video;
+      });
       
       setVideos(videosData);
       
@@ -260,21 +285,70 @@ const Videos = () => {
   const getYouTubeVideoId = (url) => {
     try {
       if (!url) return 'placeholder';
+      if (!url.includes('youtube.com') && !url.includes('youtu.be')) return 'placeholder';
       
-      const videoUrl = new URL(url);
-      let videoId = '';
-      
-      if (videoUrl.hostname.includes('youtube.com')) {
-        videoId = videoUrl.searchParams.get('v');
-      } else if (videoUrl.hostname.includes('youtu.be')) {
-        videoId = videoUrl.pathname.substring(1);
+      try {
+        const videoUrl = new URL(url);
+        let videoId = '';
+        
+        if (videoUrl.hostname.includes('youtube.com')) {
+          // Classic format: youtube.com/watch?v=VIDEO_ID
+          if (videoUrl.searchParams.get('v')) {
+            videoId = videoUrl.searchParams.get('v');
+          }
+          // Shorts format: youtube.com/shorts/VIDEO_ID
+          else if (videoUrl.pathname.startsWith('/shorts/')) {
+            videoId = videoUrl.pathname.replace('/shorts/', '');
+          }
+          // Embed format: youtube.com/embed/VIDEO_ID
+          else if (videoUrl.pathname.startsWith('/embed/')) {
+            videoId = videoUrl.pathname.replace('/embed/', '');
+          }
+        } else if (videoUrl.hostname.includes('youtu.be')) {
+          // Short format: youtu.be/VIDEO_ID
+          videoId = videoUrl.pathname.substring(1);
+        }
+        
+        return videoId || 'placeholder';
+      } catch (urlError) {
+        // Fallback pour les URLs mal formées
+        const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+        if (match && match[1]) {
+          return match[1];
+        }
+        return 'placeholder';
       }
-      
-      return videoId || 'placeholder';
     } catch (error) {
       console.error("Error parsing YouTube URL:", error);
       return 'placeholder';
     }
+  };
+
+  // Fonction pour obtenir la miniature de la vidéo
+  const getVideoThumbnail = (video) => {
+    const { youtubeUrl } = video;
+    
+    // Pour les vidéos YouTube, utiliser la miniature YouTube
+    if (youtubeUrl && (youtubeUrl.includes('youtube.com') || youtubeUrl.includes('youtu.be'))) {
+      const videoId = getYouTubeVideoId(youtubeUrl);
+      if (videoId !== 'placeholder') {
+        return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+      }
+    }
+    
+    // Pour les vidéos Vimeo
+    if (youtubeUrl && youtubeUrl.includes('vimeo.com')) {
+      return 'https://i.vimeocdn.com/favicon/main-touch_180';
+    }
+    
+    // Pour les fichiers uploadés, utiliser une image de placeholder
+    if (youtubeUrl) {
+      // On pourrait générer une miniature à partir de la vidéo, mais pour l'instant on utilise un placeholder
+      return '/images/video-thumbnail.jpg';
+    }
+    
+    // Fallback
+    return '/images/placeholder-video.jpg';
   };
 
   // Render video grid item
@@ -286,13 +360,7 @@ const Videos = () => {
         onClick={() => handleViewDetails(video)}
       >
         <img 
-          src={
-            video.youtubeUrl && video.youtubeUrl.includes('youtube') 
-              ? `https://img.youtube.com/vi/${getYouTubeVideoId(video.youtubeUrl)}/mqdefault.jpg`
-              : video.youtubeUrl && video.youtubeUrl.includes('vimeo')
-                ? 'https://i.vimeocdn.com/favicon/main-touch_180'
-                : '/images/placeholder-video.jpg'
-          }
+          src={getVideoThumbnail(video)}
           alt={video.titre}
           crossOrigin="anonymous"
           onError={(e) => {
@@ -356,13 +424,7 @@ const Videos = () => {
     <tr key={video._id} className={styles.videoTableRow}>
       <td className={styles.thumbnailCell}>
         <img 
-          src={
-            video.youtubeUrl && video.youtubeUrl.includes('youtube') 
-              ? `https://img.youtube.com/vi/${getYouTubeVideoId(video.youtubeUrl)}/default.jpg`
-              : video.youtubeUrl && video.youtubeUrl.includes('vimeo')
-                ? 'https://i.vimeocdn.com/favicon/main-touch_180'
-                : '/images/placeholder-video.jpg'
-          }
+          src={getVideoThumbnail(video)}
           alt={video.titre}
           className={styles.tableThumbnail}
           crossOrigin="anonymous"

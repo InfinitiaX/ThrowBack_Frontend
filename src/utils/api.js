@@ -42,6 +42,84 @@ api.interceptors.request.use(
   }
 );
 
+
+// utils/api.js - Ajouter ces modifications dans les intercepteurs existants
+
+// Dans l'intercepteur de requête, ajoutez ces lignes:
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    // Supprimer les espaces dans les URLs pour éviter les problèmes
+    if (config.url) {
+      config.url = config.url.replace(/\s+/g, '');
+    }
+    
+    // Cas spécial pour les uploads multipart/form-data
+    if (config.url && (config.url.includes('/profile/photo') || config.url.includes('/profile/cover'))) {
+      // Ne pas toucher aux headers pour les requêtes multipart/form-data
+      console.log("Préparation d'upload de photo détectée");
+      
+      // Vérifier que les données sont bien un FormData
+      if (config.data instanceof FormData) {
+        console.log("FormData validé pour l'upload");
+      } else {
+        console.warn("ATTENTION: Les données envoyées ne sont pas un FormData");
+      }
+    }
+    
+    // Log des requêtes importantes
+    if (config.url.includes('/videos/') || config.url.includes('/memories') || config.url.includes('/like') || config.url.includes('/profile')) {
+      console.log(` API Request: ${config.method?.toUpperCase()} ${config.url}`);
+      if (config.data && typeof config.data !== 'object') {
+        console.log(' Request data:', config.data);
+      }
+    }
+    
+    return config;
+  },
+  (error) => {
+    console.error(' Request error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Dans l'intercepteur de réponse, améliorez la gestion des erreurs d'upload
+api.interceptors.response.use(
+  (response) => {
+    // Log des réponses importantes
+    if (response.config.url.includes('/videos/') || response.config.url.includes('/memories') || response.config.url.includes('/like') || response.config.url.includes('/profile')) {
+      console.log(` API Response: ${response.config.method?.toUpperCase()} ${response.config.url}`);
+      console.log(' Response data:', response.data);
+    }
+    return response;
+  },
+  (error) => {
+    console.error(' API Error:', error);
+    
+    // Logging spécifique pour les erreurs d'upload de photo
+    if (error.config && error.config.url && 
+        (error.config.url.includes('/profile/photo') || error.config.url.includes('/profile/cover'))) {
+      console.error("Erreur détaillée pour l'upload de photo:");
+      console.error("Status:", error.response?.status);
+      console.error("Headers:", error.response?.headers);
+      console.error("Message:", error.response?.data?.message || error.message);
+      
+      // Si l'URL du backend contient des espaces, cela peut causer des problèmes
+      if (error.config.url.includes(' ')) {
+        console.error("ATTENTION: L'URL contient des espaces, ce qui peut causer des problèmes d'upload");
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+
+
 // Intercepteur de réponse pour gérer les erreurs globalement
 api.interceptors.response.use(
   (response) => {

@@ -1,4 +1,3 @@
-// components/Dashboard/UserDashboard/Playlists/PlaylistPlayer.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -43,24 +42,46 @@ const PlaylistPlayer = () => {
   const playerContainerRef = useRef(null);
   const progressBarRef = useRef(null);
   
+  // Fonction utilitaire pour gérer les URLs des images et vidéos
+  const getMediaUrl = (mediaPath) => {
+    if (!mediaPath) return "";
+    
+    // Si c'est déjà une URL complète
+    if (mediaPath.startsWith('http')) return mediaPath;
+    
+    // Récupérer l'URL de base de l'API
+    const baseUrl = process.env.REACT_APP_API_URL || '';
+    
+    // Si c'est un chemin relatif sans slash au début
+    if (!mediaPath.startsWith('/')) {
+      return `${baseUrl}/${mediaPath}`;
+    }
+    
+    // Chemin relatif avec slash
+    return `${baseUrl}${mediaPath}`;
+  };
+  
   // Load playlist details
   useEffect(() => {
     const fetchPlaylistDetails = async () => {
       try {
         setLoading(true);
+        console.log("Chargement de la playlist ID:", id);
         const data = await playlistAPI.getPlaylistById(id);
         
         if (!data) {
-          setError('Playlist not found');
+          setError('Playlist non trouvée');
           setLoading(false);
           return;
         }
         
-        if (data.videos.length === 0) {
-          setError('This playlist does not contain any videos');
+        if (!data.videos || data.videos.length === 0) {
+          setError('Cette playlist ne contient aucune vidéo');
           setLoading(false);
           return;
         }
+        
+        console.log("Playlist chargée:", data);
         
         // Sort videos by order
         const sortedVideos = [...data.videos].sort((a, b) => a.ordre - b.ordre);
@@ -74,8 +95,8 @@ const PlaylistPlayer = () => {
           setIsPlaying(true);
         }, 1000);
       } catch (err) {
-        console.error('Error loading playlist:', err);
-        setError('An error occurred while loading the playlist');
+        console.error('Erreur lors du chargement de la playlist:', err);
+        setError('Une erreur est survenue lors du chargement de la playlist');
         setLoading(false);
       }
     };
@@ -90,16 +111,45 @@ const PlaylistPlayer = () => {
       videoRef.current.pause();
       setProgress(0);
       
-      // Load new video
-      const currentVideo = playlist.videos[currentVideoIndex].video_id;
-      videoRef.current.src = currentVideo.youtubeUrl;
+      // Obtenir la référence correcte à la vidéo
+      const videoItem = playlist.videos[currentVideoIndex];
+      const currentVideo = videoItem.video_id;
       
-      // Start playback if needed
-      if (isPlaying) {
-        videoRef.current.play().catch(err => {
-          console.error('Error during automatic playback:', err);
-          setIsPlaying(false);
-        });
+      console.log("Chargement de la vidéo:", currentVideo);
+      
+      // Vérifier si l'URL est valide
+      if (currentVideo && currentVideo.youtubeUrl) {
+        // Récupérer l'URL correcte (absolue ou relative)
+        const videoUrl = getMediaUrl(currentVideo.youtubeUrl);
+        console.log("URL vidéo:", videoUrl);
+        
+        try {
+          // Définir l'URL de la vidéo
+          videoRef.current.src = videoUrl;
+          
+          // Start playback if needed
+          if (isPlaying) {
+            videoRef.current.play().catch(err => {
+              console.error('Erreur lors de la lecture automatique:', err);
+              setIsPlaying(false);
+              
+              // Afficher un message d'erreur
+              setToastMessage("Erreur lors de la lecture de la vidéo");
+              setToastType('error');
+              setShowToast(true);
+            });
+          }
+        } catch (error) {
+          console.error('Erreur lors du chargement de la vidéo:', error);
+          setToastMessage("Erreur lors du chargement de la vidéo");
+          setToastType('error');
+          setShowToast(true);
+        }
+      } else {
+        console.error('URL de vidéo invalide ou manquante');
+        setToastMessage("URL de vidéo invalide ou manquante");
+        setToastType('error');
+        setShowToast(true);
       }
     }
   }, [currentVideoIndex, playlist, isPlaying]);
@@ -137,9 +187,20 @@ const PlaylistPlayer = () => {
       videoElement.addEventListener('timeupdate', handleTimeUpdate);
       videoElement.addEventListener('ended', handleEnded);
       
+      // Ajouter un gestionnaire d'erreur
+      const handleError = (e) => {
+        console.error('Erreur de lecture vidéo:', e);
+        setToastMessage("Erreur lors de la lecture de la vidéo");
+        setToastType('error');
+        setShowToast(true);
+      };
+      
+      videoElement.addEventListener('error', handleError);
+      
       return () => {
         videoElement.removeEventListener('timeupdate', handleTimeUpdate);
         videoElement.removeEventListener('ended', handleEnded);
+        videoElement.removeEventListener('error', handleError);
       };
     }
   }, [currentVideoIndex, playlist, repeat, shuffle]);
@@ -193,6 +254,9 @@ const PlaylistPlayer = () => {
       } else {
         videoRef.current.play().catch(err => {
           console.error('Playback error:', err);
+          setToastMessage("Erreur lors de la lecture de la vidéo");
+          setToastType('error');
+          setShowToast(true);
         });
       }
       setIsPlaying(!isPlaying);
@@ -295,13 +359,13 @@ const PlaylistPlayer = () => {
       });
       
       setToastMessage(response.isFavorite ? 
-        'Playlist added to favorites' : 
-        'Playlist removed from favorites');
+        'Playlist ajoutée aux favoris' : 
+        'Playlist retirée des favoris');
       setToastType('success');
       setShowToast(true);
     } catch (err) {
-      console.error('Error managing favorites:', err);
-      setToastMessage('Error managing favorites');
+      console.error('Erreur lors de la gestion des favoris:', err);
+      setToastMessage('Erreur lors de la gestion des favoris');
       setToastType('error');
       setShowToast(true);
     }
@@ -313,13 +377,13 @@ const PlaylistPlayer = () => {
     const shareUrl = `${window.location.origin}/dashboard/playlists/${id}`;
     navigator.clipboard.writeText(shareUrl)
       .then(() => {
-        setToastMessage('Playlist link copied to clipboard');
+        setToastMessage('Lien de la playlist copié dans le presse-papier');
         setToastType('success');
         setShowToast(true);
       })
       .catch(err => {
-        console.error('Error copying link:', err);
-        setToastMessage('Error copying link');
+        console.error('Erreur de copie du lien:', err);
+        setToastMessage('Erreur lors de la copie du lien');
         setToastType('error');
         setShowToast(true);
       });
@@ -333,6 +397,7 @@ const PlaylistPlayer = () => {
   // Play a specific video
   const handlePlayVideo = (index) => {
     setCurrentVideoIndex(index);
+    setIsPlaying(true);
   };
   
   if (loading) {
@@ -347,7 +412,7 @@ const PlaylistPlayer = () => {
           className={styles.backButton}
           onClick={handleBack}
         >
-          Back to playlist
+          Retour à la playlist
         </button>
       </div>
     );
@@ -356,12 +421,12 @@ const PlaylistPlayer = () => {
   if (!playlist || playlist.videos.length === 0) {
     return (
       <div className={styles.errorContainer}>
-        <p className={styles.errorMessage}>Empty or not found playlist</p>
+        <p className={styles.errorMessage}>Playlist vide ou introuvable</p>
         <button 
           className={styles.backButton}
           onClick={() => navigate('/dashboard/playlists')}
         >
-          Back to playlists
+          Retour aux playlists
         </button>
       </div>
     );
@@ -384,13 +449,13 @@ const PlaylistPlayer = () => {
               onClick={handleBack}
             >
               <FontAwesomeIcon icon={faArrowLeft} />
-              <span>Back</span>
+              <span>Retour</span>
             </button>
             
             <div className={styles.headerInfo}>
               <h1 className={styles.playlistTitle}>{playlist.nom}</h1>
               <p className={styles.playlistOwner}>
-                By {playlist.proprietaire.prenom} {playlist.proprietaire.nom}
+                Par {playlist.proprietaire?.prenom || ''} {playlist.proprietaire?.nom || ''}
               </p>
             </div>
             
@@ -398,7 +463,7 @@ const PlaylistPlayer = () => {
               <button 
                 className={styles.actionButton}
                 onClick={handleToggleFavorite}
-                title={playlist.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                title={playlist.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
               >
                 <FontAwesomeIcon icon={playlist.isFavorite ? faHeartBroken : faHeart} />
               </button>
@@ -406,7 +471,7 @@ const PlaylistPlayer = () => {
               <button 
                 className={styles.actionButton}
                 onClick={handleSharePlaylist}
-                title="Share playlist"
+                title="Partager la playlist"
               >
                 <FontAwesomeIcon icon={faShare} />
               </button>
@@ -414,7 +479,7 @@ const PlaylistPlayer = () => {
               <button 
                 className={styles.actionButton}
                 onClick={handleTogglePlaylist}
-                title={showPlaylist ? "Hide list" : "Show list"}
+                title={showPlaylist ? "Masquer la liste" : "Afficher la liste"}
               >
                 <FontAwesomeIcon icon={showPlaylist ? faMinus : faList} />
               </button>
@@ -429,8 +494,8 @@ const PlaylistPlayer = () => {
             <video 
               ref={videoRef}
               className={styles.videoPlayer}
-              src={currentVideo?.youtubeUrl}
-              poster={currentVideo?.thumbnail}
+              playsInline
+              poster={getMediaUrl(currentVideo?.thumbnail)}
             />
             
             {!isPlaying && (
@@ -445,10 +510,10 @@ const PlaylistPlayer = () => {
           {/* Current video information */}
           <div className={`${styles.videoInfo} ${isPlaying && styles.hideControls}`}>
             <h2 className={styles.videoTitle}>
-              {currentVideo?.titre}
+              {currentVideo?.titre || "Vidéo sans titre"}
             </h2>
             <p className={styles.videoArtist}>
-              {currentVideo?.artiste}
+              {currentVideo?.artiste || "Artiste inconnu"}
             </p>
           </div>
           
@@ -486,7 +551,7 @@ const PlaylistPlayer = () => {
                 <button 
                   className={`${styles.controlButton} ${shuffle ? styles.active : ''}`}
                   onClick={handleShuffle}
-                  title="Shuffle"
+                  title="Lecture aléatoire"
                 >
                   <FontAwesomeIcon icon={faRandom} />
                 </button>
@@ -495,7 +560,7 @@ const PlaylistPlayer = () => {
                   className={styles.controlButton}
                   onClick={handlePrevious}
                   disabled={currentVideoIndex === 0}
-                  title="Previous"
+                  title="Précédent"
                 >
                   <FontAwesomeIcon icon={faStepBackward} />
                 </button>
@@ -503,7 +568,7 @@ const PlaylistPlayer = () => {
                 <button 
                   className={styles.playPauseButton}
                   onClick={handlePlayPause}
-                  title={isPlaying ? "Pause" : "Play"}
+                  title={isPlaying ? "Pause" : "Lecture"}
                 >
                   <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} />
                 </button>
@@ -512,7 +577,7 @@ const PlaylistPlayer = () => {
                   className={styles.controlButton}
                   onClick={handleNext}
                   disabled={currentVideoIndex === playlist.videos.length - 1}
-                  title="Next"
+                  title="Suivant"
                 >
                   <FontAwesomeIcon icon={faStepForward} />
                 </button>
@@ -520,7 +585,7 @@ const PlaylistPlayer = () => {
                 <button 
                   className={`${styles.controlButton} ${repeat ? styles.active : ''}`}
                   onClick={handleRepeat}
-                  title="Repeat"
+                  title="Répéter"
                 >
                   <FontAwesomeIcon icon={faRedo} />
                 </button>
@@ -531,7 +596,7 @@ const PlaylistPlayer = () => {
                   <button 
                     className={styles.controlButton}
                     onClick={handleMuteToggle}
-                    title={isMuted ? "Unmute" : "Mute"}
+                    title={isMuted ? "Activer le son" : "Couper le son"}
                   >
                     <FontAwesomeIcon icon={isMuted ? faVolumeMute : faVolumeUp} />
                   </button>
@@ -551,7 +616,7 @@ const PlaylistPlayer = () => {
                 <button 
                   className={styles.controlButton}
                   onClick={handleFullscreenToggle}
-                  title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                  title={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
                 >
                   <FontAwesomeIcon icon={isFullscreen ? faCompress : faExpand} />
                 </button>
@@ -565,7 +630,7 @@ const PlaylistPlayer = () => {
           <div className={styles.playlistSection}>
             <div className={styles.playlistHeader}>
               <h3 className={styles.playlistListTitle}>
-                Videos in playlist ({playlist.videos.length})
+                Vidéos dans la playlist ({playlist.videos.length})
               </h3>
             </div>
             
@@ -584,8 +649,8 @@ const PlaylistPlayer = () => {
                     
                     <div className={styles.videoItemThumbnail}>
                       <img 
-                        src={video.thumbnail || "https://via.placeholder.com/120x68?text=Video"}
-                        alt={video.titre}
+                        src={getMediaUrl(video.thumbnail) || "https://via.placeholder.com/120x68?text=Video"}
+                        alt={video.titre || "Vidéo"}
                       />
                       {isCurrentVideo && isPlaying && (
                         <div className={styles.nowPlaying}>
@@ -595,8 +660,8 @@ const PlaylistPlayer = () => {
                     </div>
                     
                     <div className={styles.videoItemInfo}>
-                      <h4 className={styles.videoItemTitle}>{video.titre}</h4>
-                      <p className={styles.videoItemArtist}>{video.artiste}</p>
+                      <h4 className={styles.videoItemTitle}>{video.titre || "Vidéo sans titre"}</h4>
+                      <p className={styles.videoItemArtist}>{video.artiste || "Artiste inconnu"}</p>
                     </div>
                     
                     <div className={styles.videoItemDuration}>

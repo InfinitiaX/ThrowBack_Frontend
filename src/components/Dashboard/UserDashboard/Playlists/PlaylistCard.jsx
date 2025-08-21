@@ -1,4 +1,3 @@
-// components/Dashboard/UserDashboard/Playlists/PlaylistCard.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -26,6 +25,25 @@ const PlaylistCard = ({
 }) => {
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
+  
+  // Fonction utilitaire pour gérer les URLs des images
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return "https://via.placeholder.com/300x200?text=Playlist";
+    
+    // Si c'est déjà une URL complète
+    if (imagePath.startsWith('http')) return imagePath;
+    
+    // Récupérer l'URL de base de l'API
+    const baseUrl = process.env.REACT_APP_API_URL || '';
+    
+    // Si c'est un chemin relatif sans slash au début
+    if (!imagePath.startsWith('/')) {
+      return `${baseUrl}/${imagePath}`;
+    }
+    
+    // Chemin relatif avec slash
+    return `${baseUrl}${imagePath}`;
+  };
   
   // Navigate to playlist detail page
   const handleClick = () => {
@@ -79,6 +97,7 @@ const PlaylistCard = ({
   
   // Format the view/favorites count
   const formatCount = (count) => {
+    if (!count) return "0";
     if (count >= 1000000) {
       return `${(count / 1000000).toFixed(1)}M`;
     } else if (count >= 1000) {
@@ -93,9 +112,9 @@ const PlaylistCard = ({
       case 'PUBLIC':
         return <FontAwesomeIcon icon={faGlobe} title="Public" />;
       case 'PRIVE':
-        return <FontAwesomeIcon icon={faLock} title="Private" />;
+        return <FontAwesomeIcon icon={faLock} title="Privé" />;
       case 'AMIS':
-        return <FontAwesomeIcon icon={faUserFriends} title="Friends only" />;
+        return <FontAwesomeIcon icon={faUserFriends} title="Amis uniquement" />;
       default:
         return <FontAwesomeIcon icon={faGlobe} title="Public" />;
     }
@@ -105,15 +124,15 @@ const PlaylistCard = ({
     <div className={styles.playlistCard} onClick={handleClick}>
       <div className={styles.imageContainer}>
         <img 
-          src={playlist.image_couverture || "https://via.placeholder.com/300x200?text=Playlist"}
-          alt={playlist.nom}
+          src={getImageUrl(playlist.image_couverture)}
+          alt={playlist.nom || "Playlist"}
           className={styles.playlistImage}
         />
         <div className={styles.overlay}>
           <button 
             className={styles.playButton}
             onClick={handlePlay}
-            aria-label="Play playlist"
+            aria-label="Lire la playlist"
           >
             <FontAwesomeIcon icon={faPlay} />
           </button>
@@ -122,19 +141,19 @@ const PlaylistCard = ({
       
       <div className={styles.content}>
         <div className={styles.header}>
-          <h3 className={styles.title}>{playlist.nom}</h3>
+          <h3 className={styles.title}>{playlist.nom || "Playlist sans titre"}</h3>
           <div className={styles.visibility}>
             {renderVisibilityIcon(playlist.visibilite)}
           </div>
         </div>
         
         <p className={styles.description}>
-          {playlist.description || "No description"}
+          {playlist.description || "Aucune description"}
         </p>
         
         <div className={styles.stats}>
           <span className={styles.count}>
-            <FontAwesomeIcon icon={faMusic} /> {playlist.nb_videos || 0} videos
+            <FontAwesomeIcon icon={faMusic} /> {playlist.nb_videos || 0} vidéos
           </span>
           <span className={styles.count}>
             <FontAwesomeIcon icon={faEye} /> {formatCount(playlist.nb_lectures || 0)}
@@ -147,12 +166,12 @@ const PlaylistCard = ({
         {playlist.proprietaire && (
           <div className={styles.owner}>
             <img 
-              src={playlist.proprietaire.photo_profil || "https://via.placeholder.com/30"}
-              alt={`${playlist.proprietaire.prenom || 'User'} ${playlist.proprietaire.nom || ''}`}
+              src={getImageUrl(playlist.proprietaire.photo_profil || "https://via.placeholder.com/30")}
+              alt={`${playlist.proprietaire.prenom || 'Utilisateur'} ${playlist.proprietaire.nom || ''}`}
               className={styles.ownerAvatar}
             />
             <span className={styles.ownerName}>
-              {`${playlist.proprietaire.prenom || 'User'} ${playlist.proprietaire.nom || ''}`}
+              {`${playlist.proprietaire.prenom || 'Utilisateur'} ${playlist.proprietaire.nom || ''}`}
             </span>
           </div>
         )}
@@ -162,7 +181,7 @@ const PlaylistCard = ({
         <button 
           className={styles.actionButton}
           onClick={handleToggleFavorite}
-          aria-label={playlist.isFavorite ? "Remove from favorites" : "Add to favorites"}
+          aria-label={playlist.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
         >
           <FontAwesomeIcon icon={playlist.isFavorite ? faHeartBroken : faHeart} />
         </button>
@@ -171,7 +190,7 @@ const PlaylistCard = ({
           <button 
             className={styles.actionButton}
             onClick={handleToggleDropdown}
-            aria-label="More options"
+            aria-label="Plus d'options"
           >
             <FontAwesomeIcon icon={faEllipsisV} />
           </button>
@@ -184,7 +203,7 @@ const PlaylistCard = ({
                   onClick={handleEdit}
                 >
                   <FontAwesomeIcon icon={faEdit} />
-                  <span>Edit</span>
+                  <span>Modifier</span>
                 </button>
               )}
               
@@ -193,7 +212,7 @@ const PlaylistCard = ({
                 onClick={handleShare}
               >
                 <FontAwesomeIcon icon={faShare} />
-                <span>Share</span>
+                <span>Partager</span>
               </button>
               
               {isOwner && (
@@ -202,7 +221,7 @@ const PlaylistCard = ({
                   onClick={handleDelete}
                 >
                   <FontAwesomeIcon icon={faTrash} />
-                  <span>Delete</span>
+                  <span>Supprimer</span>
                 </button>
               )}
             </div>

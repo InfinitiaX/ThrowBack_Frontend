@@ -1,4 +1,3 @@
-// components/Dashboard/UserDashboard/Playlists/UserPlaylists.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -30,24 +29,46 @@ const UserPlaylists = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Fonction utilitaire pour gérer les URLs des images
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return "https://via.placeholder.com/300x200?text=Playlist";
+    
+    // Si c'est déjà une URL complète
+    if (imagePath.startsWith('http')) return imagePath;
+    
+    // Récupérer l'URL de base de l'API
+    const baseUrl = process.env.REACT_APP_API_URL || '';
+    
+    // Si c'est un chemin relatif sans slash au début
+    if (!imagePath.startsWith('/')) {
+      return `${baseUrl}/${imagePath}`;
+    }
+    
+    // Chemin relatif avec slash
+    return `${baseUrl}${imagePath}`;
+  };
+
   // Load user playlists and popular playlists
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        console.log("Chargement des playlists...");
         
         // Load user playlists
         const userPlaylistsData = await playlistAPI.getUserPlaylists();
+        console.log("Playlists utilisateur:", userPlaylistsData);
         setPlaylists(userPlaylistsData);
         
         // Load popular playlists
         const popularPlaylistsData = await playlistAPI.getPopularPlaylists(5);
+        console.log("Playlists populaires:", popularPlaylistsData);
         setPopularPlaylists(popularPlaylistsData);
         
         setLoading(false);
       } catch (err) {
-        console.error('Error loading playlists:', err);
-        setError('Unable to load playlists. Please try again later.');
+        console.error('Erreur lors du chargement des playlists:', err);
+        setError('Impossible de charger les playlists. Veuillez réessayer plus tard.');
         setLoading(false);
       }
     };
@@ -94,12 +115,12 @@ const UserPlaylists = () => {
       setSelectedPlaylist(null);
       
       // Show success notification
-      setToastMessage('Playlist deleted successfully');
+      setToastMessage('Playlist supprimée avec succès');
       setToastType('success');
       setShowToast(true);
     } catch (err) {
-      console.error('Error deleting playlist:', err);
-      setToastMessage('Error deleting playlist');
+      console.error('Erreur lors de la suppression de la playlist:', err);
+      setToastMessage('Erreur lors de la suppression de la playlist');
       setToastType('error');
       setShowToast(true);
     }
@@ -131,13 +152,13 @@ const UserPlaylists = () => {
       }));
       
       setToastMessage(response.isFavorite ? 
-        'Playlist added to favorites' : 
-        'Playlist removed from favorites');
+        'Playlist ajoutée aux favoris' : 
+        'Playlist retirée des favoris');
       setToastType('success');
       setShowToast(true);
     } catch (err) {
-      console.error('Error managing favorites:', err);
-      setToastMessage('Error managing favorites');
+      console.error('Erreur lors de la gestion des favoris:', err);
+      setToastMessage('Erreur lors de la gestion des favoris');
       setToastType('error');
       setShowToast(true);
     }
@@ -150,13 +171,13 @@ const UserPlaylists = () => {
     const shareUrl = `${window.location.origin}/dashboard/playlists/${playlist._id}`;
     navigator.clipboard.writeText(shareUrl)
       .then(() => {
-        setToastMessage('Playlist link copied to clipboard');
+        setToastMessage('Lien de la playlist copié dans le presse-papiers');
         setToastType('success');
         setShowToast(true);
       })
       .catch(err => {
-        console.error('Error copying link:', err);
-        setToastMessage('Error copying link');
+        console.error('Erreur lors de la copie du lien:', err);
+        setToastMessage('Erreur lors de la copie du lien');
         setToastType('error');
         setShowToast(true);
       });
@@ -170,9 +191,9 @@ const UserPlaylists = () => {
       case 'PUBLIC':
         return <FontAwesomeIcon icon={faGlobe} title="Public" />;
       case 'PRIVE':
-        return <FontAwesomeIcon icon={faLock} title="Private" />;
+        return <FontAwesomeIcon icon={faLock} title="Privé" />;
       case 'AMIS':
-        return <FontAwesomeIcon icon={faUserFriends} title="Friends only" />;
+        return <FontAwesomeIcon icon={faUserFriends} title="Amis uniquement" />;
       default:
         return <FontAwesomeIcon icon={faGlobe} title="Public" />;
     }
@@ -180,6 +201,7 @@ const UserPlaylists = () => {
 
   // Format the view count
   const formatCount = (count) => {
+    if (!count) return "0";
     if (count >= 1000000) {
       return `${(count / 1000000).toFixed(1)}M`;
     } else if (count >= 1000) {
@@ -200,7 +222,7 @@ const UserPlaylists = () => {
           className={styles.retryButton}
           onClick={() => window.location.reload()}
         >
-          Try again
+          Réessayer
         </button>
       </div>
     );
@@ -210,26 +232,26 @@ const UserPlaylists = () => {
     <div className={styles.playlistsContainer}>
       {/* Header with title and create button */}
       <div className={styles.header}>
-        <h1 className={styles.title}>Your playlists</h1>
+        <h1 className={styles.title}>Vos playlists</h1>
         <button 
           className={styles.createButton}
           onClick={handleCreatePlaylist}
         >
           <FontAwesomeIcon icon={faPlus} />
-          <span>Create playlist</span>
+          <span>Créer une playlist</span>
         </button>
       </div>
 
       {/* User playlists */}
       <section className={styles.userPlaylistsSection}>
-        <h2 className={styles.sectionTitle}>My playlists</h2>
+        <h2 className={styles.sectionTitle}>Mes playlists</h2>
         
         {playlists.length === 0 ? (
           <EmptyState 
             icon={faMusic}
-            title="No playlists"
-            message="You haven't created any playlists yet. Create one to start organizing your favorite videos."
-            actionText="Create playlist"
+            title="Aucune playlist"
+            message="Vous n'avez pas encore créé de playlist. Créez-en une pour commencer à organiser vos vidéos préférées."
+            actionText="Créer une playlist"
             onAction={handleCreatePlaylist}
           />
         ) : (
@@ -242,15 +264,15 @@ const UserPlaylists = () => {
               >
                 <div className={styles.playlistImageContainer}>
                   <img 
-                    src={playlist.image_couverture || "https://via.placeholder.com/300x200?text=Playlist"}
-                    alt={playlist.nom}
+                    src={getImageUrl(playlist.image_couverture)}
+                    alt={playlist.nom || "Playlist"}
                     className={styles.playlistImage}
                   />
                   <div className={styles.playlistOverlay}>
                     <button 
                       className={styles.playButton}
                       onClick={(e) => handlePlayPlaylist(e, playlist._id)}
-                      aria-label="Play playlist"
+                      aria-label="Lire la playlist"
                     >
                       <FontAwesomeIcon icon={faPlay} />
                     </button>
@@ -259,19 +281,19 @@ const UserPlaylists = () => {
                 
                 <div className={styles.playlistInfo}>
                   <div className={styles.playlistMeta}>
-                    <h3 className={styles.playlistTitle}>{playlist.nom}</h3>
+                    <h3 className={styles.playlistTitle}>{playlist.nom || "Playlist sans titre"}</h3>
                     <div className={styles.playlistVisibility}>
                       {renderVisibilityIcon(playlist.visibilite)}
                     </div>
                   </div>
                   
                   <p className={styles.playlistDescription}>
-                    {playlist.description || "No description"}
+                    {playlist.description || "Aucune description"}
                   </p>
                   
                   <div className={styles.playlistStats}>
                     <span className={styles.videoCount}>
-                      <FontAwesomeIcon icon={faMusic} /> {playlist.nb_videos || 0} videos
+                      <FontAwesomeIcon icon={faMusic} /> {playlist.nb_videos || 0} vidéos
                     </span>
                     <span className={styles.viewCount}>
                       <FontAwesomeIcon icon={faEye} /> {formatCount(playlist.nb_lectures || 0)}
@@ -286,16 +308,25 @@ const UserPlaylists = () => {
                   <button 
                     className={styles.actionButton}
                     onClick={(e) => handleToggleFavorite(e, playlist)}
-                    aria-label={playlist.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                    aria-label={playlist.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
                   >
                     <FontAwesomeIcon icon={playlist.isFavorite ? faHeartBroken : faHeart} />
+                  </button>
+                  
+                  {/* Bouton d'édition direct */}
+                  <button 
+                    className={styles.editButton}
+                    onClick={(e) => handleEditPlaylist(e, playlist)}
+                    aria-label="Modifier la playlist"
+                  >
+                    <FontAwesomeIcon icon={faEdit} />
                   </button>
                   
                   <div className={styles.dropdownContainer}>
                     <button 
                       className={styles.actionButton}
                       onClick={(e) => handleToggleDropdown(e, index)}
-                      aria-label="More options"
+                      aria-label="Plus d'options"
                     >
                       <FontAwesomeIcon icon={faEllipsisV} />
                     </button>
@@ -307,7 +338,7 @@ const UserPlaylists = () => {
                           onClick={(e) => handleEditPlaylist(e, playlist)}
                         >
                           <FontAwesomeIcon icon={faEdit} />
-                          <span>Edit</span>
+                          <span>Modifier</span>
                         </button>
                         
                         <button 
@@ -315,7 +346,7 @@ const UserPlaylists = () => {
                           onClick={(e) => handleSharePlaylist(e, playlist)}
                         >
                           <FontAwesomeIcon icon={faShare} />
-                          <span>Share</span>
+                          <span>Partager</span>
                         </button>
                         
                         <button 
@@ -328,7 +359,7 @@ const UserPlaylists = () => {
                           }}
                         >
                           <FontAwesomeIcon icon={faTrash} />
-                          <span>Delete</span>
+                          <span>Supprimer</span>
                         </button>
                       </div>
                     )}
@@ -343,7 +374,7 @@ const UserPlaylists = () => {
       {/* Popular playlists */}
       {popularPlaylists.length > 0 && (
         <section className={styles.popularPlaylistsSection}>
-          <h2 className={styles.sectionTitle}>Popular playlists</h2>
+          <h2 className={styles.sectionTitle}>Playlists populaires</h2>
           
           <div className={styles.playlistsGrid}>
             {popularPlaylists.map((playlist) => (
@@ -354,15 +385,15 @@ const UserPlaylists = () => {
               >
                 <div className={styles.playlistImageContainer}>
                   <img 
-                    src={playlist.image_couverture || "https://via.placeholder.com/300x200?text=Playlist"}
-                    alt={playlist.nom}
+                    src={getImageUrl(playlist.image_couverture)}
+                    alt={playlist.nom || "Playlist"}
                     className={styles.playlistImage}
                   />
                   <div className={styles.playlistOverlay}>
                     <button 
                       className={styles.playButton}
                       onClick={(e) => handlePlayPlaylist(e, playlist._id)}
-                      aria-label="Play playlist"
+                      aria-label="Lire la playlist"
                     >
                       <FontAwesomeIcon icon={faPlay} />
                     </button>
@@ -371,19 +402,19 @@ const UserPlaylists = () => {
                 
                 <div className={styles.playlistInfo}>
                   <div className={styles.playlistMeta}>
-                    <h3 className={styles.playlistTitle}>{playlist.nom}</h3>
+                    <h3 className={styles.playlistTitle}>{playlist.nom || "Playlist sans titre"}</h3>
                     <div className={styles.playlistVisibility}>
                       {renderVisibilityIcon(playlist.visibilite)}
                     </div>
                   </div>
                   
                   <p className={styles.playlistDescription}>
-                    {playlist.description || "No description"}
+                    {playlist.description || "Aucune description"}
                   </p>
                   
                   <div className={styles.playlistStats}>
                     <span className={styles.videoCount}>
-                      <FontAwesomeIcon icon={faMusic} /> {playlist.nb_videos || 0} videos
+                      <FontAwesomeIcon icon={faMusic} /> {playlist.nb_videos || 0} vidéos
                     </span>
                     <span className={styles.viewCount}>
                       <FontAwesomeIcon icon={faEye} /> {formatCount(playlist.nb_lectures || 0)}
@@ -395,12 +426,12 @@ const UserPlaylists = () => {
                   
                   <div className={styles.playlistCreator}>
                     <img 
-                      src={playlist.proprietaire?.photo_profil || "https://via.placeholder.com/30"}
-                      alt={`${playlist.proprietaire?.prenom || 'User'} ${playlist.proprietaire?.nom || ''}`}
+                      src={getImageUrl(playlist.proprietaire?.photo_profil || "https://via.placeholder.com/30")}
+                      alt={`${playlist.proprietaire?.prenom || 'Utilisateur'} ${playlist.proprietaire?.nom || ''}`}
                       className={styles.creatorAvatar}
                     />
                     <span className={styles.creatorName}>
-                      {`${playlist.proprietaire?.prenom || 'User'} ${playlist.proprietaire?.nom || ''}`}
+                      {`${playlist.proprietaire?.prenom || 'Utilisateur'} ${playlist.proprietaire?.nom || ''}`}
                     </span>
                   </div>
                 </div>
@@ -413,10 +444,10 @@ const UserPlaylists = () => {
       {/* Delete confirmation modal */}
       <ConfirmModal
         isOpen={showConfirmDelete}
-        title="Delete playlist"
-        message={`Are you sure you want to delete the playlist "${selectedPlaylist?.nom}"? This action cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
+        title="Supprimer la playlist"
+        message={`Êtes-vous sûr de vouloir supprimer la playlist "${selectedPlaylist?.nom}" ? Cette action est irréversible.`}
+        confirmText="Supprimer"
+        cancelText="Annuler"
         onConfirm={handleDeletePlaylist}
         onCancel={() => {
           setShowConfirmDelete(false);

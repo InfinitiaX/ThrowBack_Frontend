@@ -32,6 +32,7 @@ import UserPlaylistDetail from './components/Dashboard/UserDashboard/Playlists/U
 import PlaylistForm from './components/Dashboard/UserDashboard/Playlists/PlaylistForm';
 import PlaylistPlayer from './components/Dashboard/UserDashboard/Playlists/PlaylistPlayer';
 import Search from './components/Dashboard/UserDashboard/Search/Search';
+import HelpAndSupport from './components/Profile/HelpAndSupport';
 
 // Admin Dashboard
 import AdminDashboard from './components/Dashboard/AdminDashboard';
@@ -98,6 +99,7 @@ function App() {
             <Route path="playlists/:id/edit" element={<PlaylistForm />} />
             <Route path="playlists/:id/play" element={<PlaylistPlayer />} />
             <Route path="search" element={<Search />} />
+             <Route path="help-support" element={<HelpAndSupport />} />
             
             {/* Ajouter les routes manquantes avec pages temporaires */}
             <Route path="live" element={<LiveThrowback />} /> {/* Redirection vers la même page que l'index */}

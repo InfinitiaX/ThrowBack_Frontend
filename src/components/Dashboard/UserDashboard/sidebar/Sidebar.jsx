@@ -17,6 +17,7 @@ import {
   faHeart,
   faSearch,
   faUserFriends,
+   faQuestionCircle
 } from '@fortawesome/free-solid-svg-icons';
 
 // Définition des éléments de navigation
@@ -85,6 +86,12 @@ const libraryItems = [
     to: '/dashboard/favorites',
     icon: faBookmark,
     inDevelopment: true
+  }, 
+   {
+    label: 'Help & Support',
+    to: '/dashboard/help-support', 
+    icon: faQuestionCircle,
+    inDevelopment: false
   }
 ];
 

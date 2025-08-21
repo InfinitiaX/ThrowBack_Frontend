@@ -222,7 +222,7 @@ const HelpAndSupport = () => {
               </div>
               <div className={styles.contactItem}>
                 <FontAwesomeIcon icon={faPhone} />
-                <span>+1 (555) 123-4567</span>
+                <span>+16468945095</span>
               </div>
             </div>
           </div>

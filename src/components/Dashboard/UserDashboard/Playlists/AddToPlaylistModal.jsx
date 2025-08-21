@@ -1,5 +1,5 @@
-// components/Dashboard/UserDashboard/Playlists/AddToPlaylistModal.jsx
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faTimes, faSearch, faPlus, faCheck, faLock, 
@@ -19,6 +19,7 @@ import styles from './AddToPlaylistModal.module.css';
  */
 const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   // States
   const [playlists, setPlaylists] = useState([]);
@@ -27,6 +28,25 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
   const [searchTerm, setSearchTerm] = useState('');
   const [addingToPlaylist, setAddingToPlaylist] = useState({});
   const [successMessages, setSuccessMessages] = useState({});
+  
+  // Fonction utilitaire pour gérer les URLs des images
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return "https://via.placeholder.com/40?text=P";
+    
+    // Si c'est déjà une URL complète
+    if (imagePath.startsWith('http')) return imagePath;
+    
+    // Récupérer l'URL de base de l'API
+    const baseUrl = process.env.REACT_APP_API_URL || '';
+    
+    // Si c'est un chemin relatif sans slash au début
+    if (!imagePath.startsWith('/')) {
+      return `${baseUrl}/${imagePath}`;
+    }
+    
+    // Chemin relatif avec slash
+    return `${baseUrl}${imagePath}`;
+  };
   
   // Load user playlists
   useEffect(() => {
@@ -37,7 +57,9 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
         setLoading(true);
         setError(null);
         
+        console.log("Chargement des playlists de l'utilisateur...");
         const userPlaylists = await playlistAPI.getUserPlaylists();
+        console.log("Playlists récupérées:", userPlaylists);
         
         // Mark playlists that already contain the video
         const playlistsWithStatus = userPlaylists.map(playlist => ({
@@ -48,8 +70,8 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
         setPlaylists(playlistsWithStatus);
         setLoading(false);
       } catch (err) {
-        console.error('Error loading playlists:', err);
-        setError('Unable to load your playlists. Please try again later.');
+        console.error('Erreur lors du chargement des playlists:', err);
+        setError('Impossible de charger vos playlists. Veuillez réessayer plus tard.');
         setLoading(false);
       }
     };
@@ -59,7 +81,7 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
   
   // Filter playlists based on search
   const filteredPlaylists = playlists.filter(playlist => 
-    playlist.nom.toLowerCase().includes(searchTerm.toLowerCase())
+    playlist.nom?.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
   // Add video to playlist
@@ -67,6 +89,7 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
     try {
       setAddingToPlaylist(prev => ({ ...prev, [playlistId]: true }));
       
+      console.log(`Ajout de la vidéo ${video._id} à la playlist ${playlistId}...`);
       await playlistAPI.addVideoToPlaylist(playlistId, video._id);
       
       // Mark the playlist as containing the video
@@ -79,7 +102,7 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
       // Display success message
       setSuccessMessages(prev => ({ 
         ...prev, 
-        [playlistId]: "Video added to playlist" 
+        [playlistId]: "Vidéo ajoutée à la playlist" 
       }));
       
       // Hide message after 3 seconds
@@ -91,12 +114,12 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
         });
       }, 3000);
     } catch (err) {
-      console.error('Error adding to playlist:', err);
+      console.error('Erreur lors de l\'ajout à la playlist:', err);
       
       // Mark the playlist as having an error
       setSuccessMessages(prev => ({ 
         ...prev, 
-        [playlistId]: "Error adding to playlist" 
+        [playlistId]: "Erreur lors de l'ajout à la playlist" 
       }));
       
       // Hide message after 3 seconds
@@ -118,7 +141,7 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
     onClose();
     
     // Redirect to playlist creation page
-    // The parent component should handle this redirection
+    navigate('/dashboard/playlists/new');
   };
   
   // Display the corresponding visibility icon
@@ -127,9 +150,9 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
       case 'PUBLIC':
         return <FontAwesomeIcon icon={faGlobe} title="Public" />;
       case 'PRIVE':
-        return <FontAwesomeIcon icon={faLock} title="Private" />;
+        return <FontAwesomeIcon icon={faLock} title="Privé" />;
       case 'AMIS':
-        return <FontAwesomeIcon icon={faUserFriends} title="Friends only" />;
+        return <FontAwesomeIcon icon={faUserFriends} title="Amis uniquement" />;
       default:
         return <FontAwesomeIcon icon={faGlobe} title="Public" />;
     }
@@ -142,11 +165,11 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>Add to playlist</h2>
+          <h2 className={styles.modalTitle}>Ajouter à une playlist</h2>
           <button 
             className={styles.closeButton}
             onClick={onClose}
-            aria-label="Close"
+            aria-label="Fermer"
           >
             <FontAwesomeIcon icon={faTimes} />
           </button>
@@ -156,13 +179,13 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
           <div className={styles.videoPreview}>
             <div className={styles.videoThumbnail}>
               <img 
-                src={video.thumbnail || "https://via.placeholder.com/300x168?text=Video"}
-                alt={video.titre}
+                src={getImageUrl(video.thumbnail) || "https://via.placeholder.com/300x168?text=Video"}
+                alt={video.titre || "Vidéo"}
               />
             </div>
             <div className={styles.videoInfo}>
-              <h3 className={styles.videoTitle}>{video.titre}</h3>
-              <p className={styles.videoArtist}>{video.artiste}</p>
+              <h3 className={styles.videoTitle}>{video.titre || "Vidéo sans titre"}</h3>
+              <p className={styles.videoArtist}>{video.artiste || "Artiste inconnu"}</p>
             </div>
           </div>
           
@@ -172,7 +195,7 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search your playlists..."
+              placeholder="Rechercher dans vos playlists..."
               className={styles.searchInput}
             />
           </div>
@@ -186,14 +209,14 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
                 <FontAwesomeIcon icon={faPlus} />
               </div>
               <div className={styles.createPlaylistText}>
-                <span>Create a new playlist</span>
+                <span>Créer une nouvelle playlist</span>
               </div>
             </button>
             
             {loading ? (
               <div className={styles.loadingContainer}>
                 <FontAwesomeIcon icon={faSpinner} spin />
-                <span>Loading playlists...</span>
+                <span>Chargement des playlists...</span>
               </div>
             ) : error ? (
               <div className={styles.errorContainer}>
@@ -202,7 +225,7 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
                   className={styles.retryButton}
                   onClick={() => window.location.reload()}
                 >
-                  Retry
+                  Réessayer
                 </button>
               </div>
             ) : filteredPlaylists.length === 0 ? (
@@ -210,8 +233,8 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
                 <FontAwesomeIcon icon={faMusic} className={styles.emptyIcon} />
                 <p className={styles.emptyMessage}>
                   {searchTerm ? 
-                    "No playlist matches your search" : 
-                    "You haven't created any playlists yet"
+                    "Aucune playlist ne correspond à votre recherche" : 
+                    "Vous n'avez pas encore créé de playlists"
                   }
                 </p>
               </div>
@@ -221,20 +244,20 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
                   <div className={styles.playlistInfo}>
                     <div className={styles.playlistImageContainer}>
                       <img 
-                        src={playlist.image_couverture || "https://via.placeholder.com/40?text=P"}
-                        alt={playlist.nom}
+                        src={getImageUrl(playlist.image_couverture)}
+                        alt={playlist.nom || "Playlist"}
                         className={styles.playlistImage}
                       />
                     </div>
                     <div className={styles.playlistDetails}>
                       <div className={styles.playlistHeader}>
-                        <h3 className={styles.playlistName}>{playlist.nom}</h3>
+                        <h3 className={styles.playlistName}>{playlist.nom || "Playlist sans titre"}</h3>
                         <span className={styles.playlistVisibility}>
                           {renderVisibilityIcon(playlist.visibilite)}
                         </span>
                       </div>
                       <p className={styles.playlistStats}>
-                        <FontAwesomeIcon icon={faMusic} /> {playlist.nb_videos || 0} videos
+                        <FontAwesomeIcon icon={faMusic} /> {playlist.nb_videos || 0} vidéos
                       </p>
                     </div>
                   </div>
@@ -242,11 +265,12 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
                   <div className={styles.playlistAction}>
                     {playlist.hasVideo ? (
                       <span className={styles.alreadyAdded}>
-                        <FontAwesomeIcon icon={faCheck} /> Added
+                        <FontAwesomeIcon icon={faCheck} /> Ajoutée
                       </span>
                     ) : successMessages[playlist._id] ? (
-                      <span className={styles.successMessage}>
-                        <FontAwesomeIcon icon={faCheck} /> {successMessages[playlist._id]}
+                      <span className={`${styles.successMessage} ${successMessages[playlist._id].includes('Erreur') ? styles.errorMessage : ''}`}>
+                        <FontAwesomeIcon icon={successMessages[playlist._id].includes('Erreur') ? faTimes : faCheck} /> 
+                        {successMessages[playlist._id]}
                       </span>
                     ) : (
                       <button 
@@ -259,7 +283,7 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
                         ) : (
                           <FontAwesomeIcon icon={faPlus} />
                         )}
-                        <span>Add</span>
+                        <span>Ajouter</span>
                       </button>
                     )}
                   </div>
@@ -274,7 +298,7 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
             className={styles.doneButton}
             onClick={onClose}
           >
-            Done
+            Terminé
           </button>
         </div>
       </div>

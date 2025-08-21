@@ -87,9 +87,7 @@ api.interceptors.response.use(
   }
 );
 
-
-
-// Dans l'intercepteur de requête, ajoutez ce code pour gérer spécifiquement les uploads de photo
+// Ajouts
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -97,9 +95,15 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     
+    // Supprimer les espaces dans les URLs pour éviter les problèmes
+    if (config.url) {
+      config.url = config.url.replace(/\s+/g, '');
+    }
+    
     // Cas spécial pour les uploads multipart/form-data
     if (config.url && (config.url.includes('/profile/photo') || config.url.includes('/profile/cover'))) {
-         console.log("Préparation d'upload de photo détectée");
+      // Ne pas toucher aux headers pour les requêtes multipart/form-data
+      console.log("Préparation d'upload de photo détectée");
       
       // Vérifier que les données sont bien un FormData
       if (config.data instanceof FormData) {
@@ -109,10 +113,18 @@ api.interceptors.request.use(
       }
     }
     
+    // Log des requêtes importantes
+    if (config.url.includes('/videos/') || config.url.includes('/memories') || config.url.includes('/like') || config.url.includes('/profile')) {
+      console.log(` API Request: ${config.method?.toUpperCase()} ${config.url}`);
+      if (config.data && typeof config.data !== 'object') {
+        console.log(' Request data:', config.data);
+      }
+    }
+    
     return config;
   },
   (error) => {
-    console.error("Erreur dans l'intercepteur de requête:", error);
+    console.error(' Request error:', error);
     return Promise.reject(error);
   }
 );
@@ -120,9 +132,16 @@ api.interceptors.request.use(
 // Dans l'intercepteur de réponse, améliorez la gestion des erreurs d'upload
 api.interceptors.response.use(
   (response) => {
+    // Log des réponses importantes
+    if (response.config.url.includes('/videos/') || response.config.url.includes('/memories') || response.config.url.includes('/like') || response.config.url.includes('/profile')) {
+      console.log(` API Response: ${response.config.method?.toUpperCase()} ${response.config.url}`);
+      console.log(' Response data:', response.data);
+    }
     return response;
   },
   (error) => {
+    console.error(' API Error:', error);
+    
     // Logging spécifique pour les erreurs d'upload de photo
     if (error.config && error.config.url && 
         (error.config.url.includes('/profile/photo') || error.config.url.includes('/profile/cover'))) {
@@ -141,6 +160,8 @@ api.interceptors.response.use(
   }
 );
 
+
+// Méthodes utilitaires spécifiques pour VideoDetail
 // Méthodes utilitaires spécifiques pour VideoDetail
 const videoAPI = {
   // Récupérer toutes les vidéos publiques

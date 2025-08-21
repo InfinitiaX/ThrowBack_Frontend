@@ -81,8 +81,8 @@ function App() {
               <DashboardLayout />
             </PrivateRoute>
           }>
-            {/* /dashboard affiche LiveThrowback par défaut */}
-            <Route  element={<LiveThrowback />} />
+            {/* /dashboard affiche LiveThrowback par défaut - CORRECTION: ajout de l'attribut index */}
+            <Route index element={<LiveThrowback />} />
             
             {/* Routes existantes */}
             <Route path="profile" element={<ProfilePage />} />

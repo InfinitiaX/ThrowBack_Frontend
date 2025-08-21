@@ -64,6 +64,25 @@ export default function UserInfo({ onBack }) {
     }
   };
 
+  // Protection contre les redirections non désirées
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (saving) {
+        // Si un chargement est en cours, empêcher la navigation
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Nettoyer à la désactivation du composant
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [saving]);
+
   // Safety mechanism to prevent white screens
   useEffect(() => {
     const handleError = (event) => {
@@ -170,6 +189,11 @@ export default function UserInfo({ onBack }) {
         syncUserData(response.data.data);
         
         setSuccess('Profil mis à jour ✔️');
+        
+        // Force le composant à rester sur la page actuelle
+        setTimeout(() => {
+          window.history.pushState(null, '', window.location.pathname);
+        }, 100);
       } else {
         setError(response.data.message || 'Réponse du backend sans succès');
       }
@@ -185,7 +209,7 @@ export default function UserInfo({ onBack }) {
     }
   };
 
-  // CORRECTED VERSION
+  // CORRECTED VERSION for photo upload
   const handlePhotoUpload = async (file, type) => {
     if (!file || !ALLOWED_TYPES.includes(file.type)) {
       setError('Format de fichier non supporté');
@@ -241,6 +265,11 @@ export default function UserInfo({ onBack }) {
           : { photo_couverture: updatedUser.photo_couverture });
         
         setSuccess('Photo mise à jour avec succès');
+        
+        // Force le composant à rester sur la page actuelle
+        setTimeout(() => {
+          window.history.pushState(null, '', window.location.pathname);
+        }, 100);
       } else {
         throw new Error('Erreur dans la réponse du serveur');
       }

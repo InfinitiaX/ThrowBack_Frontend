@@ -103,6 +103,25 @@ const ProfileTabs = () => {
     }
   };
 
+  // Protection contre les redirections non désirées
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isLoading) {
+        // Si un chargement est en cours, empêcher la navigation
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Nettoyer à la désactivation du composant
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isLoading]);
+
   // Safety mechanism to prevent white screens
   useEffect(() => {
     const handleError = (event) => {
@@ -291,7 +310,17 @@ const ProfileTabs = () => {
             photo_profil: updatedUser.photo_profil
           });
           
+          // Empêcher toute redirection potentielle
+          if (e && e.preventDefault) {
+            e.preventDefault();
+          }
+          
           setSuccess('Photo mise à jour avec succès');
+          
+          // Force le composant à rester sur la page actuelle
+          setTimeout(() => {
+            window.history.pushState(null, '', window.location.pathname);
+          }, 100);
         } else {
           throw new Error("La réponse ne contient pas d'URL de photo");
         }
@@ -338,6 +367,11 @@ const ProfileTabs = () => {
           ...userData,
           ...response.data.data
         }));
+        
+        // Force le composant à rester sur la page actuelle
+        setTimeout(() => {
+          window.history.pushState(null, '', window.location.pathname);
+        }, 100);
       }
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -373,6 +407,11 @@ const ProfileTabs = () => {
           ...userData,
           ...response.data.data
         }));
+        
+        // Force le composant à rester sur la page actuelle
+        setTimeout(() => {
+          window.history.pushState(null, '', window.location.pathname);
+        }, 100);
       }
     } catch (error) {
       console.error('Error updating bio:', error);
@@ -396,6 +435,11 @@ const ProfileTabs = () => {
         setPreferencesData(response.data.data);
         setIsEditingPreferences(false);
         setSuccess('Préférences mises à jour avec succès');
+        
+        // Force le composant à rester sur la page actuelle
+        setTimeout(() => {
+          window.history.pushState(null, '', window.location.pathname);
+        }, 100);
       }
     } catch (error) {
       console.error('Error updating preferences:', error);

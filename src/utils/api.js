@@ -88,7 +88,59 @@ api.interceptors.response.use(
 );
 
 
-// Méthodes utilitaires spécifiques pour VideoDetail
+
+// Dans l'intercepteur de requête, ajoutez ce code pour gérer spécifiquement les uploads de photo
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    // Cas spécial pour les uploads multipart/form-data
+    if (config.url && (config.url.includes('/profile/photo') || config.url.includes('/profile/cover'))) {
+         console.log("Préparation d'upload de photo détectée");
+      
+      // Vérifier que les données sont bien un FormData
+      if (config.data instanceof FormData) {
+        console.log("FormData validé pour l'upload");
+      } else {
+        console.warn("ATTENTION: Les données envoyées ne sont pas un FormData");
+      }
+    }
+    
+    return config;
+  },
+  (error) => {
+    console.error("Erreur dans l'intercepteur de requête:", error);
+    return Promise.reject(error);
+  }
+);
+
+// Dans l'intercepteur de réponse, améliorez la gestion des erreurs d'upload
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // Logging spécifique pour les erreurs d'upload de photo
+    if (error.config && error.config.url && 
+        (error.config.url.includes('/profile/photo') || error.config.url.includes('/profile/cover'))) {
+      console.error("Erreur détaillée pour l'upload de photo:");
+      console.error("Status:", error.response?.status);
+      console.error("Headers:", error.response?.headers);
+      console.error("Message:", error.response?.data?.message || error.message);
+      
+      // Si l'URL du backend contient des espaces, cela peut causer des problèmes
+      if (error.config.url.includes(' ')) {
+        console.error("ATTENTION: L'URL contient des espaces, ce qui peut causer des problèmes d'upload");
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
 // Méthodes utilitaires spécifiques pour VideoDetail
 const videoAPI = {
   // Récupérer toutes les vidéos publiques

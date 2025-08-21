@@ -19,26 +19,67 @@ export default function UserInfo({ onBack }) {
   const { user, setUser } = useAuth();
   const isMounted = useRef(true);
 
-  const [formData, setFormData]       = useState({}); 
+  const [formData, setFormData] = useState({}); 
   const [profilePhoto, setProfilePhoto] = useState(null);
-  const [coverPhoto, setCoverPhoto]     = useState(null);
-  const [loading, setLoading]         = useState(true);
-  const [saving, setSaving]           = useState(false);
-  const [error, setError]             = useState('');
-  const [success, setSuccess]         = useState('');
-  // … tu peux ajouter upload state, crop, preview, etc.
+  const [coverPhoto, setCoverPhoto] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  // Fonction pour convertir les chemins relatifs en URLs absolues
+  // Fonction pour convertir les chemins relatifs en URLs absolues - CORRECTED VERSION
   const getImageUrl = (path) => {
-    if (!path) return null;
+    if (!path) return '/images/default-avatar.png';
     
     // Si l'URL est déjà absolue, la retourner telle quelle
     if (path.startsWith('http')) return path;
     
-    // Sinon, préfixer avec l'URL du backend
-    const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
-    return `${backendUrl}${path}`;
+    // Assurez-vous que le chemin commence par un slash
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    
+    // Utiliser l'URL complète du backend
+    const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+    
+    // Supprimer les espaces potentiels dans l'URL
+    return `${backendUrl}${normalizedPath}`.replace(/\s+/g, '');
   };
+
+  // Fonction utilitaire pour synchroniser les données utilisateur
+  const syncUserData = (updatedData) => {
+    // Mettre à jour le contexte
+    setUser(prev => ({
+      ...prev,
+      ...updatedData
+    }));
+    
+    // Mettre à jour localStorage
+    try {
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      localStorage.setItem('user', JSON.stringify({
+        ...userData,
+        ...updatedData
+      }));
+    } catch (error) {
+      console.error("Error syncing user data:", error);
+    }
+  };
+
+  // Safety mechanism to prevent white screens
+  useEffect(() => {
+    const handleError = (event) => {
+      console.error('Unhandled error:', event.error || event.reason);
+      setError('Une erreur inattendue s\'est produite. Veuillez réessayer.');
+      setSaving(false);
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleError);
+    
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleError);
+    };
+  }, []);
 
   useEffect(() => {
     isMounted.current = true;
@@ -116,20 +157,21 @@ export default function UserInfo({ onBack }) {
       console.log('==== DEBUG FRONTEND (payload envoyé au backend) ====');
       console.log(payload);
 
-      // Utiliser URL absolue
-      const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
-      const res = await retryOperation(() =>
-        api.put(`${backendUrl}/api/users/profile`, payload)
+      // Utiliser URL API sans espaces
+      const response = await retryOperation(() =>
+        api.put('/api/users/profile', payload)
       );
 
-      console.log('Réponse du backend:', res.data);
-      if (res.data.success) {
-        console.log('Mise à jour du contexte avec:', res.data.data);
-        setUser(res.data.data);                      // ← re-hydrate le contexte
-        localStorage.setItem('user', JSON.stringify(res.data.data)); // ← persiste dans le localStorage
+      console.log('Réponse du backend:', response.data);
+      if (response.data.success) {
+        console.log('Mise à jour du contexte avec:', response.data.data);
+        
+        // Utiliser la fonction syncUserData pour une mise à jour cohérente
+        syncUserData(response.data.data);
+        
         setSuccess('Profil mis à jour ✔️');
       } else {
-        setError(res.data.message || 'Réponse du backend sans succès');
+        setError(response.data.message || 'Réponse du backend sans succès');
       }
     } catch (err) {
       console.error('Erreur détaillée:', err);
@@ -143,6 +185,7 @@ export default function UserInfo({ onBack }) {
     }
   };
 
+  // CORRECTED VERSION
   const handlePhotoUpload = async (file, type) => {
     if (!file || !ALLOWED_TYPES.includes(file.type)) {
       setError('Format de fichier non supporté');
@@ -156,54 +199,60 @@ export default function UserInfo({ onBack }) {
 
     setSaving(true);
     setError('');
+    setSuccess('');
 
     try {
       const formData = new FormData();
       formData.append('photo', file);
       formData.append('type', type);
 
-      // Utiliser URL absolue
-      const backendUrl = process.env.REACT_APP_API_URL || '';
+      // Endpoint approprié
       const endpoint = type === VALID_ACTION_TYPES.PHOTO ? 
-        `${backendUrl}/api/users/profile/photo` : 
-        `${backendUrl}/api/users/profile/cover`;
+        '/api/users/profile/photo' : 
+        '/api/users/profile/cover';
       
-      const res = await retryOperation(() =>
+      console.log("Uploading photo to:", endpoint);
+      
+      // Utilisation de l'API avec la configuration correcte
+      const response = await retryOperation(() =>
         api.post(endpoint, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+          headers: { 
+            'Content-Type': 'multipart/form-data' 
+          },
+          withCredentials: true
         })
       );
 
-      if (res.data.success) {
+      console.log("Response from photo upload:", response.data);
+
+      if (response.data && response.data.success) {
+        const updatedUser = response.data.data;
+        
         // Mettre à jour l'état local
         if (type === VALID_ACTION_TYPES.PHOTO) {
-          setProfilePhoto(res.data.data.photo_profil);
+          setProfilePhoto(updatedUser.photo_profil);
         } else {
-          setCoverPhoto(res.data.data.photo_couverture);
+          setCoverPhoto(updatedUser.photo_couverture);
         }
         
-        // Mettre à jour le contexte utilisateur
-        setUser(prev => ({
-          ...prev,
-          ...(type === VALID_ACTION_TYPES.PHOTO 
-            ? { photo_profil: res.data.data.photo_profil }
-            : { photo_couverture: res.data.data.photo_couverture })
-        }));
+        // Synchroniser les données utilisateur de façon cohérente
+        syncUserData(type === VALID_ACTION_TYPES.PHOTO 
+          ? { photo_profil: updatedUser.photo_profil }
+          : { photo_couverture: updatedUser.photo_couverture });
         
-        // Mettre à jour localStorage
-        const userData = JSON.parse(localStorage.getItem('user') || '{}');
-        localStorage.setItem('user', JSON.stringify({
-          ...userData,
-          ...(type === VALID_ACTION_TYPES.PHOTO 
-            ? { photo_profil: res.data.data.photo_profil }
-            : { photo_couverture: res.data.data.photo_couverture })
-        }));
-        
-        setSuccess('Photo mise à jour ✔️');
+        setSuccess('Photo mise à jour avec succès');
+      } else {
+        throw new Error('Erreur dans la réponse du serveur');
       }
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || 'Erreur lors de l\'upload');
+      console.error('Erreur détaillée pour upload photo:', err);
+      console.error('Stack:', err.stack);
+      
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError('Erreur lors de l\'upload de la photo. Veuillez réessayer.');
+      }
     } finally {
       setSaving(false);
     }

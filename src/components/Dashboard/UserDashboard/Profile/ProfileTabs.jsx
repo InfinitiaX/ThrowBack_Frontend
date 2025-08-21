@@ -74,14 +74,72 @@ const ProfileTabs = () => {
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
     
     // Utiliser l'URL complète du backend
-    const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com ';
-    const fullUrl = `${backendUrl}${normalizedPath}`;
+    const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+    const fullUrl = `${backendUrl}${normalizedPath}`.replace(/\s+/g, '');
     
     // Pour déboguer
     console.log("Image URL constructed:", fullUrl);
     
     return fullUrl;
   };
+
+  // Fonction utilitaire pour synchroniser les données utilisateur
+  const syncUserData = (updatedData) => {
+    // Mettre à jour le contexte
+    setUser(prev => ({
+      ...prev,
+      ...updatedData
+    }));
+    
+    // Mettre à jour localStorage
+    try {
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      localStorage.setItem('user', JSON.stringify({
+        ...userData,
+        ...updatedData
+      }));
+    } catch (error) {
+      console.error("Error syncing user data:", error);
+    }
+  };
+
+  // Safety mechanism to prevent white screens
+  useEffect(() => {
+    const handleError = (event) => {
+      console.error('Unhandled error:', event.error || event.reason);
+      setError('Une erreur inattendue s\'est produite. Veuillez réessayer.');
+      setIsLoading(false);
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleError);
+    
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleError);
+    };
+  }, []);
+
+  // Debugging navigation redirections
+  useEffect(() => {
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+    
+    window.history.pushState = function() {
+      console.log('Navigation: pushState called with', arguments);
+      return originalPushState.apply(this, arguments);
+    };
+    
+    window.history.replaceState = function() {
+      console.log('Navigation: replaceState called with', arguments);
+      return originalReplaceState.apply(this, arguments);
+    };
+    
+    return () => {
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+    };
+  }, []);
 
   useEffect(() => {
     setFormData({
@@ -188,7 +246,7 @@ const ProfileTabs = () => {
     }
   };
 
-  // Upload photo using api.js with FormData
+  // Upload photo using api.js with FormData - CORRECTED VERSION
   const handlePhotoUpload = async (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -201,43 +259,48 @@ const ProfileTabs = () => {
       const formData = new FormData();
       formData.append('photo', file);
 
-      // Log pour déboguer
-      console.log("Uploading photo to:", '/api/users/profile/photo');
+      // Utiliser l'URL complète
+      const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
+      const endpoint = '/api/users/profile/photo';
+      const fullUrl = `${backendUrl}${endpoint}`.replace(/\s+/g, '');
       
-      // Utilisation de l'API centralisée avec gestion automatique du token
-      const response = await api.post('/api/users/profile/photo', formData, {
+      console.log("Uploading photo to:", fullUrl);
+      
+      // Utilisation de l'API centralisée avec configuration correcte
+      const response = await api.post(endpoint, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
-        withCredentials: true // Important pour CORS
+        withCredentials: true
       });
 
-      if (response.data.success) {
-        const photoUrl = response.data.data.photo_profil;
-        console.log("Received photo URL:", photoUrl);
+      console.log("Response from photo upload:", response.data);
+
+      if (response.data && response.data.success) {
+        const updatedUser = response.data.data;
         
-        setBioData(prev => ({
-          ...prev,
-          [type]: photoUrl
-        }));
-        
-        setUser(prev => ({
-          ...prev,
-          photo_profil: photoUrl
-        }));
-        
-        setSuccess('Photo mise à jour avec succès');
-        
-        // Mettre à jour localStorage
-        const userData = JSON.parse(localStorage.getItem('user') || '{}');
-        localStorage.setItem('user', JSON.stringify({
-          ...userData,
-          photo_profil: photoUrl
-        }));
+        if (updatedUser && updatedUser.photo_profil) {
+          // Mettre à jour l'état local
+          setBioData(prev => ({
+            ...prev,
+            photo_profil: updatedUser.photo_profil
+          }));
+          
+          // Synchroniser les données utilisateur
+          syncUserData({
+            photo_profil: updatedUser.photo_profil
+          });
+          
+          setSuccess('Photo mise à jour avec succès');
+        } else {
+          throw new Error("La réponse ne contient pas d'URL de photo");
+        }
+      } else {
+        throw new Error("Format de réponse incorrect");
       }
     } catch (error) {
       console.error('Error uploading photo:', error);
-      setError('Erreur lors de l\'upload: ' + (error.response?.data?.message || error.message));
+      setError('Erreur lors de l\'upload: ' + (error.response?.data?.message || error.message || "Erreur inconnue"));
     } finally {
       setIsLoading(false);
     }
@@ -496,13 +559,11 @@ const ProfileTabs = () => {
                       <option value="AF">Afghanistan</option>
                       <option value="AL">Albania</option>
                       <option value="DZ">Algeria</option>
-                      {/* Ajoutez tous les autres pays comme dans l'original */}
                       <option value="SN">Senegal</option>
                       <option value="US">United States</option>
                       <option value="FR">France</option>
                       <option value="CA">Canada</option>
                       <option value="GB">United Kingdom</option>
-                      {/* ... tous les autres pays */}
                     </select>
                   </div>
                   <div className={styles.formGroup}>
@@ -624,20 +685,6 @@ const ProfileTabs = () => {
                       placeholder="Your profession"
                     />
                   </div>
-
-                  <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-                    <label className={styles.checkboxLabel}>
-                      <input
-                        type="checkbox"
-                        name="compte_prive"
-                        checked={bioData.compte_prive}
-                        onChange={handleBioChange}
-                        disabled={!isEditingBio}
-                        className={styles.checkbox}
-                      />
-                      Private Account
-                    </label>
-                  </div>
                 </div>
                 {isEditingBio && (
                   <div className={styles.formActions}>
@@ -719,133 +766,6 @@ const ProfileTabs = () => {
                       placeholder="Michael Jackson, Queen, Madonna..."
                     />
                     <small className={styles.helperText}>Separate names with commas</small>
-                  </div>
-                </div>
-                
-                {/* Notification Preferences */}
-                <h3 className={styles.sectionTitle}>Notifications</h3>
-                <div className={styles.formGrid}>
-                  {[
-                    { key: 'notif_nouveaux_amis', label: 'New friends' },
-                    { key: 'notif_messages', label: 'Messages' },
-                    { key: 'notif_commentaires', label: 'Comments' },
-                    { key: 'notif_mentions', label: 'Mentions' },
-                    { key: 'notif_evenements', label: 'Events' },
-                    { key: 'notif_recommendations', label: 'Recommendations' },
-                    { key: 'notif_email', label: 'Email notifications' },
-                    { key: 'notif_push', label: 'Push notifications' }
-                  ].map(({ key, label }) => (
-                    <div key={key} className={styles.formGroup}>
-                      <label className={styles.checkboxLabel}>
-                        <input
-                          type="checkbox"
-                          name={key}
-                          checked={preferencesData[key]}
-                          onChange={handlePreferencesChange}
-                          disabled={!isEditingPreferences}
-                          className={styles.checkbox}
-                        />
-                        {label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Privacy Preferences */}
-                <h3 className={styles.sectionTitle}>Privacy</h3>
-                <div className={styles.formGrid}>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="qui_peut_voir_mes_playlists">Who can see my playlists</label>
-                    <select
-                      id="qui_peut_voir_mes_playlists"
-                      name="qui_peut_voir_mes_playlists"
-                      value={preferencesData.qui_peut_voir_mes_playlists}
-                      onChange={handlePreferencesChange}
-                      disabled={!isEditingPreferences}
-                      className={styles.input}
-                    >
-                      <option value="public">Everyone</option>
-                      <option value="amis">Friends only</option>
-                      <option value="prive">Only me</option>
-                    </select>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="qui_peut_voir_mon_activite">Who can see my activity</label>
-                    <select
-                      id="qui_peut_voir_mon_activite"
-                      name="qui_peut_voir_mon_activite"
-                      value={preferencesData.qui_peut_voir_mon_activite}
-                      onChange={handlePreferencesChange}
-                      disabled={!isEditingPreferences}
-                      className={styles.input}
-                    >
-                      <option value="public">Everyone</option>
-                      <option value="amis">Friends only</option>
-                      <option value="prive">Only me</option>
-                    </select>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.checkboxLabel}>
-                      <input
-                        type="checkbox"
-                        name="partage_automatique"
-                        checked={preferencesData.partage_automatique}
-                        onChange={handlePreferencesChange}
-                        disabled={!isEditingPreferences}
-                        className={styles.checkbox}
-                      />
-                      Automatically share my listening activity
-                    </label>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.checkboxLabel}>
-                      <input
-                        type="checkbox"
-                        name="autoriser_suggestions_amis"
-                        checked={preferencesData.autoriser_suggestions_amis}
-                        onChange={handlePreferencesChange}
-                        disabled={!isEditingPreferences}
-                        className={styles.checkbox}
-                      />
-                      Allow friend suggestions
-                    </label>
-                  </div>
-                </div>
-                
-                {/* Display Preferences */}
-                <h3 className={styles.sectionTitle}>Display</h3>
-                <div className={styles.formGrid}>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="langue">Language</label>
-                    <select
-                      id="langue"
-                      name="langue"
-                      value={preferencesData.langue}
-                      onChange={handlePreferencesChange}
-                      disabled={!isEditingPreferences}
-                      className={styles.input}
-                    >
-                      <option value="en">English</option>
-                      <option value="fr">Français</option>
-                      <option value="es">Español</option>
-                      <option value="de">Deutsch</option>
-                      <option value="it">Italiano</option>
-                    </select>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="theme">Theme</label>
-                    <select
-                      id="theme"
-                      name="theme"
-                      value={preferencesData.theme}
-                      onChange={handlePreferencesChange}
-                      disabled={!isEditingPreferences}
-                      className={styles.input}
-                    >
-                      <option value="clair">Light</option>
-                      <option value="sombre">Dark</option>
-                      <option value="auto">Automatic (system setting)</option>
-                    </select>
                   </div>
                 </div>
                 

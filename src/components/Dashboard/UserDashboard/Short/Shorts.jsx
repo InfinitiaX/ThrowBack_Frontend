@@ -619,9 +619,19 @@ export default function Shorts() {
     handleFileSelected(file);
   };
 
-  // Handle form changes
+  // CORRECTION: Modification de la fonction handleChange pour préserver les espaces
   const handleChange = (e) => {
-    setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    
+    // Assurons-nous que la valeur est traitée comme une chaîne brute
+    // et garantissons que les espaces sont préservés
+    setForm(prevForm => ({
+      ...prevForm,
+      [name]: value
+    }));
+    
+    // Vérification optionnelle pour le débogage
+    console.log(`Field ${name} updated with value: "${value}"`);
   };
 
   // Form submission

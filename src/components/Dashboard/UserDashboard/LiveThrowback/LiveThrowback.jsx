@@ -26,6 +26,7 @@ const LiveThrowback = () => {
   const [viewCount, setViewCount] = useState(0);
   const [comment, setComment] = useState('');
   const [chatDisabled, setChatDisabled] = useState(false);
+
   const { user } = useAuth();
   const navigate = useNavigate();
   const playerRef = useRef(null);
@@ -45,7 +46,10 @@ const LiveThrowback = () => {
     return s ? s[1] : l ? l[1] : null;
   };
 
-  /** ⛑️ URL de lecture STABLE — ne change PAS pendant la lecture */
+  /**
+   * URL de lecture STABLE — ne change pas pendant la lecture
+   * (pas de &index=, pas de timers qui modifient le src)
+   */
   const playerSrc = useMemo(() => {
     if (!currentStream || !isStreamValid(currentStream)) return '';
 
@@ -53,14 +57,14 @@ const LiveThrowback = () => {
     const loop     = currentStream.playbackConfig?.loop !== false;
     const shuffle  = currentStream.playbackConfig?.shuffle === true;
 
-    // Compilation : on privilégie UNE URL playlist YouTube (ou vidéo unique)
+    // Compilation → préférer une playlist YT unique (URL stable)
     if (currentStream.compilationType === 'VIDEO_COLLECTION' &&
         Array.isArray(currentStream.compilationVideos) &&
         currentStream.compilationVideos.length > 0) {
 
       const vids = currentStream.compilationVideos;
 
-      // Tous YouTube → construire une playlist d’IDs. ⚠️ URL STABLE : pas d’index dynamique
+      // Tous YouTube → construire une URL playlist sans index
       if (vids.every(v => v.sourceType === 'YOUTUBE')) {
         const ids = vids.map(v => v.sourceId).join(',');
         let url = `https://www.youtube.com/embed/?playlist=${ids}&autoplay=${autoplay ? 1 : 0}`;
@@ -70,7 +74,7 @@ const LiveThrowback = () => {
         return url;
       }
 
-      // Sinon : on fixe la première vidéo comme point d’entrée (URL stable)
+      // Mix de sources → point d’entrée sur la première vidéo (URL stable)
       const first = vids[0];
       if (first?.sourceType === 'YOUTUBE') {
         let url = `https://www.youtube.com/embed/${first.sourceId}?autoplay=${autoplay ? 1 : 0}`;
@@ -104,6 +108,10 @@ const LiveThrowback = () => {
     return '';
   }, [currentStream]); // ⚠️ ne dépend QUE du stream (pas d’index/temps)
 
+  /**
+   * Chargement et polling léger des streams — ne remonte pas le player
+   * si l’utilisateur est déjà sur un stream encore valide.
+   */
   useEffect(() => {
     let mounted = true;
 
@@ -125,11 +133,12 @@ const LiveThrowback = () => {
             return still || valid[0] || null;
           });
 
-          if (valid[0]) {
-            setViewCount(valid[0].statistics?.totalUniqueViewers || 0);
-            setLikeCount(valid[0].statistics?.likes || 0);
-            setChatDisabled(valid[0].chatEnabled === false);
-            if (user && valid[0].userLiked) setLiked(true);
+          const base = valid[0];
+          if (base) {
+            setViewCount(base.statistics?.totalUniqueViewers || 0);
+            setLikeCount(base.statistics?.likes || 0);
+            setChatDisabled(base.chatEnabled === false);
+            if (user && base.userLiked) setLiked(true);
           }
         } else {
           setError('Invalid API response');
@@ -161,6 +170,16 @@ const LiveThrowback = () => {
     };
     bumpViews();
   }, [currentStream, user]);
+
+  // Ne jamais recharger la page : juste informer quand le live est terminé
+  useEffect(() => {
+    if (!currentStream) return;
+    const intv = setInterval(() => {
+      const stillValid = isStreamValid(currentStream);
+      if (!stillValid) setError('This livestream has ended');
+    }, 10000);
+    return () => clearInterval(intv);
+  }, [currentStream]);
 
   const handleLike = async () => {
     if (!user) return navigate('/login');
@@ -206,7 +225,7 @@ const LiveThrowback = () => {
     try {
       const res = await api.post(`/api/livechat/${currentStream._id}`, { content });
       if (!res.data?.success) throw new Error('Post failed');
-      // le composant <CommentSection> se met à jour par polling
+      // <CommentSection> se mettra à jour via son polling
     } catch (e) {
       logger.error(e);
       setComment(content); // restore
@@ -269,6 +288,7 @@ const LiveThrowback = () => {
             <div className={styles.videoPlayer}>
               {hasVideo ? (
                 <VideoPlayer
+                  key={currentStream._id} // ⚓️ évite tout re-montage intempestif
                   ref={playerRef}
                   src={playerSrc}
                   poster={currentStream.thumbnailUrl || '/images/default-livestream.jpg'}
@@ -300,7 +320,11 @@ const LiveThrowback = () => {
             {renderCompilationRail()}
 
             <div className={styles.interactionBar}>
-              <button className={`${styles.interactionButton} ${liked ? styles.liked : ''}`} onClick={handleLike} disabled={!isStreamValid(currentStream)}>
+              <button
+                className={`${styles.interactionButton} ${liked ? styles.liked : ''}`}
+                onClick={handleLike}
+                disabled={!isStreamValid(currentStream)}
+              >
                 <FontAwesomeIcon icon={faHeart} />
                 <span>{likeCount}</span>
               </button>

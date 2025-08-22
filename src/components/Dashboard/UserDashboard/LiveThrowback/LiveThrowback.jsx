@@ -16,14 +16,30 @@ const logger = {
   error: (...a) => console.error('[LiveThrowback]', ...a),
 };
 
+// ⛳️ Wrapper mémoïsé : ne rerend que si src change
+const StablePlayer = React.memo(
+  ({ src, poster, autoPlay, muted, controls, loop, forwardRef }) => (
+    <VideoPlayer
+      ref={forwardRef}
+      src={src}
+      poster={poster}
+      autoPlay={autoPlay}
+      muted={muted}
+      controls={controls}
+      loop={loop}
+    />
+  ),
+  (prev, next) => prev.src === next.src // ✅ prop clé unique
+);
+
 const LiveThrowback = () => {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
 
-  const [liveStreams, setLiveStreams] = useState([]);
+  const [liveStreams, setLiveStreams]   = useState([]);
   const [currentStream, setCurrentStream] = useState(null);
 
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked]         = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [viewCount, setViewCount] = useState(0);
 
@@ -49,10 +65,7 @@ const LiveThrowback = () => {
     return s ? s[1] : l ? l[1] : null;
   };
 
-  /**
-   * URL de lecture STABLE — ne change PAS pendant la lecture.
-   * Laisse YouTube gérer l’enchaînement de la playlist (autoplay/loop/shuffle).
-   */
+  // 🔒 URL de lecture STABLE — ne change PAS pendant la lecture.
   const playerSrc = useMemo(() => {
     if (!currentStream || !isStreamValid(currentStream)) return '';
 
@@ -68,7 +81,7 @@ const LiveThrowback = () => {
     ) {
       const vids = currentStream.compilationVideos;
 
-      // Tous YouTube → playlist unique et STABLE (pas d’index)
+      // Tous YouTube → playlist unique et STABLE (⚠️ aucune notion d'index)
       if (vids.every(v => v.sourceType === 'YOUTUBE')) {
         const ids = vids.map(v => v.sourceId).join(',');
         let url = `https://www.youtube.com/embed/?playlist=${ids}&autoplay=${autoplay ? 1 : 0}`;
@@ -78,7 +91,7 @@ const LiveThrowback = () => {
         return url;
       }
 
-      // Sources mixtes → prendre la 1re comme point d’entrée (URL stable)
+      // Mix de sources → première vidéo comme point d’entrée (URL stable)
       const first = vids[0];
       if (first?.sourceType === 'YOUTUBE') {
         let url = `https://www.youtube.com/embed/${first.sourceId}?autoplay=${autoplay ? 1 : 0}`;
@@ -97,7 +110,7 @@ const LiveThrowback = () => {
     // URL directe
     if (currentStream.playbackUrl) return currentStream.playbackUrl;
 
-    // YouTube “simple”
+    // YouTube simple
     if (currentStream.youtubeUrl) {
       const id = extractYoutubeId(currentStream.youtubeUrl);
       if (id) {
@@ -112,61 +125,69 @@ const LiveThrowback = () => {
     // Fallback
     if (currentStream.embedCode) return currentStream.embedCode;
     return '';
+  // ⚠️ Dépend UNIQUEMENT du stream choisi, pas des compteurs
   }, [currentStream]);
 
-  // Chargement des streams + polling non agressif (préserve le stream en cours)
+  // Chargement + polling non agressif : NE PAS remplacer l'objet si le même live reste actif
   useEffect(() => {
     let mounted = true;
 
     const fetchLiveStreams = async () => {
       try {
-        setLoading(true);
-        setError(null);
-
-        const res = await api.get('/api/user/livestreams?activeOnly=true');
         if (!mounted) return;
+        const res = await api.get('/api/user/livestreams?activeOnly=true');
 
+        if (!mounted) return;
         if (res.data?.success) {
-          const list = (res.data.data || []);
+          const list = res.data.data || [];
           const valid = list.filter(isStreamValid);
           setLiveStreams(valid);
 
-          setCurrentStream(prev => {
-            if (!prev) return valid[0] || null;
+          setCurrentStream((prev) => {
+            if (!prev) return valid[0] || null;               // 1er choix
             const still = valid.find(s => s._id === prev._id);
-            return still || valid[0] || null; // ne remplace pas inutilement
+            return still ? prev : (valid[0] || null);          // 🔴 garder la même référence !
           });
 
-          const first = valid[0];
-          if (first) {
-            setViewCount(first.statistics?.totalUniqueViewers || 0);
-            setLikeCount(first.statistics?.likes || 0);
-            setChatDisabled(first.chatEnabled === false);
-            if (user && first.userLiked) setLiked(true);
+          // ⚠️ Ne pas toucher aux compteurs si le stream courant ne change pas
+          if (!currentStream && valid[0]) {
+            setViewCount(valid[0].statistics?.totalUniqueViewers || 0);
+            setLikeCount(valid[0].statistics?.likes || 0);
+            setChatDisabled(valid[0].chatEnabled === false);
+            if (user && valid[0].userLiked) setLiked(true);
           }
         } else {
-          setError('Invalid API response');
+          logger.error('Invalid API response');
         }
       } catch (e) {
         logger.error(e);
-        setError('Failed to load livestreams');
+        if (mounted) setError('Failed to load livestreams');
       } finally {
-        mounted && setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
+    setLoading(true);
     fetchLiveStreams();
     const intv = setInterval(fetchLiveStreams, 60000);
     return () => { mounted = false; clearInterval(intv); };
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]); // ❗️ pas de dépendance à currentStream ici
 
-  // Compte de vues (UX) sans recharger
+  // Incrément UX de vues sans reload, uniquement quand on CHANGE de stream
+  const lastCountedIdRef = useRef(null);
   useEffect(() => {
     const bumpViews = async () => {
       try {
-        if (currentStream && user && isStreamValid(currentStream)) {
+        if (
+          currentStream &&
+          isStreamValid(currentStream) &&
+          user &&
+          lastCountedIdRef.current !== currentStream._id
+        ) {
           await api.get(`/api/user/livestreams/${currentStream._id}`);
           setViewCount((p) => p + 1);
+          lastCountedIdRef.current = currentStream._id;
         }
       } catch (e) {
         logger.error(e);
@@ -197,7 +218,6 @@ const LiveThrowback = () => {
         setLikeCount((p) => p + 1);
         await api.post(`/api/user/livestreams/${currentStream._id}/like`);
       } else {
-        // Pas d’API unlike — toggle local
         setLiked(false);
         setLikeCount((p) => Math.max(0, p - 1));
       }
@@ -231,18 +251,16 @@ const LiveThrowback = () => {
     try {
       const res = await api.post(`/api/livechat/${currentStream._id}`, { content });
       if (!res.data?.success) throw new Error('Post failed');
-      // CommentSection se mettra à jour par polling
+      // CommentSection mettra à jour via son polling
     } catch (e) {
       logger.error(e);
       setComment(content);
     }
   };
 
-  // Rail d’aperçus : affiche TOUTE la compilation (scroll horizontal)
   const renderCompilationRail = () => {
     if (!currentStream?.compilationVideos?.length) return null;
     const videos = currentStream.compilationVideos;
-
     return (
       <div className={styles.compilationRail}>
         {videos.map((v, i) => (
@@ -292,9 +310,10 @@ const LiveThrowback = () => {
           <div className={styles.videoWrapper}>
             <div className={styles.videoPlayer}>
               {hasVideo ? (
-                <VideoPlayer
-                  key={currentStream._id} /* ⚓️ évite les re‑montages */
-                  ref={playerRef}
+                <StablePlayer
+                  // 🔑 clé qui ne change que si on change de LIVE
+                  key={currentStream._id}
+                  forwardRef={playerRef}
                   src={playerSrc}
                   poster={currentStream.thumbnailUrl || '/images/default-livestream.jpg'}
                   autoPlay={currentStream.playbackConfig?.autoplay !== false}

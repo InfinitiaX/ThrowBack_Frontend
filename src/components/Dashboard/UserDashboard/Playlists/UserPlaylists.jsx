@@ -30,17 +30,31 @@ const UserPlaylists = () => {
 
   // Fonction pour obtenir les initiales du créateur
   const getInitials = (playlist) => {
-    // Obtenir le propriétaire (selon le format disponible)
-    const owner = playlist.proprietaire || {};
-    const nom = owner.nom || '';
-    const prenom = owner.prenom || '';
+    // Pour les playlists où le propriétaire est un objet
+    if (playlist.proprietaire && typeof playlist.proprietaire === 'object') {
+      const nom = playlist.proprietaire.nom || '';
+      const prenom = playlist.proprietaire.prenom || '';
+      
+      let initials = '';
+      if (prenom) initials += prenom.charAt(0).toUpperCase();
+      if (nom) initials += nom.charAt(0).toUpperCase();
+      
+      return initials || 'PL';
+    }
     
-    let initials = '';
-    if (prenom) initials += prenom.charAt(0).toUpperCase();
-    if (nom) initials += nom.charAt(0).toUpperCase();
+    // Si nous avons juste l'ID du propriétaire ou si le propriétaire n'est pas défini
+    // On utilise une valeur par défaut ou on peut utiliser le nom de la playlist
+    const playlistName = playlist.nom || '';
+    if (playlistName) {
+      const words = playlistName.split(' ');
+      if (words.length >= 2) {
+        return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
+      } else if (words.length === 1) {
+        return words[0].substring(0, 2).toUpperCase();
+      }
+    }
     
-    // Si on n'a pas d'initiales, utiliser une valeur par défaut
-    return initials || 'PL';
+    return 'PL';
   };
   
   // Génération d'une couleur basée sur l'ID de la playlist
@@ -133,7 +147,12 @@ const UserPlaylists = () => {
   const toDetail = (id) => navigate(`/dashboard/playlists/${id}`);
   const toPlay = (e, id) => { e.stopPropagation(); navigate(`/dashboard/playlists/${id}/play`); };
 
-  const askDelete = (e, p) => { e.stopPropagation(); setSelectedPlaylist(p); setShowConfirmDelete(true); };
+  const askDelete = (e, p) => { 
+    e.stopPropagation(); 
+    setSelectedPlaylist(p); 
+    setShowConfirmDelete(true); 
+  };
+  
   const doDelete = async () => {
     try {
       await playlistAPI.deletePlaylist(selectedPlaylist._id);
@@ -146,14 +165,17 @@ const UserPlaylists = () => {
     }
   };
 
-  const edit = (e, p) => { e.stopPropagation(); navigate(`/dashboard/playlists/${p._id}/edit`); setActiveDropdown(null); };
+  const edit = (e, p) => { 
+    e.stopPropagation(); 
+    navigate(`/dashboard/playlists/${p._id}/edit`); 
+  };
+  
   const share = (e, p) => {
     e.stopPropagation();
     const url = `${window.location.origin}/dashboard/playlists/${p._id}`;
     navigator.clipboard.writeText(url).then(() => {
       setToastMessage('Lien copié'); setToastType('success'); setShowToast(true);
     });
-    setActiveDropdown(null);
   };
 
   // Fonction pour aimer une playlist
@@ -240,7 +262,7 @@ const UserPlaylists = () => {
           />
         ) : (
           <div className={styles.playlistsGrid}>
-            {playlists.map((p, i) => (
+            {playlists.map((p) => (
               <div key={p._id} className={styles.playlistCard} onClick={() => toDetail(p._id)}>
                 <div className={styles.playlistImageContainer}>
                   {/* Utilisation des initiales au lieu de l'image */}
@@ -279,16 +301,12 @@ const UserPlaylists = () => {
                     >
                       <FontAwesomeIcon icon={faHeart} />
                     </button>
-                    {isOwner(p) && (
-                      <>
-                        <button className={styles.iconBtn} onClick={(e)=>edit(e, p)} title="Modifier">
-                          <FontAwesomeIcon icon={faEdit} />
-                        </button>
-                        <button className={styles.iconBtn} onClick={(e)=>askDelete(e, p)} title="Supprimer">
-                          <FontAwesomeIcon icon={faTrash} />
-                        </button>
-                      </>
-                    )}
+                    <button className={styles.iconBtn} onClick={(e)=>edit(e, p)} title="Modifier">
+                      <FontAwesomeIcon icon={faEdit} />
+                    </button>
+                    <button className={styles.iconBtn} onClick={(e)=>askDelete(e, p)} title="Supprimer">
+                      <FontAwesomeIcon icon={faTrash} />
+                    </button>
                     <button className={styles.iconBtn} onClick={(e)=>share(e, p)} title="Partager">
                       <FontAwesomeIcon icon={faShare} />
                     </button>

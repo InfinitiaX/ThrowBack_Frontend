@@ -257,6 +257,41 @@
   background-color: #6b0000;
 }
 
+/* Ajouter ces styles à votre fichier UserPlaylists.module.css */
+
+.initialsContainer {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 48px;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.initials {
+  letter-spacing: 2px;
+}
+
+.likedBtn {
+  color: #8b0000;
+}
+
+/* Responsivité pour les initiales */
+@media (max-width: 768px) {
+  .initialsContainer {
+    font-size: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .initialsContainer {
+    font-size: 30px;
+  }
+}
+
 /* Responsive styles */
 @media (max-width: 768px) {
   .playlistsContainer {

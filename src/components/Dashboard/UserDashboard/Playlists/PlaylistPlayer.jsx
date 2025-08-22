@@ -4,684 +4,177 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faPlay, faPause, faStepForward, faStepBackward, faRandom, faRedo,
   faVolumeUp, faVolumeMute, faExpand, faCompress, faArrowLeft, 
-  faList, faHeart, faHeartBroken, faShare, faPlus, faMinus
+  faList, faHeart, faShare
 } from '@fortawesome/free-solid-svg-icons';
 import playlistAPI from '../../../../utils/playlistAPI';
 import LoadingSpinner from '../../../Common/LoadingSpinner';
 import Toast from '../../../Common/Toast';
 import styles from './PlaylistPlayer.module.css';
 
+const parseYouTubeId = (url) => {
+  try {
+    const s = url.toString();
+    if (s.includes('youtube.com/watch')) { const u = new URL(s); return u.searchParams.get('v'); }
+    if (s.includes('youtu.be/')) return s.split('youtu.be/')[1].split(/[?&]/)[0];
+    if (s.includes('youtube.com/embed/')) return s.split('embed/')[1].split(/[?&]/)[0];
+  } catch {}
+  return null;
+};
+const parseVimeoId = (url) => {
+  try { const m = url.toString().match(/vimeo\.com\/(?:video\/)?(\d+)/); return m ? m[1] : null; } catch {} return null;
+};
+const getEmbedFromUrl = (rawUrl) => {
+  if (!rawUrl) return null;
+  const url = rawUrl.toString();
+  const yt = parseYouTubeId(url);
+  if (yt) return { provider:'youtube', id: yt, embedUrl:`https://www.youtube.com/embed/${yt}?autoplay=1&mute=1&rel=0&modestbranding=1`, thumb:`https://img.youtube.com/vi/${yt}/hqdefault.jpg` };
+  const vm = parseVimeoId(url);
+  if (vm) return { provider:'vimeo', id: vm, embedUrl:`https://player.vimeo.com/video/${vm}?autoplay=1&muted=1`, thumb:'/images/video-placeholder.jpg' };
+  return { provider:'file', id:null, embedUrl:null, thumb:'/images/video-placeholder.jpg' };
+};
+
 const PlaylistPlayer = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
-  // Data states
+
   const [playlist, setPlaylist] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Player states
-  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(80);
-  const [isMuted, setIsMuted] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
+
+  const [current, setCurrent] = useState(0);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showPlaylist, setShowPlaylist] = useState(true);
-  
-  // Interface states
+  const [isMuted, setIsMuted] = useState(true); // démarrer muet pour autoplay policy
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success');
-  
-  // References
-  const videoRef = useRef(null);
-  const playerContainerRef = useRef(null);
-  const progressBarRef = useRef(null);
-  
-  // Fonction utilitaire pour gérer les URLs des images et vidéos
-  const getMediaUrl = (mediaPath) => {
-    if (!mediaPath) return "";
-    
-    // Si c'est déjà une URL complète
-    if (mediaPath.startsWith('http')) return mediaPath;
-    
-    // Récupérer l'URL de base de l'API
-    const baseUrl = process.env.REACT_APP_API_URL || '';
-    
-    // Si c'est un chemin relatif sans slash au début
-    if (!mediaPath.startsWith('/')) {
-      return `${baseUrl}/${mediaPath}`;
-    }
-    
-    // Chemin relatif avec slash
-    return `${baseUrl}${mediaPath}`;
-  };
-  
-  // Load playlist details
+
+  const containerRef = useRef(null);
+
   useEffect(() => {
-    const fetchPlaylistDetails = async () => {
+    const load = async () => {
       try {
         setLoading(true);
-        console.log("Chargement de la playlist ID:", id);
         const data = await playlistAPI.getPlaylistById(id);
-        
-        if (!data) {
-          setError('Playlist non trouvée');
-          setLoading(false);
-          return;
-        }
-        
-        if (!data.videos || data.videos.length === 0) {
-          setError('Cette playlist ne contient aucune vidéo');
-          setLoading(false);
-          return;
-        }
-        
-        console.log("Playlist chargée:", data);
-        
-        // Sort videos by order
-        const sortedVideos = [...data.videos].sort((a, b) => a.ordre - b.ordre);
-        data.videos = sortedVideos;
-        
+        if (!data) { setError('Playlist introuvable'); setLoading(false); return; }
+        if (!data.videos || data.videos.length === 0) { setError('Cette playlist ne contient aucune vidéo'); setLoading(false); return; }
+        data.videos.sort((a,b)=>a.ordre-b.ordre);
         setPlaylist(data);
         setLoading(false);
-        
-        // Start playback automatically
-        setTimeout(() => {
-          setIsPlaying(true);
-        }, 1000);
-      } catch (err) {
-        console.error('Erreur lors du chargement de la playlist:', err);
-        setError('Une erreur est survenue lors du chargement de la playlist');
-        setLoading(false);
+      } catch (e) {
+        setError("Erreur lors du chargement de la playlist"); setLoading(false);
       }
     };
-
-    fetchPlaylistDetails();
+    load();
   }, [id]);
-  
-  // Update video player when current video changes
+
+  const next = () => {
+    if (!playlist?.videos?.length) return;
+    if (repeat) return setCurrent(c=>c);
+    if (shuffle) return setCurrent(Math.floor(Math.random()*playlist.videos.length));
+    setCurrent(c => (c < playlist.videos.length-1 ? c+1 : c));
+  };
+  const prev = () => setCurrent(c=>Math.max(0,c-1));
+
   useEffect(() => {
-    if (playlist?.videos && playlist.videos.length > 0 && videoRef.current) {
-      // Reset player
-      videoRef.current.pause();
-      setProgress(0);
-      
-      // Obtenir la référence correcte à la vidéo
-      const videoItem = playlist.videos[currentVideoIndex];
-      const currentVideo = videoItem.video_id;
-      
-      console.log("Chargement de la vidéo:", currentVideo);
-      
-      // Vérifier si l'URL est valide
-      if (currentVideo && currentVideo.youtubeUrl) {
-        // Récupérer l'URL correcte (absolue ou relative)
-        const videoUrl = getMediaUrl(currentVideo.youtubeUrl);
-        console.log("URL vidéo:", videoUrl);
-        
-        try {
-          // Définir l'URL de la vidéo
-          videoRef.current.src = videoUrl;
-          
-          // Start playback if needed
-          if (isPlaying) {
-            videoRef.current.play().catch(err => {
-              console.error('Erreur lors de la lecture automatique:', err);
-              setIsPlaying(false);
-              
-              // Afficher un message d'erreur
-              setToastMessage("Erreur lors de la lecture de la vidéo");
-              setToastType('error');
-              setShowToast(true);
-            });
-          }
-        } catch (error) {
-          console.error('Erreur lors du chargement de la vidéo:', error);
-          setToastMessage("Erreur lors du chargement de la vidéo");
-          setToastType('error');
-          setShowToast(true);
-        }
-      } else {
-        console.error('URL de vidéo invalide ou manquante');
-        setToastMessage("URL de vidéo invalide ou manquante");
-        setToastType('error');
-        setShowToast(true);
-      }
-    }
-  }, [currentVideoIndex, playlist, isPlaying]);
-  
-  // Event handlers for video player
-  useEffect(() => {
-    const videoElement = videoRef.current;
-    
-    if (videoElement) {
-      const handleTimeUpdate = () => {
-        setProgress(videoElement.currentTime);
-        setDuration(videoElement.duration);
-      };
-      
-      const handleEnded = () => {
-        if (repeat) {
-          // Replay the same video
-          videoElement.currentTime = 0;
-          videoElement.play().catch(err => {
-            console.error('Error during repeated playback:', err);
-          });
-        } else if (shuffle) {
-          // Move to a random video
-          const randomIndex = Math.floor(Math.random() * playlist.videos.length);
-          setCurrentVideoIndex(randomIndex);
-        } else if (currentVideoIndex < playlist.videos.length - 1) {
-          // Move to next video
-          setCurrentVideoIndex(currentVideoIndex + 1);
-        } else {
-          // End of playlist
-          setIsPlaying(false);
-        }
-      };
-      
-      videoElement.addEventListener('timeupdate', handleTimeUpdate);
-      videoElement.addEventListener('ended', handleEnded);
-      
-      // Ajouter un gestionnaire d'erreur
-      const handleError = (e) => {
-        console.error('Erreur de lecture vidéo:', e);
-        setToastMessage("Erreur lors de la lecture de la vidéo");
-        setToastType('error');
-        setShowToast(true);
-      };
-      
-      videoElement.addEventListener('error', handleError);
-      
-      return () => {
-        videoElement.removeEventListener('timeupdate', handleTimeUpdate);
-        videoElement.removeEventListener('ended', handleEnded);
-        videoElement.removeEventListener('error', handleError);
-      };
-    }
-  }, [currentVideoIndex, playlist, repeat, shuffle]);
-  
-  // Event handlers for fullscreen mode
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(
-        document.fullscreenElement || 
-        document.webkitFullscreenElement || 
-        document.mozFullScreenElement || 
-        document.msFullscreenElement
-      );
-    };
-    
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-    
+    const onFs = () => setIsFullscreen(
+      !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement)
+    );
+    document.addEventListener('fullscreenchange', onFs);
+    document.addEventListener('webkitfullscreenchange', onFs);
+    document.addEventListener('mozfullscreenchange', onFs);
+    document.addEventListener('MSFullscreenChange', onFs);
     return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+      document.removeEventListener('fullscreenchange', onFs);
+      document.removeEventListener('webkitfullscreenchange', onFs);
+      document.removeEventListener('mozfullscreenchange', onFs);
+      document.removeEventListener('MSFullscreenChange', onFs);
     };
   }, []);
-  
-  // Handle volume and mute
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.volume = volume / 100;
-      videoRef.current.muted = isMuted;
-    }
-  }, [volume, isMuted]);
-  
-  // Format time (seconds -> MM:SS)
-  const formatTime = (seconds) => {
-    if (isNaN(seconds) || seconds === 0) return '0:00';
-    
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-  
-  // Player controls
-  const handlePlayPause = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play().catch(err => {
-          console.error('Playback error:', err);
-          setToastMessage("Erreur lors de la lecture de la vidéo");
-          setToastType('error');
-          setShowToast(true);
-        });
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
-  
-  const handlePrevious = () => {
-    if (currentVideoIndex > 0) {
-      setCurrentVideoIndex(currentVideoIndex - 1);
-    }
-  };
-  
-  const handleNext = () => {
-    if (currentVideoIndex < playlist.videos.length - 1) {
-      setCurrentVideoIndex(currentVideoIndex + 1);
-    }
-  };
-  
-  const handleProgressChange = (e) => {
-    const newTime = parseFloat(e.target.value);
-    setProgress(newTime);
-    if (videoRef.current) {
-      videoRef.current.currentTime = newTime;
-    }
-  };
-  
-  const handleProgressClick = (e) => {
-    if (progressBarRef.current && videoRef.current) {
-      const rect = progressBarRef.current.getBoundingClientRect();
-      const percentage = (e.clientX - rect.left) / rect.width;
-      const newTime = percentage * videoRef.current.duration;
-      setProgress(newTime);
-      videoRef.current.currentTime = newTime;
-    }
-  };
-  
-  const handleVolumeChange = (e) => {
-    const newVolume = parseInt(e.target.value);
-    setVolume(newVolume);
-    
-    if (newVolume === 0) {
-      setIsMuted(true);
-    } else {
-      setIsMuted(false);
-    }
-  };
-  
-  const handleMuteToggle = () => {
-    setIsMuted(!isMuted);
-  };
-  
-  const handleShuffle = () => {
-    setShuffle(!shuffle);
-  };
-  
-  const handleRepeat = () => {
-    setRepeat(!repeat);
-  };
-  
-  const handleFullscreenToggle = () => {
-    if (!isFullscreen) {
-      // Enter fullscreen mode
-      if (playerContainerRef.current.requestFullscreen) {
-        playerContainerRef.current.requestFullscreen();
-      } else if (playerContainerRef.current.webkitRequestFullscreen) {
-        playerContainerRef.current.webkitRequestFullscreen();
-      } else if (playerContainerRef.current.mozRequestFullScreen) {
-        playerContainerRef.current.mozRequestFullScreen();
-      } else if (playerContainerRef.current.msRequestFullscreen) {
-        playerContainerRef.current.msRequestFullscreen();
-      }
-    } else {
-      // Exit fullscreen mode
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      } else if (document.mozCancelFullScreen) {
-        document.mozCancelFullScreen();
-      } else if (document.msExitFullscreen) {
-        document.msExitFullscreen();
-      }
-    }
-  };
-  
-  const handleTogglePlaylist = () => {
-    setShowPlaylist(!showPlaylist);
-  };
-  
-  // Favorites management
-  const handleToggleFavorite = async () => {
-    try {
-      const response = await playlistAPI.toggleFavorite(id);
-      
-      // Update local state
-      setPlaylist({
-        ...playlist,
-        isFavorite: response.isFavorite,
-        nb_favoris: response.isFavorite ? playlist.nb_favoris + 1 : playlist.nb_favoris - 1
-      });
-      
-      setToastMessage(response.isFavorite ? 
-        'Playlist ajoutée aux favoris' : 
-        'Playlist retirée des favoris');
-      setToastType('success');
-      setShowToast(true);
-    } catch (err) {
-      console.error('Erreur lors de la gestion des favoris:', err);
-      setToastMessage('Erreur lors de la gestion des favoris');
-      setToastType('error');
-      setShowToast(true);
-    }
-  };
-  
-  // Share playlist
-  const handleSharePlaylist = () => {
-    // Copy link to clipboard
-    const shareUrl = `${window.location.origin}/dashboard/playlists/${id}`;
-    navigator.clipboard.writeText(shareUrl)
-      .then(() => {
-        setToastMessage('Lien de la playlist copié dans le presse-papier');
-        setToastType('success');
-        setShowToast(true);
-      })
-      .catch(err => {
-        console.error('Erreur de copie du lien:', err);
-        setToastMessage('Erreur lors de la copie du lien');
-        setToastType('error');
-        setShowToast(true);
-      });
-  };
-  
-  // Return to playlist details page
-  const handleBack = () => {
-    navigate(`/dashboard/playlists/${id}`);
-  };
-  
-  // Play a specific video
-  const handlePlayVideo = (index) => {
-    setCurrentVideoIndex(index);
-    setIsPlaying(true);
-  };
-  
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-  
+
+  if (loading) return <LoadingSpinner/>;
   if (error) {
     return (
       <div className={styles.errorContainer}>
         <p className={styles.errorMessage}>{error}</p>
-        <button 
-          className={styles.backButton}
-          onClick={handleBack}
-        >
-          Retour à la playlist
-        </button>
+        <button className={styles.retryButton} onClick={()=>window.location.reload()}>Réessayer</button>
       </div>
     );
   }
-  
-  if (!playlist || playlist.videos.length === 0) {
-    return (
-      <div className={styles.errorContainer}>
-        <p className={styles.errorMessage}>Playlist vide ou introuvable</p>
-        <button 
-          className={styles.backButton}
-          onClick={() => navigate('/dashboard/playlists')}
-        >
-          Retour aux playlists
-        </button>
-      </div>
-    );
-  }
-  
-  const currentVideo = playlist.videos[currentVideoIndex].video_id;
-  
+  const list = playlist.videos;
+  const now = list[current]?.video_id;
+  const emb = getEmbedFromUrl(now?.youtubeUrl);
+
   return (
-    <div 
-      className={`${styles.playerContainer} ${isFullscreen ? styles.fullscreen : ''}`}
-      ref={playerContainerRef}
-    >
-      <div className={styles.playerContent}>
-        {/* Video player section */}
-        <div className={`${styles.videoSection} ${!showPlaylist && styles.fullWidth}`}>
-          {/* Header with title and actions */}
-          <div className={`${styles.playerHeader} ${isPlaying && styles.hideControls}`}>
-            <button 
-              className={styles.backButton}
-              onClick={handleBack}
-            >
-              <FontAwesomeIcon icon={faArrowLeft} />
-              <span>Retour</span>
-            </button>
-            
-            <div className={styles.headerInfo}>
-              <h1 className={styles.playlistTitle}>{playlist.nom}</h1>
-              <p className={styles.playlistOwner}>
-                Par {playlist.proprietaire?.prenom || ''} {playlist.proprietaire?.nom || ''}
-              </p>
-            </div>
-            
-            <div className={styles.headerActions}>
-              <button 
-                className={styles.actionButton}
-                onClick={handleToggleFavorite}
-                title={playlist.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
-              >
-                <FontAwesomeIcon icon={playlist.isFavorite ? faHeartBroken : faHeart} />
-              </button>
-              
-              <button 
-                className={styles.actionButton}
-                onClick={handleSharePlaylist}
-                title="Partager la playlist"
-              >
-                <FontAwesomeIcon icon={faShare} />
-              </button>
-              
-              <button 
-                className={styles.actionButton}
-                onClick={handleTogglePlaylist}
-                title={showPlaylist ? "Masquer la liste" : "Afficher la liste"}
-              >
-                <FontAwesomeIcon icon={showPlaylist ? faMinus : faList} />
-              </button>
-            </div>
-          </div>
-          
-          {/* Video player */}
-          <div 
-            className={`${styles.videoWrapper} ${isPlaying && styles.hideControls}`}
-            onClick={handlePlayPause}
-          >
-            <video 
-              ref={videoRef}
-              className={styles.videoPlayer}
-              playsInline
-              poster={getMediaUrl(currentVideo?.thumbnail)}
+    <div className={styles.playerPage}>
+      <div className={styles.topBar}>
+        <button className={styles.backBtn} onClick={()=>navigate(`/dashboard/playlists/${id}`)}>
+          <FontAwesomeIcon icon={faArrowLeft}/> Retour
+        </button>
+        <div className={styles.topTitle}>{playlist.nom}</div>
+        <div/>
+      </div>
+
+      <div className={styles.playerLayout} ref={containerRef}>
+        <div className={styles.playerArea}>
+          {emb?.embedUrl ? (
+            <iframe
+              key={emb.embedUrl}
+              src={emb.embedUrl + (isMuted ? '' : '&mute=0')}
+              title={now?.titre || 'Video'}
+              className={styles.iframe}
+              allow="autoplay; encrypted-media; picture-in-picture"
+              allowFullScreen
             />
-            
-            {!isPlaying && (
-              <div className={styles.playOverlay}>
-                <button className={styles.bigPlayButton}>
-                  <FontAwesomeIcon icon={faPlay} />
-                </button>
-              </div>
-            )}
-          </div>
-          
-          {/* Current video information */}
-          <div className={`${styles.videoInfo} ${isPlaying && styles.hideControls}`}>
-            <h2 className={styles.videoTitle}>
-              {currentVideo?.titre || "Vidéo sans titre"}
-            </h2>
-            <p className={styles.videoArtist}>
-              {currentVideo?.artiste || "Artiste inconnu"}
-            </p>
-          </div>
-          
-          {/* Player controls */}
-          <div className={`${styles.controls} ${isPlaying && styles.hideControls}`}>
-            {/* Progress bar */}
-            <div 
-              className={styles.progressContainer}
-              onClick={handleProgressClick}
-              ref={progressBarRef}
-            >
-              <div className={styles.progressBackground}>
-                <div 
-                  className={styles.progressFill}
-                  style={{ width: `${(progress / duration) * 100}%` }}
-                ></div>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max={duration || 100}
-                value={progress}
-                onChange={handleProgressChange}
-                className={styles.progressInput}
-              />
-              <div className={styles.timeDisplay}>
-                <span className={styles.currentTime}>{formatTime(progress)}</span>
-                <span className={styles.duration}>{formatTime(duration)}</span>
-              </div>
+          ) : (
+            <div className={styles.fallback}>
+              <img src={emb?.thumb || '/images/video-placeholder.jpg'} alt="Preview" />
+              <p>Impossible de lire cette source directement.</p>
             </div>
-            
-            {/* Control buttons */}
-            <div className={styles.controlButtons}>
-              <div className={styles.primaryControls}>
-                <button 
-                  className={`${styles.controlButton} ${shuffle ? styles.active : ''}`}
-                  onClick={handleShuffle}
-                  title="Lecture aléatoire"
-                >
-                  <FontAwesomeIcon icon={faRandom} />
-                </button>
-                
-                <button 
-                  className={styles.controlButton}
-                  onClick={handlePrevious}
-                  disabled={currentVideoIndex === 0}
-                  title="Précédent"
-                >
-                  <FontAwesomeIcon icon={faStepBackward} />
-                </button>
-                
-                <button 
-                  className={styles.playPauseButton}
-                  onClick={handlePlayPause}
-                  title={isPlaying ? "Pause" : "Lecture"}
-                >
-                  <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} />
-                </button>
-                
-                <button 
-                  className={styles.controlButton}
-                  onClick={handleNext}
-                  disabled={currentVideoIndex === playlist.videos.length - 1}
-                  title="Suivant"
-                >
-                  <FontAwesomeIcon icon={faStepForward} />
-                </button>
-                
-                <button 
-                  className={`${styles.controlButton} ${repeat ? styles.active : ''}`}
-                  onClick={handleRepeat}
-                  title="Répéter"
-                >
-                  <FontAwesomeIcon icon={faRedo} />
-                </button>
-              </div>
-              
-              <div className={styles.secondaryControls}>
-                <div className={styles.volumeControl}>
-                  <button 
-                    className={styles.controlButton}
-                    onClick={handleMuteToggle}
-                    title={isMuted ? "Activer le son" : "Couper le son"}
-                  >
-                    <FontAwesomeIcon icon={isMuted ? faVolumeMute : faVolumeUp} />
-                  </button>
-                  
-                  <div className={styles.volumeSliderContainer}>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={volume}
-                      onChange={handleVolumeChange}
-                      className={styles.volumeSlider}
-                    />
-                  </div>
-                </div>
-                
-                <button 
-                  className={styles.controlButton}
-                  onClick={handleFullscreenToggle}
-                  title={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
-                >
-                  <FontAwesomeIcon icon={isFullscreen ? faCompress : faExpand} />
-                </button>
-              </div>
-            </div>
+          )}
+
+          <div className={styles.controls}>
+            <button className={styles.ctrlBtn} onClick={prev}><FontAwesomeIcon icon={faStepBackward}/></button>
+            <button className={`${styles.ctrlBtn} ${shuffle?styles.active:''}`} onClick={()=>setShuffle(s=>!s)} title="Aléatoire"><FontAwesomeIcon icon={faRandom}/></button>
+            <button className={`${styles.ctrlBtn} ${repeat?styles.active:''}`} onClick={()=>setRepeat(r=>!r)} title="Répéter"><FontAwesomeIcon icon={faRedo}/></button>
+            <button className={styles.ctrlBtn} onClick={next}><FontAwesomeIcon icon={faStepForward}/></button>
+            <button className={styles.ctrlBtn} onClick={()=>setIsMuted(m=>!m)} title="Muet"><FontAwesomeIcon icon={isMuted?faVolumeMute:faVolumeUp}/></button>
+            <button className={styles.ctrlBtn} onClick={()=>{
+              if (!isFullscreen) {
+                if (containerRef.current.requestFullscreen) containerRef.current.requestFullscreen();
+                else if (containerRef.current.webkitRequestFullscreen) containerRef.current.webkitRequestFullscreen();
+              } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+              }
+            }}>
+              <FontAwesomeIcon icon={isFullscreen?faCompress:faExpand}/>
+            </button>
           </div>
         </div>
 
-        {/* Video list section */}
-        {showPlaylist && (
-          <div className={styles.playlistSection}>
-            <div className={styles.playlistHeader}>
-              <h3 className={styles.playlistListTitle}>
-                Vidéos dans la playlist ({playlist.videos.length})
-              </h3>
-            </div>
-            
-            <ul className={styles.videosList}>
-              {playlist.videos.map((videoItem, index) => {
-                const video = videoItem.video_id;
-                const isCurrentVideo = index === currentVideoIndex;
-                
-                return (
-                  <li 
-                    key={video._id}
-                    className={`${styles.videoItem} ${isCurrentVideo ? styles.current : ''}`}
-                    onClick={() => handlePlayVideo(index)}
-                  >
-                    <div className={styles.videoItemNumber}>{index + 1}</div>
-                    
-                    <div className={styles.videoItemThumbnail}>
-                      <img 
-                        src={getMediaUrl(video.thumbnail) || "https://via.placeholder.com/120x68?text=Video"}
-                        alt={video.titre || "Vidéo"}
-                      />
-                      {isCurrentVideo && isPlaying && (
-                        <div className={styles.nowPlaying}>
-                          <span className={styles.playingIndicator}></span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className={styles.videoItemInfo}>
-                      <h4 className={styles.videoItemTitle}>{video.titre || "Vidéo sans titre"}</h4>
-                      <p className={styles.videoItemArtist}>{video.artiste || "Artiste inconnu"}</p>
-                    </div>
-                    
-                    <div className={styles.videoItemDuration}>
-                      {video.duree ? formatTime(video.duree) : '--:--'}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
+        <div className={styles.sideList}>
+          <h3>Liste de lecture</h3>
+          <ol className={styles.videoList}>
+            {list.map((it, idx) => {
+              const v = it.video_id;
+              const th = getEmbedFromUrl(v?.youtubeUrl)?.thumb || '/images/video-placeholder.jpg';
+              return (
+                <li key={v?._id || idx} className={`${styles.row} ${idx===current?styles.active:''}`} onClick={()=>setCurrent(idx)}>
+                  <img src={th} alt={v?.titre || 'Video'} onError={(e)=>{e.currentTarget.src='/images/video-placeholder.jpg';}}/>
+                  <div className={styles.info}>
+                    <div className={styles.title}>{v?.titre || 'Sans titre'}</div>
+                    <div className={styles.sub}>{v?.artiste || 'Artiste inconnu'} {v?.annee ? `(${v.annee})` : ''}</div>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
       </div>
 
-      {/* Toast for notifications */}
-      <Toast
-        show={showToast}
-        message={toastMessage}
-        type={toastType}
-        onClose={() => setShowToast(false)}
-      />
+      <Toast show={showToast} type={toastType} onClose={()=>setShowToast(false)}>{toastMessage}</Toast>
     </div>
   );
 };

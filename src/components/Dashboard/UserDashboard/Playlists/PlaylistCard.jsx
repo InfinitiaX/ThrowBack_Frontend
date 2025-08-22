@@ -1,231 +1,40 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faPlay, faHeart, faHeartBroken, faEllipsisV, faEdit, 
-  faTrash, faShare, faEye, faMusic, faGlobe, faLock, faUserFriends 
-} from '@fortawesome/free-solid-svg-icons';
+import { faPlay, faEye, faHeart, faMusic, faGlobe, faLock, faUserFriends } from '@fortawesome/free-solid-svg-icons';
 import styles from './PlaylistCard.module.css';
 
-/**
- * Reusable card component to display a playlist
- * 
- * @param {Object} playlist - Playlist data to display
- * @param {Function} onDelete - Function to call to delete the playlist
- * @param {Function} onToggleFavorite - Function to call to add/remove from favorites
- * @param {Function} onShare - Function to call to share the playlist
- * @param {boolean} isOwner - Indicates if the current user is the owner of the playlist
- */
-const PlaylistCard = ({ 
-  playlist, 
-  onDelete, 
-  onToggleFavorite, 
-  onShare, 
-  isOwner = false 
-}) => {
+const PlaylistCard = ({ playlist }) => {
   const navigate = useNavigate();
-  const [showDropdown, setShowDropdown] = useState(false);
-  
-  // Fonction utilitaire pour gérer les URLs des images
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return "https://via.placeholder.com/300x200?text=Playlist";
-    
-    // Si c'est déjà une URL complète
-    if (imagePath.startsWith('http')) return imagePath;
-    
-    // Récupérer l'URL de base de l'API
-    const baseUrl = process.env.REACT_APP_API_URL || '';
-    
-    // Si c'est un chemin relatif sans slash au début
-    if (!imagePath.startsWith('/')) {
-      return `${baseUrl}/${imagePath}`;
-    }
-    
-    // Chemin relatif avec slash
-    return `${baseUrl}${imagePath}`;
-  };
-  
-  // Navigate to playlist detail page
-  const handleClick = () => {
-    navigate(`/dashboard/playlists/${playlist._id}`);
-  };
-  
-  // Start playing the playlist
-  const handlePlay = (e) => {
-    e.stopPropagation();
-    navigate(`/dashboard/playlists/${playlist._id}/play`);
-  };
-  
-  // Show/hide the context menu
-  const handleToggleDropdown = (e) => {
-    e.stopPropagation();
-    setShowDropdown(!showDropdown);
-  };
-  
-  // Edit the playlist
-  const handleEdit = (e) => {
-    e.stopPropagation();
-    navigate(`/dashboard/playlists/${playlist._id}/edit`);
-    setShowDropdown(false);
-  };
-  
-  // Share the playlist
-  const handleShare = (e) => {
-    e.stopPropagation();
-    if (onShare) {
-      onShare(playlist);
-    }
-    setShowDropdown(false);
-  };
-  
-  // Delete the playlist
-  const handleDelete = (e) => {
-    e.stopPropagation();
-    if (onDelete) {
-      onDelete(playlist);
-    }
-    setShowDropdown(false);
-  };
-  
-  // Add/remove from favorites
-  const handleToggleFavorite = (e) => {
-    e.stopPropagation();
-    if (onToggleFavorite) {
-      onToggleFavorite(playlist);
-    }
-  };
-  
-  // Format the view/favorites count
-  const formatCount = (count) => {
-    if (!count) return "0";
-    if (count >= 1000000) {
-      return `${(count / 1000000).toFixed(1)}M`;
-    } else if (count >= 1000) {
-      return `${(count / 1000).toFixed(1)}K`;
-    }
-    return count;
-  };
-  
-  // Display the corresponding visibility icon
-  const renderVisibilityIcon = (visibility) => {
-    switch (visibility) {
-      case 'PUBLIC':
-        return <FontAwesomeIcon icon={faGlobe} title="Public" />;
-      case 'PRIVE':
-        return <FontAwesomeIcon icon={faLock} title="Privé" />;
-      case 'AMIS':
-        return <FontAwesomeIcon icon={faUserFriends} title="Amis uniquement" />;
-      default:
-        return <FontAwesomeIcon icon={faGlobe} title="Public" />;
-    }
-  };
-  
+  const baseUrl = process.env.REACT_APP_API_URL || '';
+  const img = (p) => !p ? '/images/playlist-placeholder.jpg' : (p.startsWith('http') ? p : `${baseUrl}${p.startsWith('/')?p:`/${p}`}`);
+  const go = () => navigate(`/dashboard/playlists/${playlist._id}`);
+  const play = (e) => { e.stopPropagation(); navigate(`/dashboard/playlists/${playlist._id}/play`); };
+
+  const vis = playlist.visibilite === 'PRIVE' ? faLock : (playlist.visibilite === 'AMIS' ? faUserFriends : faGlobe);
+  const fmt = (n)=> !n ? '0' : n>=1_000_000 ? `${(n/1_000_000).toFixed(1)}M` : n>=1_000 ? `${(n/1_000).toFixed(1)}K` : n;
+
   return (
-    <div className={styles.playlistCard} onClick={handleClick}>
+    <div className={styles.playlistCard} onClick={go}>
       <div className={styles.imageContainer}>
-        <img 
-          src={getImageUrl(playlist.image_couverture)}
-          alt={playlist.nom || "Playlist"}
-          className={styles.playlistImage}
-        />
+        <img src={img(playlist.image_couverture)} alt={playlist.nom || 'Playlist'}
+             className={styles.playlistImage}
+             onError={(e)=>{e.currentTarget.src='/images/playlist-placeholder.jpg';}} />
         <div className={styles.overlay}>
-          <button 
-            className={styles.playButton}
-            onClick={handlePlay}
-            aria-label="Lire la playlist"
-          >
-            <FontAwesomeIcon icon={faPlay} />
-          </button>
+          <button className={styles.playButton} onClick={play}><FontAwesomeIcon icon={faPlay}/></button>
         </div>
       </div>
-      
+
       <div className={styles.content}>
         <div className={styles.header}>
-          <h3 className={styles.title}>{playlist.nom || "Playlist sans titre"}</h3>
-          <div className={styles.visibility}>
-            {renderVisibilityIcon(playlist.visibilite)}
-          </div>
+          <h3 className={styles.title}>{playlist.nom || 'Playlist'}</h3>
+          <div className={styles.visibility}><FontAwesomeIcon icon={vis}/></div>
         </div>
-        
-        <p className={styles.description}>
-          {playlist.description || "Aucune description"}
-        </p>
-        
+        <p className={styles.description}>{playlist.description || 'Aucune description'}</p>
         <div className={styles.stats}>
-          <span className={styles.count}>
-            <FontAwesomeIcon icon={faMusic} /> {playlist.nb_videos || 0} vidéos
-          </span>
-          <span className={styles.count}>
-            <FontAwesomeIcon icon={faEye} /> {formatCount(playlist.nb_lectures || 0)}
-          </span>
-          <span className={styles.count}>
-            <FontAwesomeIcon icon={faHeart} /> {formatCount(playlist.nb_favoris || 0)}
-          </span>
-        </div>
-        
-        {playlist.proprietaire && (
-          <div className={styles.owner}>
-            <img 
-              src={getImageUrl(playlist.proprietaire.photo_profil || "https://via.placeholder.com/30")}
-              alt={`${playlist.proprietaire.prenom || 'Utilisateur'} ${playlist.proprietaire.nom || ''}`}
-              className={styles.ownerAvatar}
-            />
-            <span className={styles.ownerName}>
-              {`${playlist.proprietaire.prenom || 'Utilisateur'} ${playlist.proprietaire.nom || ''}`}
-            </span>
-          </div>
-        )}
-      </div>
-      
-      <div className={styles.actions}>
-        <button 
-          className={styles.actionButton}
-          onClick={handleToggleFavorite}
-          aria-label={playlist.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
-        >
-          <FontAwesomeIcon icon={playlist.isFavorite ? faHeartBroken : faHeart} />
-        </button>
-        
-        <div className={styles.dropdownContainer}>
-          <button 
-            className={styles.actionButton}
-            onClick={handleToggleDropdown}
-            aria-label="Plus d'options"
-          >
-            <FontAwesomeIcon icon={faEllipsisV} />
-          </button>
-          
-          {showDropdown && (
-            <div className={styles.dropdown}>
-              {isOwner && (
-                <button 
-                  className={styles.dropdownItem}
-                  onClick={handleEdit}
-                >
-                  <FontAwesomeIcon icon={faEdit} />
-                  <span>Modifier</span>
-                </button>
-              )}
-              
-              <button 
-                className={styles.dropdownItem}
-                onClick={handleShare}
-              >
-                <FontAwesomeIcon icon={faShare} />
-                <span>Partager</span>
-              </button>
-              
-              {isOwner && (
-                <button 
-                  className={styles.dropdownItem}
-                  onClick={handleDelete}
-                >
-                  <FontAwesomeIcon icon={faTrash} />
-                  <span>Supprimer</span>
-                </button>
-              )}
-            </div>
-          )}
+          <span><FontAwesomeIcon icon={faMusic}/> {playlist.nb_videos || playlist.videos?.length || 0} vidéos</span>
+          <span><FontAwesomeIcon icon={faEye}/> {fmt(playlist.nb_lectures || 0)}</span>
+          <span><FontAwesomeIcon icon={faHeart}/> {fmt(playlist.nb_favoris || 0)}</span>
         </div>
       </div>
     </div>

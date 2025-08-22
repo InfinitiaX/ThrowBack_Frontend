@@ -258,24 +258,7 @@ const LiveThrowback = () => {
     }
   };
 
-  const renderCompilationRail = () => {
-    if (!currentStream?.compilationVideos?.length) return null;
-    const videos = currentStream.compilationVideos;
-    return (
-      <div className={styles.compilationRail}>
-        {videos.map((v, i) => (
-          <div key={`${v.sourceId}_${i}`} className={styles.compilationItem} title={v.title || `Video ${i + 1}`}>
-            <img
-              src={v.thumbnailUrl || '/images/default-thumb.jpg'}
-              alt={v.title || `Video ${i + 1}`}
-              onError={(e) => { e.currentTarget.src = '/images/default-thumb.jpg'; }}
-            />
-            <div className={styles.compilationItemTitle}>{v.title || `Video ${i + 1}`}</div>
-          </div>
-        ))}
-      </div>
-    );
-  };
+ 
 
   if (loading) return <LoadingSpinner />;
 
@@ -340,7 +323,6 @@ const LiveThrowback = () => {
             <h2 className={styles.streamTitle}>{currentStream.title}</h2>
             <p className={styles.hostInfo}>Hosted by: {currentStream.hostName || 'ThrowBack Host'}</p>
 
-            {renderCompilationRail()}
 
             <div className={styles.interactionBar}>
               <button
@@ -360,7 +342,7 @@ const LiveThrowback = () => {
 
             {!chatDisabled && isStreamValid(currentStream) && (
               <form onSubmit={handleCommentSubmit} className={styles.commentForm}>
-                <img
+                <mg
                   src={user?.photo_profil || '/images/default-user.jpg'}
                   alt={user?.prenom || 'User'}
                   className={styles.userAvatar}

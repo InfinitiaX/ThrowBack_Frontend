@@ -15,6 +15,52 @@ const log = {
 const PAGE_SIZE = 10;
 const REPLIES_PAGE_SIZE = 10;
 
+/** Utils: Initiales + couleur déterministe **/
+const getInitials = (u) => {
+  const first = (u?.prenom || '').trim();
+  const last = (u?.nom || '').trim();
+  if (first || last) {
+    return `${first?.[0] || ''}${last?.[0] || ''}`.toUpperCase() || 'U';
+  }
+  // fallback email/nom d’affichage si dispo
+  const fallback = (u?.email || u?.displayName || 'User').trim();
+  return (fallback[0] || 'U').toUpperCase();
+};
+
+const colorFromString = (str = 'User') => {
+  // petit hash déterministe → couleur HSL
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 360;
+  return `hsl(${h}, 70%, 45%)`;
+};
+
+const InitialsAvatar = ({ user, className }) => {
+  const initials = getInitials(user);
+  const bg = colorFromString(`${user?.prenom || ''}${user?.nom || ''}${user?.email || ''}`);
+  // On réutilise les classes existantes (commentAvatar / replyAvatar).
+  // On ajoute un style inline minimal pour assurer l’apparence circulaire.
+  const baseStyle = {
+    backgroundColor: bg,
+    color: '#fff',
+    borderRadius: '9999px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    userSelect: 'none',
+    textTransform: 'uppercase',
+    fontWeight: 700,
+    // Taille par défaut si la classe n'en fournit pas
+    width: '40px',
+    height: '40px',
+    fontSize: '14px',
+  };
+  return (
+    <div className={className} style={baseStyle} aria-label={`${user?.prenom || ''} ${user?.nom || ''}`.trim() || 'User'}>
+      {initials}
+    </div>
+  );
+};
+
 const CommentSection = ({ streamId }) => {
   const { user } = useAuth();
 
@@ -303,12 +349,8 @@ const CommentSection = ({ streamId }) => {
 
             return (
               <div key={c._id} className={styles.comment}>
-                <img
-                  src={c.userId?.photo_profil || '/images/bob4.png'}
-                  alt={c.userId?.prenom || 'User'}
-                  className={styles.commentAvatar}
-                  onError={(e) => { e.currentTarget.src = '/images/bob4.png'; }}
-                />
+                {/* Avatar → Initiales */}
+                <InitialsAvatar user={c.userId} className={styles.commentAvatar} />
 
                 <div className={styles.commentContent}>
                   <div className={styles.commentHeader}>
@@ -335,12 +377,10 @@ const CommentSection = ({ streamId }) => {
                       <FontAwesomeIcon icon={faReply} /> <span>Reply</span>
                     </button>
 
-                    {/* compteur de réponses */}
                     <span className={styles.commentAction} style={{ cursor: 'default' }}>
                       {c.replyCount ?? 0} replies
                     </span>
 
-                    {/* ouvrir / charger les réponses */}
                     {!bucket.open ? (
                       <button className={styles.commentAction} onClick={() => openReplies(c)}>
                         View replies
@@ -359,12 +399,8 @@ const CommentSection = ({ streamId }) => {
                     <div className={styles.replies}>
                       {replies.map((r) => (
                         <div key={r._id} className={styles.reply}>
-                          <img
-                            src={r.userId?.photo_profil || '/images/bob6.png'}
-                            alt={r.userId?.prenom || 'User'}
-                            className={styles.replyAvatar}
-                            onError={(e) => { e.currentTarget.src = '/images/bob6.png'; }}
-                          />
+                          {/* Avatar reply → Initiales */}
+                          <InitialsAvatar user={r.userId} className={styles.replyAvatar} />
                           <div className={styles.replyContent}>
                             <div className={styles.replyHeader}>
                               <span className={styles.replyAuthor}>

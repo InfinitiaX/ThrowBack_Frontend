@@ -60,10 +60,15 @@ const MemoryCard = ({
 
   // Vérifier si le souvenir correspond à la vidéo actuelle
   const isMatchingCurrentVideo = () => {
-    if (!currentVideoId || !memory.videoId) return true; // Par défaut, considérer comme correspondant
-    
-    return memory.videoId.toString() === currentVideoId.toString() || 
-           (memory.originalVideoId && memory.originalVideoId.toString() === currentVideoId.toString());
+    if (!currentVideoId) return true;
+    const cur = currentVideoId.toString();
+    const mem = (
+      memory.videoId ||
+      memory.originalVideoId ||
+      memory.currentVideoId ||
+      ''
+    ).toString();
+    return mem === cur;
   };
 
   // Gérer l'ajout d'une réponse
@@ -164,7 +169,6 @@ const MemoryCard = ({
           onClick={() => setShowReplyForm(!showReplyForm)}
         >
           <FontAwesomeIcon icon={faReply} className={styles.memoryIcon} />
-          {/* <span>Reply</span> */}
         </div>
       </div>
       

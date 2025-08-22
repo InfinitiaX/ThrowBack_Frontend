@@ -146,7 +146,7 @@ const LiveThrowback = () => {
           setCurrentStream((prev) => {
             if (!prev) return valid[0] || null;               // 1er choix
             const still = valid.find(s => s._id === prev._id);
-            return still ? prev : (valid[0] || null);          // 🔴 garder la même référence !
+            return still ? prev : (valid[0] || null);          
           });
 
           // ⚠️ Ne pas toucher aux compteurs si le stream courant ne change pas

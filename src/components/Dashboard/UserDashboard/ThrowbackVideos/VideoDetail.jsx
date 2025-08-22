@@ -52,6 +52,9 @@ const VideoDetail = () => {
   const retryCountRef = useRef(0);
   const maxRetries = 3;
 
+  // 👉 Tokens pour éviter les “réponses en retard”
+  const requestTokenRef = useRef({ video: 0, memories: 0 });
+
   // Build base URL based on environment
   const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
@@ -221,8 +224,9 @@ const VideoDetail = () => {
     return matchingMemories;
   };
 
-  // Fetch a specific video by its ID
+  // Fetch a specific video by its ID (token anti-race)
   const fetchVideoById = async (videoId) => {
+    const myToken = ++requestTokenRef.current.video;
     try {
       setLoading(true);
       setError(null);
@@ -230,37 +234,35 @@ const VideoDetail = () => {
       
       const videoData = await videoAPI.getVideoById(videoId);
       
+      if (myToken !== requestTokenRef.current.video) return; // réponse obsolète
+
       if (videoData) {
         setVideo(videoData);
-        
-        // Check if user liked the video
         setUserLiked(videoData.userInteraction?.liked || false);
-        
-        // Set counters
         setViewCount(videoData.vues || 0);
         setLikeCount(videoData.likes || 0);
-        
         console.log('✅ Video loaded:', videoData.titre);
       } else {
         setError('Unable to load video details');
       }
     } catch (err) {
+      if (myToken !== requestTokenRef.current.video) return;
       console.error('❌ Error loading video:', err);
       setError('Error loading video');
     } finally {
-      setLoading(false);
+      if (myToken === requestTokenRef.current.video) setLoading(false);
     }
   };
 
-  // Fetch memories specific to this video with cache management and retries
+  // Fetch memories specific to this video with cache management and retries (token anti-race)
   const fetchVideoMemories = async (videoId) => {
-    // Avoid multiple simultaneous requests
     if (fetchingRef.current) {
       console.log('⏳ A request is already in progress, cancelling');
       return;
     }
-    
     fetchingRef.current = true;
+
+    const myToken = ++requestTokenRef.current.memories;
     
     try {
       setMemoriesLoading(true);
@@ -269,12 +271,11 @@ const VideoDetail = () => {
       // First try to retrieve from local cache
       const memoriesFromState = allMemories.length > 0 ? filterMemoriesForCurrentVideo(allMemories, videoId) : [];
       
+      if (myToken !== requestTokenRef.current.memories) return;
+
       if (memoriesFromState.length > 0) {
-        console.log(`✅ ${memoriesFromState.length} memories found in local state`);
         const formattedMemories = formatMemories(memoriesFromState, videoId);
         setMemories(formattedMemories);
-        fetchingRef.current = false;
-        setMemoriesLoading(false);
         return;
       }
       
@@ -285,16 +286,12 @@ const VideoDetail = () => {
           const parsedMemories = JSON.parse(cachedMemories);
           const filteredMemories = filterMemoriesForCurrentVideo(parsedMemories, videoId);
           
+          if (myToken !== requestTokenRef.current.memories) return;
+
           if (filteredMemories.length > 0) {
-            console.log(`✅ ${filteredMemories.length} memories found in localStorage cache`);
             const formattedMemories = formatMemories(filteredMemories, videoId);
             setMemories(formattedMemories);
-            
-            // Update global state too
             setAllMemories(parsedMemories);
-            
-            fetchingRef.current = false;
-            setMemoriesLoading(false);
             return;
           }
         }
@@ -305,13 +302,12 @@ const VideoDetail = () => {
       // If no cache or empty cache, request to API
       console.log('🔄 Attempting to retrieve from API...');
       
-      // First try with the API specific to this video
       try {
         const memoriesData = await videoAPI.getVideoMemories(videoId);
+
+        if (myToken !== requestTokenRef.current.memories) return;
         
         if (Array.isArray(memoriesData) && memoriesData.length > 0) {
-          console.log(`✅ ${memoriesData.length} memories retrieved via API`);
-          
           // Strictly filter for this video
           const strictlyFilteredMemories = memoriesData.filter(memory => {
             const memoryVideoId = 
@@ -319,25 +315,20 @@ const VideoDetail = () => {
                 (typeof memory.video === 'string' ? memory.video : null) ||
                 memory.videoId || 
                 memory.video_id;
-            
             return memoryVideoId && memoryVideoId.toString() === videoId.toString();
           });
           
           const formattedMemories = formatMemories(strictlyFilteredMemories, videoId);
           setMemories(formattedMemories);
-          
-          // Reset retry counter
           retryCountRef.current = 0;
         } else if (retryCountRef.current < maxRetries) {
-          // Increase retry counter and try again after a delay
           retryCountRef.current++;
           console.log(`⚠️ No memories found, attempt ${retryCountRef.current}/${maxRetries}`);
           
           setTimeout(() => {
             fetchingRef.current = false;
             fetchVideoMemories(videoId);
-          }, 1000 * retryCountRef.current); // Wait longer each time
-          
+          }, 1000 * retryCountRef.current);
           return;
         } else {
           console.warn('❌ No memories found after multiple attempts');
@@ -345,6 +336,7 @@ const VideoDetail = () => {
           retryCountRef.current = 0;
         }
       } catch (apiErr) {
+        if (myToken !== requestTokenRef.current.memories) return;
         console.error('❌ Error retrieving memories via API:', apiErr);
         
         // Fallback: retrieve all memories and filter
@@ -353,10 +345,7 @@ const VideoDetail = () => {
           console.log(`⚠️ Fallback attempt ${retryCountRef.current}/${maxRetries}`);
           
           try {
-            // Retrieve all memories
             await fetchAllMemories();
-            
-            // Filter for this video
             const newFilteredMemories = filterMemoriesForCurrentVideo(allMemories, videoId);
             if (newFilteredMemories.length > 0) {
               const formattedMemories = formatMemories(newFilteredMemories, videoId);
@@ -374,9 +363,11 @@ const VideoDetail = () => {
         }
       }
     } finally {
-      fetchingRef.current = false;
-      setMemoriesLoading(false);
-      retryCountRef.current = 0;
+      if (myToken === requestTokenRef.current.memories) {
+        fetchingRef.current = false;
+        setMemoriesLoading(false);
+        retryCountRef.current = 0;
+      }
     }
   };
 
@@ -399,7 +390,6 @@ const VideoDetail = () => {
       
       if (memory.auteur) {
         if (typeof memory.auteur === 'object') {
-          // If author is an object (populate case)
           const prenom = memory.auteur.prenom || '';
           const nom = memory.auteur.nom || '';
           
@@ -409,7 +399,6 @@ const VideoDetail = () => {
             username = memory.auteur.username;
           }
         } else if (typeof memory.auteur === 'string' && memory.auteurDetails) {
-          // If author is an ID but details are available elsewhere
           const prenom = memory.auteurDetails.prenom || '';
           const nom = memory.auteurDetails.nom || '';
           username = `${prenom} ${nom}`.trim() || memory.auteurDetails.username || 'User';
@@ -418,13 +407,9 @@ const VideoDetail = () => {
         username = memory.username;
       }
       
-      // Ensure video data is correct
+      // 👉 Verrouiller l'ID vidéo sur la vidéo courante
       const videoDetails = {
-        id: memory.video?._id || 
-            (typeof memory.video === 'string' ? memory.video : null) || 
-            memory.videoId || 
-            memory.video_id ||
-            currentVideoId, // id comes from context (current video ID)
+        id: currentVideoId,
         title: memory.video?.titre || memory.videoTitle || video?.titre || 'Untitled video',
         artist: memory.video?.artiste || memory.videoArtist || video?.artiste || 'Unknown artist',
         year: memory.video?.annee || memory.videoYear || video?.annee || '----'
@@ -504,16 +489,11 @@ const VideoDetail = () => {
 
   // To handle displaying replies to a memory
   const handleToggleReplies = async (memoryId) => {
-    // Check if already loading
     if (memoriesLoading) return;
-    
-    // Find memory in state
     const memoryIndex = memories.findIndex(m => m.id === memoryId);
     if (memoryIndex === -1) return;
-    
     const memory = memories[memoryIndex];
     
-    // If replies are already displayed, hide them
     if (memory.showReplies) {
       const updatedMemories = [...memories];
       updatedMemories[memoryIndex] = {
@@ -524,10 +504,8 @@ const VideoDetail = () => {
       return;
     }
     
-    // Load replies if they're not already loaded
     if (!memory.replies || memory.replies.length === 0) {
       const replies = await fetchReplies(memoryId);
-      
       const updatedMemories = [...memories];
       updatedMemories[memoryIndex] = {
         ...memory,
@@ -536,7 +514,6 @@ const VideoDetail = () => {
       };
       setMemories(updatedMemories);
     } else {
-      // Simply display already loaded replies
       const updatedMemories = [...memories];
       updatedMemories[memoryIndex] = {
         ...memory,
@@ -546,83 +523,66 @@ const VideoDetail = () => {
     }
   };
 
-
-// In VideoDetail.jsx, update the handleAddReply function
-const handleAddReply = async (memoryId, replyText) => {
-  try {
-    console.log('✍️ Adding a reply to memory:', memoryId);
-    
-    // API call - try with the full route to ensure it's correct
-    const response = await api.post(`/api/memories/${memoryId}/replies`, {
-      contenu: replyText
-    });
-    
-    if (response.data && response.data.success) {
-      // Success processing
-      console.log('✅ Reply added successfully:', response.data);
-      
-      // Update the replies list in real time
-      const updatedMemories = memories.map(memory => {
-        if (memory.id === memoryId) {
-          return {
-            ...memory,
-            nb_commentaires: (memory.nb_commentaires || 0) + 1,
-            replies: memory.replies 
-              ? [...memory.replies, response.data.data] 
-              : [response.data.data]
-          };
-        }
-        return memory;
-      });
-      
-      setMemories(updatedMemories);
-      return true;
-    }
-    
-    return false;
-  } catch (err) {
-    console.error('❌ Error adding reply:', err);
-    
-    // Try with an alternative route
+  // In VideoDetail.jsx, update the handleAddReply function
+  const handleAddReply = async (memoryId, replyText) => {
     try {
-      console.log('🔄 Trying with alternative route...');
-      const fallbackResponse = await api.post(`/api/public/memories/${memoryId}/replies`, {
+      console.log('✍️ Adding a reply to memory:', memoryId);
+      
+      const response = await api.post(`/api/memories/${memoryId}/replies`, {
         contenu: replyText
       });
       
-      if (fallbackResponse.data && fallbackResponse.data.success) {
-        console.log('✅ Reply added successfully (via fallback):', fallbackResponse.data);
-        
-        // Update the replies list
+      if (response.data && response.data.success) {
         const updatedMemories = memories.map(memory => {
           if (memory.id === memoryId) {
             return {
               ...memory,
               nb_commentaires: (memory.nb_commentaires || 0) + 1,
               replies: memory.replies 
-                ? [...memory.replies, fallbackResponse.data.data] 
-                : [fallbackResponse.data.data]
+                ? [...memory.replies, response.data.data] 
+                : [response.data.data]
             };
           }
           return memory;
         });
-        
         setMemories(updatedMemories);
         return true;
       }
-    } catch (fallbackErr) {
-      console.error('❌ Error during alternative attempt:', fallbackErr);
+      return false;
+    } catch (err) {
+      console.error('❌ Error adding reply:', err);
+      try {
+        console.log('🔄 Trying with alternative route...');
+        const fallbackResponse = await api.post(`/api/public/memories/${memoryId}/replies`, {
+          contenu: replyText
+        });
+        if (fallbackResponse.data && fallbackResponse.data.success) {
+          const updatedMemories = memories.map(memory => {
+            if (memory.id === memoryId) {
+              return {
+                ...memory,
+                nb_commentaires: (memory.nb_commentaires || 0) + 1,
+                replies: memory.replies 
+                  ? [...memory.replies, fallbackResponse.data.data] 
+                  : [fallbackResponse.data.data]
+              };
+            }
+            return memory;
+          });
+          setMemories(updatedMemories);
+          return true;
+        }
+      } catch (fallbackErr) {
+        console.error('❌ Error during alternative attempt:', fallbackErr);
+      }
+      if (err.response?.status === 401) {
+        alert('Please log in to add a reply');
+      } else {
+        alert('Error adding reply. Please try again.');
+      }
+      return false;
     }
-    
-    if (err.response?.status === 401) {
-      alert('Please log in to add a reply');
-    } else {
-      alert('Error adding reply. Please try again.');
-    }
-    
-    return false;
-  }
-};
+  };
 
   // Handle liking a memory
   const handleLikeMemory = async (memoryId) => {
@@ -676,7 +636,6 @@ const handleAddReply = async (memoryId, replyText) => {
       try {
         const response = await api.post(`/api/memories/${memoryId}/like`);
         
-        // If the response contains new data, update with real values
         if (response.data && response.data.success && response.data.data) {
           const { liked, likes } = response.data.data;
           
@@ -698,8 +657,6 @@ const handleAddReply = async (memoryId, replyText) => {
         }
       } catch (apiErr) {
         console.warn('⚠️ Like API unavailable, local update only:', apiErr);
-        
-        // Try with an alternative route
         try {
           await api.post(`/api/public/memories/${memoryId}/like`);
         } catch (fallbackErr) {
@@ -787,20 +744,17 @@ const handleAddReply = async (memoryId, replyText) => {
       const response = await videoAPI.likeVideo(id);
       
       if (response.success) {
-        // Update with real data from server
         if (response.data) {
           setUserLiked(response.data.liked);
           setLikeCount(response.data.likes);
         }
         console.log('✅ Like/unlike successful');
       } else {
-        // Revert to previous state in case of failure
         setUserLiked(!newLikedState);
         setLikeCount(likeCount);
         console.warn('⚠️ Like failed:', response.message);
       }
     } catch (err) {
-      // Revert to previous state in case of error
       setUserLiked(!userLiked);
       setLikeCount(likeCount);
       
@@ -874,7 +828,6 @@ const handleAddReply = async (memoryId, replyText) => {
       setIsAddingMemory(true);
       console.log('✍️ Adding a memory...');
       
-      // EXPLICITLY include video ID in memory data
       const memoryData = {
         contenu: memoryText.trim(),
         video_id: id,
@@ -885,7 +838,6 @@ const handleAddReply = async (memoryId, replyText) => {
       const response = await api.post(`/api/public/videos/${id}/memories`, memoryData);
       
       if (response.data && response.data.success) {
-        // Add the new memory to the list with explicit reference to current video
         if (response.data.data) {
           const newMemoryData = {
             ...response.data.data,
@@ -895,21 +847,17 @@ const handleAddReply = async (memoryId, replyText) => {
               artiste: video?.artiste,
               annee: video?.annee
             },
-            videoId: id // Explicitly add video ID
+            videoId: id
           };
           
-          // Add to filtered memories list
           const newMemory = formatMemories([newMemoryData])[0];
           setMemories(prevMemories => [newMemory, ...prevMemories]);
           
-          // Also add to complete list
           const updatedAllMemories = [newMemoryData, ...allMemories];
           setAllMemories(updatedAllMemories);
           
-          // Update localStorage cache
           try {
             localStorage.setItem('allMemories', JSON.stringify(updatedAllMemories));
-            // Notify other tabs that memories have been updated
             localStorage.setItem('memoriesUpdated', Date.now().toString());
           } catch (storageErr) {
             console.warn('⚠️ Error updating cache:', storageErr);
@@ -917,18 +865,12 @@ const handleAddReply = async (memoryId, replyText) => {
         }
         
         setMemoryText('');
-        
-        console.log('✅ Memory added successfully');
-        
-        // Discreet success notification
         setShareMessage('Memory added successfully!');
         setTimeout(() => setShareMessage(''), 3000);
       } else {
-        // Fallback: try alternative route
         const fallbackResponse = await api.post(`/api/videos/${id}/memories`, memoryData);
         
         if (fallbackResponse.data && fallbackResponse.data.success) {
-          // Same processing as above
           if (fallbackResponse.data.data) {
             const newMemoryData = {
               ...fallbackResponse.data.data,
@@ -965,7 +907,6 @@ const handleAddReply = async (memoryId, replyText) => {
     } catch (err) {
       console.error('❌ Error adding memory:', err);
       
-      // Try fallback
       try {
         const memoryData = {
           contenu: memoryText.trim(),
@@ -979,7 +920,6 @@ const handleAddReply = async (memoryId, replyText) => {
         if (fallbackResponse.data && fallbackResponse.data.success) {
           console.log('✅ Memory added successfully (via fallback)');
           
-          // Same actions as above
           if (fallbackResponse.data.data) {
             const newMemoryData = {
               ...fallbackResponse.data.data,
@@ -1063,37 +1003,25 @@ const handleAddReply = async (memoryId, replyText) => {
 
   const getEmbedUrl = (url) => {
     if (!url) return null;
-    
-    if (url.includes('youtube.com/embed/')) {
-      return url;
-    }
-    
+    const safe = url.trim();
+
+    if (safe.includes('youtube.com/embed/')) return safe;
+
     let videoId = '';
-    
-    if (url.includes('youtube.com/watch?v=')) {
-      try {
-        const urlObj = new URL(url);
-        videoId = urlObj.searchParams.get('v');
-      } catch (e) {
-        return url;
+    try {
+      if (safe.includes('youtube.com/watch')) {
+        const u = new URL(safe);
+        videoId = u.searchParams.get('v') || '';
+      } else if (safe.includes('youtu.be/')) {
+        videoId = safe.split('youtu.be/')[1] || '';
       }
-    } else if (url.includes('youtu.be/')) {
-      videoId = url.split('youtu.be/')[1];
-    } else if (url.includes('youtube.com/embed/')) {
-      videoId = url.split('youtube.com/embed/')[1];
-    } else {
-      return url;
+    } catch {
+      return safe;
     }
-    
-    if (videoId && videoId.includes('&')) {
-      videoId = videoId.split('&')[0];
-    }
-    
-    if (videoId) {
-      return `https://www.youtube.com/embed/${videoId}`;
-    }
-    
-    return url;
+
+    if (videoId && videoId.includes('&')) videoId = videoId.split('&')[0];
+    if (videoId) return `https://www.youtube.com/embed/${videoId}`;
+    return safe;
   };
 
   // Component for recommended videos
@@ -1179,14 +1107,14 @@ const handleAddReply = async (memoryId, replyText) => {
       <div className={styles.mainContentWrap}>
         <main className={styles.mainContent}>
           {/* Video Player */}
-          <div className={styles.videoPlayerContainer}>
+          <div className={styles.videoPlayerContainer} key={id}>
             {isYoutubeEmbed ? (
               <div className={styles.videoWrapper}>
                 <iframe
-                  src={embedUrl}
+                  src={`${embedUrl}?rel=0&modestbranding=1`}
                   title={`${video.artiste} - ${video.titre}`}
                   frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                 ></iframe>
               </div>

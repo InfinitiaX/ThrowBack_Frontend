@@ -28,12 +28,50 @@ const UserPlaylists = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const baseUrl = process.env.REACT_APP_API_URL || '';
+  // Fonction pour obtenir les initiales du créateur
+  const getInitials = (playlist) => {
+    // Obtenir le propriétaire (selon le format disponible)
+    const owner = playlist.proprietaire || {};
+    const nom = owner.nom || '';
+    const prenom = owner.prenom || '';
+    
+    let initials = '';
+    if (prenom) initials += prenom.charAt(0).toUpperCase();
+    if (nom) initials += nom.charAt(0).toUpperCase();
+    
+    // Si on n'a pas d'initiales, utiliser une valeur par défaut
+    return initials || 'PL';
+  };
+  
+  // Génération d'une couleur basée sur l'ID de la playlist
+  const getBackgroundColor = (playlistId) => {
+    // Générer une couleur basée sur l'ID de la playlist pour être consistant
+    const colors = [
+      '#4a6fa5', '#6fb98f', '#2c786c', '#f25f5c', '#a16ae8', 
+      '#ffa600', '#58508d', '#bc5090', '#ff6361', '#003f5c'
+    ];
+    
+    if (!playlistId) return colors[0];
+    
+    // Générer un nombre à partir de l'ID pour choisir une couleur
+    const sum = playlistId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[sum % colors.length];
+  };
 
-  const imgUrl = (p) => {
-    if (!p) return '/images/playlist-placeholder.jpg';
-    if (p.startsWith('http')) return p;
-    return `${baseUrl}${p.startsWith('/') ? p : `/${p}`}`;
+  // Vérifier si l'utilisateur est le propriétaire de la playlist
+  const isOwner = (playlist) => {
+    if (!user || !playlist) return false;
+    
+    // Obtenir l'ID du propriétaire selon le format disponible
+    const ownerId = typeof playlist.proprietaire === 'object' 
+      ? playlist.proprietaire._id 
+      : playlist.proprietaire;
+    
+    // Obtenir l'ID de l'utilisateur connecté
+    const userId = user.id || user._id;
+    
+    // Vérifier si les IDs correspondent
+    return ownerId && userId && ownerId.toString() === userId.toString();
   };
 
   useEffect(() => {
@@ -41,13 +79,13 @@ const UserPlaylists = () => {
       try {
         setLoading(true);
 
-        // ⚠️ Important : n’appelle /api/playlists/user QUE si user existe (sinon 401)
+        // ⚠️ Important : n'appelle /api/playlists/user QUE si user existe (sinon 401)
         if (user) {
           try {
             const mine = await playlistAPI.getUserPlaylists();
             setPlaylists(mine || []);
           } catch (e) {
-            // On log l’erreur mais on ne bloque pas l’écran
+            // On log l'erreur mais on ne bloque pas l'écran
             console.warn('getUserPlaylists failed:', e?.response?.status || e);
             setPlaylists([]);
           }
@@ -118,6 +156,56 @@ const UserPlaylists = () => {
     setActiveDropdown(null);
   };
 
+  // Fonction pour aimer une playlist
+  const toggleLike = async (e, playlist) => {
+    e.stopPropagation();
+    try {
+      const isLiked = playlist.userHasLiked;
+      await playlistAPI.togglePlaylistLike(playlist._id, !isLiked);
+      
+      // Mettre à jour l'état local
+      const updatedPlaylists = playlists.map(p => {
+        if (p._id === playlist._id) {
+          return {
+            ...p,
+            nb_favoris: isLiked 
+              ? Math.max(0, (p.nb_favoris || 0) - 1) 
+              : (p.nb_favoris || 0) + 1,
+            userHasLiked: !isLiked
+          };
+        }
+        return p;
+      });
+      
+      setPlaylists(updatedPlaylists);
+      
+      // Mettre à jour également les playlists populaires si la playlist s'y trouve
+      const updatedPopularPlaylists = popularPlaylists.map(p => {
+        if (p._id === playlist._id) {
+          return {
+            ...p,
+            nb_favoris: isLiked 
+              ? Math.max(0, (p.nb_favoris || 0) - 1) 
+              : (p.nb_favoris || 0) + 1,
+            userHasLiked: !isLiked
+          };
+        }
+        return p;
+      });
+      
+      setPopularPlaylists(updatedPopularPlaylists);
+      
+      setToastMessage(isLiked ? 'Like retiré' : 'Playlist aimée');
+      setToastType('success');
+      setShowToast(true);
+    } catch (error) {
+      console.error("Erreur lors de la modification du like:", error);
+      setToastMessage("Une erreur est survenue");
+      setToastType('error');
+      setShowToast(true);
+    }
+  };
+
   if (loading) return <LoadingSpinner />;
 
   if (error) {
@@ -155,8 +243,13 @@ const UserPlaylists = () => {
             {playlists.map((p, i) => (
               <div key={p._id} className={styles.playlistCard} onClick={() => toDetail(p._id)}>
                 <div className={styles.playlistImageContainer}>
-                  <img className={styles.playlistImage} src={imgUrl(p.image_couverture)} alt={p.nom || 'Playlist'} 
-                       onError={(e)=>{e.currentTarget.src='/images/playlist-placeholder.jpg';}} />
+                  {/* Utilisation des initiales au lieu de l'image */}
+                  <div 
+                    className={styles.initialsContainer}
+                    style={{ backgroundColor: getBackgroundColor(p._id) }}
+                  >
+                    <span className={styles.initials}>{getInitials(p)}</span>
+                  </div>
                   <div className={styles.playlistOverlay}>
                     <button className={styles.playButton} onClick={(e)=>toPlay(e, p._id)}>
                       <FontAwesomeIcon icon={faPlay} />
@@ -179,12 +272,23 @@ const UserPlaylists = () => {
                   </div>
 
                   <div className={styles.actions}>
-                    <button className={styles.iconBtn} onClick={(e)=>edit(e, p)} title="Modifier">
-                      <FontAwesomeIcon icon={faEdit} />
+                    <button 
+                      className={`${styles.iconBtn} ${p.userHasLiked ? styles.likedBtn : ''}`} 
+                      onClick={(e) => toggleLike(e, p)} 
+                      title={p.userHasLiked ? "Ne plus aimer" : "Aimer"}
+                    >
+                      <FontAwesomeIcon icon={faHeart} />
                     </button>
-                    <button className={styles.iconBtn} onClick={(e)=>askDelete(e, p)} title="Supprimer">
-                      <FontAwesomeIcon icon={faTrash} />
-                    </button>
+                    {isOwner(p) && (
+                      <>
+                        <button className={styles.iconBtn} onClick={(e)=>edit(e, p)} title="Modifier">
+                          <FontAwesomeIcon icon={faEdit} />
+                        </button>
+                        <button className={styles.iconBtn} onClick={(e)=>askDelete(e, p)} title="Supprimer">
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                      </>
+                    )}
                     <button className={styles.iconBtn} onClick={(e)=>share(e, p)} title="Partager">
                       <FontAwesomeIcon icon={faShare} />
                     </button>
@@ -202,8 +306,13 @@ const UserPlaylists = () => {
           {popularPlaylists.map((p) => (
             <div key={p._id} className={styles.playlistCard} onClick={()=>toDetail(p._id)}>
               <div className={styles.playlistImageContainer}>
-                <img className={styles.playlistImage} src={imgUrl(p.image_couverture)} alt={p.nom || 'Playlist'}
-                     onError={(e)=>{e.currentTarget.src='/images/playlist-placeholder.jpg';}} />
+                {/* Utilisation des initiales au lieu de l'image */}
+                <div 
+                  className={styles.initialsContainer}
+                  style={{ backgroundColor: getBackgroundColor(p._id) }}
+                >
+                  <span className={styles.initials}>{getInitials(p)}</span>
+                </div>
                 <div className={styles.playlistOverlay}>
                   <button className={styles.playButton} onClick={(e)=>toPlay(e, p._id)}>
                     <FontAwesomeIcon icon={faPlay} />
@@ -220,6 +329,28 @@ const UserPlaylists = () => {
                   <span><FontAwesomeIcon icon={faMusic}/> {p.nb_videos || p.videos?.length || 0} vidéos</span>
                   <span><FontAwesomeIcon icon={faEye}/> {formatCount(p.nb_lectures || 0)}</span>
                   <span><FontAwesomeIcon icon={faHeart}/> {formatCount(p.nb_favoris || 0)}</span>
+                </div>
+                <div className={styles.actions}>
+                  <button 
+                    className={`${styles.iconBtn} ${p.userHasLiked ? styles.likedBtn : ''}`} 
+                    onClick={(e) => toggleLike(e, p)} 
+                    title={p.userHasLiked ? "Ne plus aimer" : "Aimer"}
+                  >
+                    <FontAwesomeIcon icon={faHeart} />
+                  </button>
+                  {isOwner(p) && (
+                    <>
+                      <button className={styles.iconBtn} onClick={(e)=>edit(e, p)} title="Modifier">
+                        <FontAwesomeIcon icon={faEdit} />
+                      </button>
+                      <button className={styles.iconBtn} onClick={(e)=>askDelete(e, p)} title="Supprimer">
+                        <FontAwesomeIcon icon={faTrash} />
+                      </button>
+                    </>
+                  )}
+                  <button className={styles.iconBtn} onClick={(e)=>share(e, p)} title="Partager">
+                    <FontAwesomeIcon icon={faShare} />
+                  </button>
                 </div>
               </div>
             </div>

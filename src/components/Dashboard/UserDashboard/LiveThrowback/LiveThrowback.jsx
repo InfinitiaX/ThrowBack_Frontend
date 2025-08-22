@@ -1,5 +1,5 @@
 // LiveThrowback.jsx
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHeart, faEye, faShare, faExclamationTriangle, faClock } from '@fortawesome/free-solid-svg-icons';
@@ -12,18 +12,21 @@ import api from '../../../../utils/api';
 
 const LOG_LEVEL = process.env.NODE_ENV === 'development' ? 'debug' : 'error';
 const logger = {
-  debug: (...a) => LOG_LEVEL === 'debug' && console.log(...a),
-  error: (...a) => console.error(...a),
+  debug: (...a) => LOG_LEVEL === 'debug' && console.log('[LiveThrowback]', ...a),
+  error: (...a) => console.error('[LiveThrowback]', ...a),
 };
 
 const LiveThrowback = () => {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
+
   const [liveStreams, setLiveStreams] = useState([]);
   const [currentStream, setCurrentStream] = useState(null);
+
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [viewCount, setViewCount] = useState(0);
+
   const [comment, setComment] = useState('');
   const [chatDisabled, setChatDisabled] = useState(false);
 
@@ -47,8 +50,8 @@ const LiveThrowback = () => {
   };
 
   /**
-   * URL de lecture STABLE — ne change pas pendant la lecture
-   * (pas de &index=, pas de timers qui modifient le src)
+   * URL de lecture STABLE — ne change PAS pendant la lecture.
+   * Laisse YouTube gérer l’enchaînement de la playlist (autoplay/loop/shuffle).
    */
   const playerSrc = useMemo(() => {
     if (!currentStream || !isStreamValid(currentStream)) return '';
@@ -57,14 +60,15 @@ const LiveThrowback = () => {
     const loop     = currentStream.playbackConfig?.loop !== false;
     const shuffle  = currentStream.playbackConfig?.shuffle === true;
 
-    // Compilation → préférer une playlist YT unique (URL stable)
-    if (currentStream.compilationType === 'VIDEO_COLLECTION' &&
-        Array.isArray(currentStream.compilationVideos) &&
-        currentStream.compilationVideos.length > 0) {
-
+    // Compilation
+    if (
+      currentStream.compilationType === 'VIDEO_COLLECTION' &&
+      Array.isArray(currentStream.compilationVideos) &&
+      currentStream.compilationVideos.length > 0
+    ) {
       const vids = currentStream.compilationVideos;
 
-      // Tous YouTube → construire une URL playlist sans index
+      // Tous YouTube → playlist unique et STABLE (pas d’index)
       if (vids.every(v => v.sourceType === 'YOUTUBE')) {
         const ids = vids.map(v => v.sourceId).join(',');
         let url = `https://www.youtube.com/embed/?playlist=${ids}&autoplay=${autoplay ? 1 : 0}`;
@@ -74,7 +78,7 @@ const LiveThrowback = () => {
         return url;
       }
 
-      // Mix de sources → point d’entrée sur la première vidéo (URL stable)
+      // Sources mixtes → prendre la 1re comme point d’entrée (URL stable)
       const first = vids[0];
       if (first?.sourceType === 'YOUTUBE') {
         let url = `https://www.youtube.com/embed/${first.sourceId}?autoplay=${autoplay ? 1 : 0}`;
@@ -82,16 +86,18 @@ const LiveThrowback = () => {
         url += '&rel=0&modestbranding=1&enablejsapi=1&origin=' + window.location.origin;
         return url;
       }
-      if (first?.sourceType === 'VIMEO')
+      if (first?.sourceType === 'VIMEO') {
         return `https://player.vimeo.com/video/${first.sourceId}?autoplay=${autoplay ? 1 : 0}&loop=${loop ? 1 : 0}&transparent=0&dnt=1&playsinline=1`;
-      if (first?.sourceType === 'DAILYMOTION')
+      }
+      if (first?.sourceType === 'DAILYMOTION') {
         return `https://www.dailymotion.com/embed/video/${first.sourceId}?autoplay=${autoplay ? 1 : 0}`;
+      }
     }
 
     // URL directe
     if (currentStream.playbackUrl) return currentStream.playbackUrl;
 
-    // YouTube unique
+    // YouTube “simple”
     if (currentStream.youtubeUrl) {
       const id = extractYoutubeId(currentStream.youtubeUrl);
       if (id) {
@@ -106,12 +112,9 @@ const LiveThrowback = () => {
     // Fallback
     if (currentStream.embedCode) return currentStream.embedCode;
     return '';
-  }, [currentStream]); // ⚠️ ne dépend QUE du stream (pas d’index/temps)
+  }, [currentStream]);
 
-  /**
-   * Chargement et polling léger des streams — ne remonte pas le player
-   * si l’utilisateur est déjà sur un stream encore valide.
-   */
+  // Chargement des streams + polling non agressif (préserve le stream en cours)
   useEffect(() => {
     let mounted = true;
 
@@ -124,21 +127,22 @@ const LiveThrowback = () => {
         if (!mounted) return;
 
         if (res.data?.success) {
-          const valid = (res.data.data || []).filter(isStreamValid);
+          const list = (res.data.data || []);
+          const valid = list.filter(isStreamValid);
           setLiveStreams(valid);
 
-          setCurrentStream((prev) => {
+          setCurrentStream(prev => {
             if (!prev) return valid[0] || null;
             const still = valid.find(s => s._id === prev._id);
-            return still || valid[0] || null;
+            return still || valid[0] || null; // ne remplace pas inutilement
           });
 
-          const base = valid[0];
-          if (base) {
-            setViewCount(base.statistics?.totalUniqueViewers || 0);
-            setLikeCount(base.statistics?.likes || 0);
-            setChatDisabled(base.chatEnabled === false);
-            if (user && base.userLiked) setLiked(true);
+          const first = valid[0];
+          if (first) {
+            setViewCount(first.statistics?.totalUniqueViewers || 0);
+            setLikeCount(first.statistics?.likes || 0);
+            setChatDisabled(first.chatEnabled === false);
+            if (user && first.userLiked) setLiked(true);
           }
         } else {
           setError('Invalid API response');
@@ -156,7 +160,7 @@ const LiveThrowback = () => {
     return () => { mounted = false; clearInterval(intv); };
   }, [user]);
 
-  // Incrément UX de vues au chargement du stream (sans recharger la page)
+  // Compte de vues (UX) sans recharger
   useEffect(() => {
     const bumpViews = async () => {
       try {
@@ -171,12 +175,14 @@ const LiveThrowback = () => {
     bumpViews();
   }, [currentStream, user]);
 
-  // Ne jamais recharger la page : juste informer quand le live est terminé
+  // Vérif d’expiration — surtout PAS de reload
   useEffect(() => {
     if (!currentStream) return;
     const intv = setInterval(() => {
-      const stillValid = isStreamValid(currentStream);
-      if (!stillValid) setError('This livestream has ended');
+      const now = new Date();
+      if (new Date(currentStream.scheduledEndTime) <= now || currentStream.status !== 'LIVE') {
+        setError('This livestream has ended');
+      }
     }, 10000);
     return () => clearInterval(intv);
   }, [currentStream]);
@@ -191,7 +197,7 @@ const LiveThrowback = () => {
         setLikeCount((p) => p + 1);
         await api.post(`/api/user/livestreams/${currentStream._id}/like`);
       } else {
-        // pas d’API "unlike" — on garde un toggle local
+        // Pas d’API unlike — toggle local
         setLiked(false);
         setLikeCount((p) => Math.max(0, p - 1));
       }
@@ -225,13 +231,14 @@ const LiveThrowback = () => {
     try {
       const res = await api.post(`/api/livechat/${currentStream._id}`, { content });
       if (!res.data?.success) throw new Error('Post failed');
-      // <CommentSection> se mettra à jour via son polling
+      // CommentSection se mettra à jour par polling
     } catch (e) {
       logger.error(e);
-      setComment(content); // restore
+      setComment(content);
     }
   };
 
+  // Rail d’aperçus : affiche TOUTE la compilation (scroll horizontal)
   const renderCompilationRail = () => {
     if (!currentStream?.compilationVideos?.length) return null;
     const videos = currentStream.compilationVideos;
@@ -239,15 +246,13 @@ const LiveThrowback = () => {
     return (
       <div className={styles.compilationRail}>
         {videos.map((v, i) => (
-          <div key={`${v.sourceId}_${i}`} className={styles.compilationItem} title={v.title || `Video ${i+1}`}>
+          <div key={`${v.sourceId}_${i}`} className={styles.compilationItem} title={v.title || `Video ${i + 1}`}>
             <img
               src={v.thumbnailUrl || '/images/default-thumb.jpg'}
-              alt={v.title || `Video ${i+1}`}
+              alt={v.title || `Video ${i + 1}`}
               onError={(e) => { e.currentTarget.src = '/images/default-thumb.jpg'; }}
             />
-            <div className={styles.compilationItemTitle} title={v.title || ''}>
-              {v.title || `Video ${i+1}`}
-            </div>
+            <div className={styles.compilationItemTitle}>{v.title || `Video ${i + 1}`}</div>
           </div>
         ))}
       </div>
@@ -256,7 +261,7 @@ const LiveThrowback = () => {
 
   if (loading) return <LoadingSpinner />;
 
-  if (error) {
+  if (error && !isStreamValid(currentStream || {})) {
     return (
       <div className={styles.errorContainer}>
         <FontAwesomeIcon icon={faExclamationTriangle} className={styles.errorIcon} />
@@ -288,7 +293,7 @@ const LiveThrowback = () => {
             <div className={styles.videoPlayer}>
               {hasVideo ? (
                 <VideoPlayer
-                  key={currentStream._id} // ⚓️ évite tout re-montage intempestif
+                  key={currentStream._id} /* ⚓️ évite les re‑montages */
                   ref={playerRef}
                   src={playerSrc}
                   poster={currentStream.thumbnailUrl || '/images/default-livestream.jpg'}
@@ -316,7 +321,6 @@ const LiveThrowback = () => {
             <h2 className={styles.streamTitle}>{currentStream.title}</h2>
             <p className={styles.hostInfo}>Hosted by: {currentStream.hostName || 'ThrowBack Host'}</p>
 
-            {/* rail complète et scrollable */}
             {renderCompilationRail()}
 
             <div className={styles.interactionBar}>
@@ -328,6 +332,7 @@ const LiveThrowback = () => {
                 <FontAwesomeIcon icon={faHeart} />
                 <span>{likeCount}</span>
               </button>
+
               <button className={styles.interactionButton} onClick={handleShare}>
                 <FontAwesomeIcon icon={faShare} />
                 <span>Share</span>

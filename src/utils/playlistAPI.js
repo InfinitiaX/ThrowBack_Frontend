@@ -180,17 +180,17 @@ const playlistAPI = {
   },
 
   // Ajouter/retirer une playlist des favoris
-  toggleFavorite: async (playlistId) => {
-    try {
-      console.log(`Appel API: toggleFavorite (id=${playlistId})`);
-      const response = await api.post(`/api/playlists/${playlistId}/favorite`);
-      console.log("Réponse API toggleFavorite:", response.data);
-      return response.data;
-    } catch (error) {
-      console.error(`Erreur lors de la gestion des favoris pour la playlist ${playlistId}:`, error);
-      throw error;
-    }
-  },
+  // toggleFavorite: async (playlistId) => {
+  //   try {
+  //     console.log(`Appel API: toggleFavorite (id=${playlistId})`);
+  //     const response = await api.post(`/api/playlists/${playlistId}/favorite`);
+  //     console.log("Réponse API toggleFavorite:", response.data);
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error(`Erreur lors de la gestion des favoris pour la playlist ${playlistId}:`, error);
+  //     throw error;
+  //   }
+  // },
 
   // Partager une playlist
   sharePlaylist: async (playlistId, shareData) => {
@@ -204,7 +204,30 @@ const playlistAPI = {
       console.error(`Erreur lors du partage de la playlist ${playlistId}:`, error);
       throw error;
     }
+  },
+
+    // Incrémenter le nombre de vues d'une playlist
+  incrementPlaylistViews: async (playlistId) => {
+    try {
+      const response = await api.post(`/api/playlists/${playlistId}/view`);
+      return response.data;
+    } catch (error) {
+      console.error("Erreur lors de l'incrémentation des vues:", error);
+      throw error;
+    }
+  },
+  
+  // Ajouter/retirer un like (même fonction que toggleFavorite)
+  togglePlaylistLike: async (playlistId, isLiked) => {
+    try {
+      const response = await api.post(`/api/playlists/${playlistId}/like`, { isLiked });
+      return response.data;
+    } catch (error) {
+      console.error("Erreur lors de la modification du like:", error);
+      throw error;
+    }
   }
+
 };
 
 export default playlistAPI;

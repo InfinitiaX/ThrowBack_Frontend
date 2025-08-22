@@ -220,10 +220,10 @@ const HelpAndSupport = () => {
                 <FontAwesomeIcon icon={faEnvelope} />
                 <span>support@throwback.com</span>
               </div>
-              <div className={styles.contactItem}>
+              {/* <div className={styles.contactItem}>
                 <FontAwesomeIcon icon={faPhone} />
                 <span>+16468945095</span>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>

@@ -1,49 +1,248 @@
-:root { --border:#e5e7eb; --muted:#6b7280; --accent:#b10012; }
-
-.wrapper{ max-width:1180px; margin:0 auto; }
-
-.topRow{ display:flex; align-items:center; justify-content:space-between; margin:8px 0 16px; }
-.back{ border:1px solid var(--border); background:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; }
-
-.playerLayout{ display:grid; grid-template-columns: 1fr 360px; gap:22px; }
-
-.player{
-  background:#000; position:relative; border:1px solid var(--border); border-radius:14px; overflow:hidden;
-}
-.video{ width:100%; aspect-ratio:16/9; display:block; background:#000; }
-
-.controls{
-  display:flex; align-items:center; gap:10px;
-  padding:10px 12px; background:#fff; border-top:1px solid var(--border);
-}
-.leftCtrls, .rightCtrls{ display:flex; align-items:center; gap:10px; }
-.progressWrap{ flex:1; display:flex; align-items:center; gap:8px; }
-.progress{ flex:1; }
-.time{ font-size:12px; color:var(--muted); }
-
-.secondary{
-  border:1px solid var(--border); background:#fff; padding:8px 10px; border-radius:10px; cursor:pointer;
-}
-.primary{
-  border:none; background:var(--accent); color:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:700;
+.playerPage {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: #111;
+  color: white;
 }
 
-.side{
-  border:1px solid var(--border); border-radius:14px; background:#fff; overflow:hidden; height:fit-content;
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
 }
-.sideHeader{ display:flex; align-items:center; justify-content:space-between; padding:12px; border-bottom:1px solid var(--border); }
-.sideTitle{ font-weight:800; }
-.list{ padding:10px 12px; display:flex; flex-direction:column; gap:8px; max-height:540px; overflow:auto; }
 
-.row{
-  display:grid; grid-template-columns: 46px 1fr auto; gap:10px; align-items:center;
-  border:1px solid var(--border); border-radius:12px; padding:8px 10px; cursor:pointer; background:#fff;
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
 }
-.rowActive{ border-color: var(--accent); box-shadow: 0 0 0 3px rgba(177,0,18,.12); }
-.thumb{ width:46px; height:30px; object-fit:cover; border-radius:6px; border:1px solid var(--border); background:#000; }
-.rowTitle{ font-weight:700; }
-.rowMeta{ font-size:12px; color:var(--muted); }
 
-.toastSpace{ position:fixed; bottom:18px; right:18px; }
+.backBtn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
 
-@media (max-width:1000px){ .playerLayout{ grid-template-columns:1fr; } }
+.topTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.playerLayout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.playerArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background-color: black;
+}
+
+.iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  height: 100%;
+  text-align: center;
+}
+
+.fallback img {
+  max-width: 50%;
+  max-height: 50%;
+  object-fit: contain;
+  margin-bottom: 24px;
+  border-radius: 8px;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background-color: #111;
+  border-top: 1px solid #222;
+}
+
+.ctrlBtn {
+  background: none;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.ctrlBtn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.ctrlBtn.active {
+  color: #8b0000;
+}
+
+.sideList {
+  width: 350px;
+  background-color: #222;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #333;
+}
+
+.sideList h3 {
+  padding: 16px;
+  margin: 0;
+  border-bottom: 1px solid #333;
+}
+
+.videoList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #333;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.row:hover {
+  background-color: #333;
+}
+
+.row.active {
+  background-color: #3a3a3a;
+}
+
+.row img {
+  width: 80px;
+  height: 45px;
+  margin-right: 12px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sub {
+  font-size: 12px;
+  color: #999;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Error handling */
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.errorMessage {
+  color: #ff6b6b;
+  font-size: 16px;
+  margin-bottom: 24px;
+}
+
+.retryButton {
+  background-color: #8b0000;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.retryButton:hover {
+  background-color: #6b0000;
+}
+
+/* Responsive styles */
+@media (max-width: 992px) {
+  .playerLayout {
+    flex-direction: column;
+  }
+  
+  .sideList {
+    width: 100%;
+    height: 300px;
+    border-left: none;
+    border-top: 1px solid #333;
+  }
+}
+
+@media (max-width: 480px) {
+  .playerArea {
+    min-height: 250px;
+  }
+  
+  .controls {
+    gap: 8px;
+  }
+  
+  .ctrlBtn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+  
+  .row img {
+    width: 60px;
+    height: 34px;
+  }
+}

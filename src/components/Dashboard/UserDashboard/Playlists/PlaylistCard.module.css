@@ -1,33 +1,161 @@
-:root { --border:#e5e7eb; --muted:#6b7280; --accent:#b10012; }
-
-.playlistCard{
-  background:#fff; border:1px solid var(--border); border-radius:14px; overflow:hidden;
-  cursor:pointer; transition:transform .12s, box-shadow .12s;
-}
-.playlistCard:hover{ transform:translateY(-2px); box-shadow:0 10px 24px rgba(0,0,0,.06); }
-
-.imageContainer{ position:relative; }
-.playlistImage{ width:100%; aspect-ratio:16/9; object-fit:cover; background:#000; }
-.overlay{
-  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-  background:linear-gradient(to top, rgba(0,0,0,.45), rgba(0,0,0,0)); opacity:0; transition:opacity .12s;
-}
-.playlistCard:hover .overlay{ opacity:1; }
-.playButton{
-  width:44px; height:44px; border-radius:999px; display:grid; place-items:center;
-  background:#fff; color:var(--accent); border:none; cursor:pointer;
+.playlistCard {
+  background-color: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  height: 100%;
 }
 
-.content{ padding:12px; }
-.header{ display:flex; align-items:center; justify-content:space-between; }
-.title{ margin:0; font-weight:800; font-size:16px; }
-.visibility{ color:#9ca3af; }
+.playlistCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
 
-.description{ margin:6px 0; color:#374151; font-size:14px; min-height:36px; }
+.imageContainer {
+  position: relative;
+  height: 160px;
+  overflow: hidden;
+}
 
-.stats{ display:flex; gap:12px; font-size:12.5px; color:var(--muted); margin-top:6px; }
-.count{ display:inline-flex; gap:6px; align-items:center; }
+.playlistImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
 
-.owner{ display:flex; align-items:center; gap:8px; margin-top:10px; }
-.ownerAvatar{ width:26px; height:26px; border-radius:999px; object-fit:cover; border:1px solid var(--border); }
-.ownerName{ font-size:13px; color:#111827; }
+.playlistCard:hover .playlistImage {
+  transform: scale(1.05);
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.playlistCard:hover .overlay {
+  opacity: 1;
+}
+
+.playButton {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #8b0000;
+  color: white;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.playButton:hover {
+  background-color: #6b0000;
+  transform: scale(1.1);
+}
+
+.content {
+  padding: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+  line-height: 1.3;
+  flex: 1;
+}
+
+.visibility {
+  color: #666;
+  margin-left: 8px;
+}
+
+.description {
+  color: #666;
+  font-size: 14px;
+  margin: 8px 0 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  flex: 1;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: #666;
+  margin-top: auto;
+}
+
+.stats span {
+  display: flex;
+  align-items: center;
+}
+
+.stats svg {
+  margin-right: 4px;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .imageContainer {
+    height: 140px;
+  }
+  
+  .title {
+    font-size: 16px;
+  }
+  
+  .description {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .imageContainer {
+    height: 120px;
+  }
+  
+  .playButton {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+  
+  .stats {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}

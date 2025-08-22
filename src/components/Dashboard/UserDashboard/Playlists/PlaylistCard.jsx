@@ -6,20 +6,52 @@ import styles from './PlaylistCard.module.css';
 
 const PlaylistCard = ({ playlist }) => {
   const navigate = useNavigate();
-  const baseUrl = process.env.REACT_APP_API_URL || '';
-  const img = (p) => !p ? '/images/playlist-placeholder.jpg' : (p.startsWith('http') ? p : `${baseUrl}${p.startsWith('/')?p:`/${p}`}`);
   const go = () => navigate(`/dashboard/playlists/${playlist._id}`);
   const play = (e) => { e.stopPropagation(); navigate(`/dashboard/playlists/${playlist._id}/play`); };
 
   const vis = playlist.visibilite === 'PRIVE' ? faLock : (playlist.visibilite === 'AMIS' ? faUserFriends : faGlobe);
   const fmt = (n)=> !n ? '0' : n>=1_000_000 ? `${(n/1_000_000).toFixed(1)}M` : n>=1_000 ? `${(n/1_000).toFixed(1)}K` : n;
+  
+  // Génération des initiales du créateur
+  const getInitials = () => {
+    // Obtenir le propriétaire (selon le format disponible)
+    const owner = playlist.proprietaire || {};
+    const nom = owner.nom || '';
+    const prenom = owner.prenom || '';
+    
+    let initials = '';
+    if (prenom) initials += prenom.charAt(0).toUpperCase();
+    if (nom) initials += nom.charAt(0).toUpperCase();
+    
+    // Si on n'a pas d'initiales, utiliser une valeur par défaut
+    return initials || 'PL';
+  };
+  
+  // Génération d'une couleur basée sur l'ID de la playlist
+  const getBackgroundColor = () => {
+    // Générer une couleur basée sur l'ID de la playlist pour être consistant
+    const colors = [
+      '#4a6fa5', '#6fb98f', '#2c786c', '#f25f5c', '#a16ae8', 
+      '#ffa600', '#58508d', '#bc5090', '#ff6361', '#003f5c'
+    ];
+    
+    if (!playlist._id) return colors[0];
+    
+    // Générer un nombre à partir de l'ID pour choisir une couleur
+    const sum = playlist._id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[sum % colors.length];
+  };
 
   return (
     <div className={styles.playlistCard} onClick={go}>
       <div className={styles.imageContainer}>
-        <img src={img(playlist.image_couverture)} alt={playlist.nom || 'Playlist'}
-             className={styles.playlistImage}
-             onError={(e)=>{e.currentTarget.src='/images/playlist-placeholder.jpg';}} />
+        {/* Remplacer l'image par un div avec les initiales */}
+        <div 
+          className={styles.initialsContainer}
+          style={{ backgroundColor: getBackgroundColor() }}
+        >
+          <span className={styles.initials}>{getInitials()}</span>
+        </div>
         <div className={styles.overlay}>
           <button className={styles.playButton} onClick={play}><FontAwesomeIcon icon={faPlay}/></button>
         </div>

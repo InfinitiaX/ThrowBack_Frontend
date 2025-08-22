@@ -61,6 +61,31 @@ const PlaylistForm = () => {
     return `${baseUrl}${mediaPath}`;
   };
 
+  // Fonction pour obtenir les initiales d'un artiste
+  const getArtistInitials = (artist) => {
+    if (!artist) return 'A';
+    
+    // Découper le nom de l'artiste en mots et prendre les premières lettres
+    return artist.split(' ')
+      .map(word => word.charAt(0).toUpperCase())
+      .join('')
+      .substring(0, 2); // Limiter à 2 caractères maximum
+  };
+
+  // Générer une couleur de fond basée sur le nom de l'artiste pour être consistant
+  const getArtistColor = (artist) => {
+    const colors = [
+      '#4a6fa5', '#6fb98f', '#2c786c', '#f25f5c', '#a16ae8', 
+      '#ffa600', '#58508d', '#bc5090', '#ff6361', '#003f5c'
+    ];
+    
+    if (!artist) return colors[0];
+    
+    // Générer un nombre à partir du nom pour choisir une couleur
+    const sum = artist.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[sum % colors.length];
+  };
+
   // Load data if in edit mode
   useEffect(() => {
     const fetchData = async () => {
@@ -592,11 +617,13 @@ const PlaylistForm = () => {
                         className={styles.searchResultItem}
                         onClick={() => handleAddVideo(video)}
                       >
-                        <div className={styles.searchResultThumbnail}>
-                          <img 
-                            src={getMediaUrl(video.thumbnail) || "https://via.placeholder.com/60x34?text=Video"}
-                            alt={video.titre || "Vidéo"}
-                          />
+                        <div 
+                          className={styles.searchResultThumbnail}
+                          style={{ 
+                            backgroundColor: getArtistColor(video.artiste),
+                          }}
+                        >
+                          {getArtistInitials(video.artiste)}
                         </div>
                         <div className={styles.searchResultInfo}>
                           <h4 className={styles.searchResultTitle}>{video.titre || "Vidéo sans titre"}</h4>
@@ -640,11 +667,13 @@ const PlaylistForm = () => {
                       onDrop={(e) => handleDrop(e, index)}
                     >
                       <div className={styles.videoItemIndex}>{index + 1}</div>
-                      <div className={styles.videoItemThumbnail}>
-                        <img 
-                          src={getMediaUrl(video.thumbnail) || "https://via.placeholder.com/80x45?text=Video"}
-                          alt={video.titre || "Vidéo"}
-                        />
+                      <div 
+                        className={styles.videoItemThumbnail}
+                        style={{ 
+                          backgroundColor: getArtistColor(video.artiste),
+                        }}
+                      >
+                        {getArtistInitials(video.artiste)}
                       </div>
                       <div className={styles.videoItemInfo}>
                         <h4 className={styles.videoItemTitle}>{video.titre || "Vidéo sans titre"}</h4>

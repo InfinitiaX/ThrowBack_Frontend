@@ -1,360 +1,286 @@
-import React, { useState, useEffect, useRef } from 'react';
+// CommentSection.jsx
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faThumbsUp, faReply } from '@fortawesome/free-solid-svg-icons';
 import styles from './LiveThrowback.module.css';
 import api from '../../../../utils/api';
 import { useAuth } from '../../../../contexts/AuthContext';
 
-// Niveau de log configurable
 const LOG_LEVEL = process.env.NODE_ENV === 'development' ? 'debug' : 'error';
-
-// Fonction de log personnalisée
-const logger = {
-  debug: (...args) => LOG_LEVEL === 'debug' && console.log(...args),
-  info: (...args) => ['debug', 'info'].includes(LOG_LEVEL) && console.log(...args),
-  warn: (...args) => console.warn(...args),
-  error: (...args) => console.error(...args)
+const log = {
+  d: (...a) => LOG_LEVEL === 'debug' && console.log('[CommentSection]', ...a),
+  e: (...a) => console.error('[CommentSection]', ...a),
 };
 
-// Cache pour les commentaires
-const commentsCache = {
-  data: {},
-  get: (key) => commentsCache.data[key],
-  set: (key, value, ttl = 60000) => {
-    commentsCache.data[key] = {
-      value,
-      expiry: Date.now() + ttl
-    };
-  },
-  isValid: (key) => {
-    const item = commentsCache.data[key];
-    return item && item.expiry > Date.now();
-  },
-  clear: (key = null, streamIdentifier = null) => {
-    if (key) {
-      delete commentsCache.data[key];
-    } else if (streamIdentifier) {
-      Object.keys(commentsCache.data).forEach(cacheKey => {
-        if (cacheKey.startsWith(`comments_${streamIdentifier}`)) {
-          delete commentsCache.data[cacheKey];
-        }
-      });
-    } else {
-      commentsCache.data = {};
-    }
-  }
-};
+const PAGE_SIZE = 10;
+const REPLIES_PAGE_SIZE = 10;
 
 const CommentSection = ({ streamId }) => {
+  const { user } = useAuth();
+
+  // messages de premier niveau
   const [comments, setComments] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [replyingTo, setReplyingTo] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // état du chat
   const [isBanned, setIsBanned] = useState(false);
   const [chatDisabled, setChatDisabled] = useState(false);
-  const { user } = useAuth();
-  const commentsEndRef = useRef(null);
-  const commentsContainerRef = useRef(null);
 
-  // Vérifier si l'utilisateur est banni ou si le chat est désactivé
+  // replies
+  // repliesMap: { [commentId]: { items: [], page: 1, hasMore: true, loading: false, open: false } }
+  const [repliesMap, setRepliesMap] = useState({});
+
+  // UI
+  const [replyingTo, setReplyingTo] = useState(null); // { id, name }
+  const containerRef = useRef(null);
+  const pollRef = useRef(null);
+  const loadingMoreRef = useRef(false);
+
+  // -------- helpers --------
+  const nearBottom = () => {
+    const el = containerRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  };
+
+  const formatDate = (iso) => {
+    const d = new Date(iso);
+    const diffMs = Date.now() - d.getTime();
+    const m = Math.floor(diffMs / 60000);
+    if (m < 1) return 'Just now';
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    const days = Math.floor(h / 24);
+    if (days < 7) return `${days}d ago`;
+    return d.toLocaleDateString();
+  };
+
+  // -------- access / chat state --------
   useEffect(() => {
-    const checkUserAccess = async () => {
-      if (!streamId) return;
-      
+    const checkAccess = async () => {
       try {
-        const response = await api.get(`/api/user/livestreams/${streamId}`);
-        
-        // Vérifier si le chat est désactivé
-        if (response.data?.data?.chatEnabled === false) {
-          setError('Chat has been disabled for this livestream.');
+        if (!streamId) return;
+        const res = await api.get(`/api/user/livestreams/${streamId}`);
+        const s = res?.data?.data;
+        if (!s) return;
+        if (s.chatEnabled === false) {
           setChatDisabled(true);
-          return;
+          setError('Chat has been disabled for this livestream.');
         }
-        
-        // Vérifier si l'utilisateur est banni (seulement si connecté)
-        if (user && response.data?.data?.bannedUsers?.includes(user.id)) {
-          setError('You have been banned from this chat by the moderator.');
+        if (user && Array.isArray(s.bannedUsers) && s.bannedUsers.includes?.(user.id)) {
           setIsBanned(true);
+          setError('You have been banned from this chat by the moderator.');
         }
-      } catch (err) {
-        logger.error('Error checking user access:', err);
+      } catch (e) {
+        log.e('checkAccess', e);
       }
     };
-    
-    checkUserAccess();
+    setChatDisabled(false);
+    setIsBanned(false);
+    setError(null);
+    checkAccess();
   }, [streamId, user]);
 
-  // Récupérer les messages du chat en utilisant l'API LiveChat
-  const fetchComments = async () => {
+  // -------- fetch comments (page 1..n) --------
+  const fetchComments = async (pageToLoad = 1, { preserveScroll = false } = {}) => {
     if (!streamId || chatDisabled || isBanned) return;
-    
-    const cacheKey = `comments_${streamId}_page_${page}`;
-    
     try {
-      setLoading(true);
-      logger.debug(`Fetching comments for stream ${streamId}, page ${page}`);
-      
-      // Utiliser l'API LiveChat
-      const response = await api.get(`/api/livechat/${streamId}`, {
-        params: { page, limit: 10 }
+      if (pageToLoad === 1) setLoading(true);
+      const el = containerRef.current;
+      const prevHeight = el?.scrollHeight || 0;
+      const prevTop = el?.scrollTop || 0;
+
+      const res = await api.get(`/api/livechat/${streamId}`, {
+        params: { page: pageToLoad, limit: PAGE_SIZE }
       });
-      
-      if (response.data && response.data.success) {
-        logger.debug('Successfully fetched comments from API');
-        const fetchedComments = response.data.data;
-        
-        // Vérifier que fetchedComments est un tableau
-        if (Array.isArray(fetchedComments)) {
-          // Mettre en cache les commentaires récupérés
-          commentsCache.set(cacheKey, fetchedComments, 60000); // Cache pour 1 minute
-          
-          if (page === 1) {
-            setComments(fetchedComments);
-          } else {
-            setComments(prev => [...prev, ...fetchedComments]);
-          }
-          
-          setHasMore(fetchedComments.length === 10);
-        } else {
-          logger.error('API returned non-array data:', fetchedComments);
-          setError('Incorrect data format received from server');
-        }
-      } else {
-        // Vérifier si l'utilisateur est banni ou si le chat est désactivé
-        if (response.data?.chatDisabled) {
-          setChatDisabled(true);
-          setError('Chat has been disabled for this livestream.');
-        } else if (response.data?.userBanned) {
-          setIsBanned(true);
-          setError('You have been banned from this chat by the moderator.');
-        } else {
-          logger.warn('Received invalid data format from API');
-          setError('Incorrect data format received from server');
-        }
+
+      if (!res.data?.success || !Array.isArray(res.data.data)) {
+        throw new Error('Invalid response');
       }
-      
+
+      const list = res.data.data;
+      setHasMore(list.length === PAGE_SIZE);
+
+      setComments((prev) => (pageToLoad === 1 ? list : [...prev, ...list]));
+
+      // stabiliser la position lors du chargement de pages suivantes
+      if (preserveScroll && el) {
+        setTimeout(() => {
+          const newHeight = el.scrollHeight;
+          el.scrollTop = newHeight - prevHeight + prevTop;
+        }, 0);
+      }
+
+      setError(null);
+    } catch (e) {
+      log.e('fetchComments', e);
+      setError('Error loading comments.');
+    } finally {
       setLoading(false);
-    } catch (error) {
-      logger.error('Error fetching comments:', error);
-      setLoading(false);        
-      
-      // Vérifier si l'erreur indique un problème d'accès
-      if (error.response) {
-        if (error.response.status === 403) {
-          if (error.response.data?.chatDisabled) {
-            setChatDisabled(true);
-            setError('Chat has been disabled for this livestream.');
-          } else if (error.response.data?.userBanned) {
-            setIsBanned(true);
-            setError('You have been banned from this chat by the moderator.');
-          } else {
-            setError('You do not have access to this chat.');
-          }
-        } else if (error.response.status === 401) {
-          setError('You must be logged in to access the chat.');
-        } else {
-          setError('Error loading comments.');
-        }
-      } else {
-        setError('Connection error to server.');
-      }
+      loadingMoreRef.current = false;
     }
   };
 
-  // Effet pour charger les commentaires initiaux et mettre en place le polling
+  // init + polling “smart” (seulement si on est en bas)
   useEffect(() => {
     if (!streamId || chatDisabled || isBanned) return;
-    
-    fetchComments();
-    
-    // Mise en place d'un polling pour rafraîchir les commentaires
-    const interval = setInterval(() => {
-      // Nettoyer le cache pour la première page uniquement
-      if (page === 1 && !chatDisabled && !isBanned) {
-        commentsCache.clear(`comments_${streamId}_page_1`);
-        fetchComments();
+
+    setComments([]);
+    setPage(1);
+    setHasMore(true);
+    setRepliesMap({});
+    fetchComments(1);
+
+    clearInterval(pollRef.current);
+    pollRef.current = setInterval(() => {
+      if (nearBottom()) {
+        fetchComments(1);
       }
-    }, 15000); // 15 secondes
-    
-    return () => clearInterval(interval);
-  }, [streamId, page, chatDisabled, isBanned]);
+    }, 15000);
 
-  // Scroll vers le bas lors du premier chargement
-  useEffect(() => {
-    if (comments.length > 0 && page === 1 && !loading && commentsEndRef.current) {
-      commentsEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [comments, page, loading]);
+    return () => clearInterval(pollRef.current);
+  }, [streamId, chatDisabled, isBanned]);
 
-  // Gérer l'infinite scroll
+  // infinite scroll (haut)
   useEffect(() => {
-    const handleScroll = () => {
-      if (!commentsContainerRef.current || loading || !hasMore || chatDisabled || isBanned) return;
-      
-      const { scrollTop, scrollHeight, clientHeight } = commentsContainerRef.current;
-      
-      // Si on a scrollé jusqu'en haut, charger plus de commentaires
-      if (scrollTop === 0) {
-        setPage(prev => prev + 1);
+    const el = containerRef.current;
+    if (!el) return;
+
+    const onScroll = () => {
+      if (loadingMoreRef.current || !hasMore || loading) return;
+      if (el.scrollTop <= 10) {
+        loadingMoreRef.current = true;
+        const next = page + 1;
+        setPage(next);
+        fetchComments(next, { preserveScroll: true });
       }
     };
-    
-    const container = commentsContainerRef.current;
-    if (container) {
-      container.addEventListener('scroll', handleScroll);
-      return () => container.removeEventListener('scroll', handleScroll);
-    }
-  }, [loading, hasMore, chatDisabled, isBanned]);
 
-  // Like un message en utilisant l'API LiveChat
-  const handleLikeComment = async (commentId) => {
-    if (!user || chatDisabled || isBanned) return;
-    
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [page, hasMore, loading]);
+
+  // -------- likes --------
+  const toggleLike = async (id, isReply = false, parentId = null) => {
     try {
-      // Trouver le commentaire actuel
-      const commentToUpdate = comments.find(c => c._id === commentId);
-      if (!commentToUpdate) return;
-      
-      // Mise à jour optimiste de l'UI
-      setComments(prevComments => 
-        prevComments.map(comment => 
-          comment._id === commentId 
-            ? { 
-                ...comment, 
-                likes: comment.userLiked 
-                  ? comment.likes - 1 
-                  : comment.likes + 1,
-                userLiked: !comment.userLiked
-              }
-            : comment
-        )
-      );
-      
-      // Utiliser l'API LiveChat pour ajouter/supprimer le like
-      await api.post(`/api/livechat/${streamId}/messages/${commentId}/like`);
-      logger.debug(`Like message API call successful for message ${commentId}`);
-      
-      // Invalider le cache pour ce stream
-      commentsCache.clear(`comments_${streamId}_page_1`, streamId);
-    } catch (error) {
-      logger.error('Error liking comment:', error);
-      // Annuler le changement d'état optimiste
-      setComments(prevComments => 
-        prevComments.map(comment => 
-          comment._id === commentId 
-            ? { 
-                ...comment, 
-                likes: comment.userLiked 
-                  ? comment.likes + 1 
-                  : comment.likes - 1,
-                userLiked: !comment.userLiked
-              }
-            : comment
-        )
-      );
-    }
-  };
+      if (!user || chatDisabled || isBanned) return;
 
-  // Répondre à un commentaire
-  const handleReplyToComment = (commentId, userName) => {
-    if (chatDisabled || isBanned) return;
-    
-    logger.debug(`Preparing reply to ${userName}, comment ID: ${commentId}`);
-    setReplyingTo({ id: commentId, name: userName });
-  };
-
-  // Format de la date
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInMinutes = Math.floor((now - date) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays}d ago`;
-    
-    return date.toLocaleDateString();
-  };
-
-  // Soumettre un commentaire en utilisant l'API LiveChat
-  const handleSubmitComment = async (content, parentId = null) => {
-    if (!content.trim() || !user || !streamId || chatDisabled || isBanned) return;
-    
-    try {
-      const requestData = {
-        content: content.trim(),
-        ...(parentId && { parentId })
-      };
-      
-      // Utiliser l'API LiveChat
-      const response = await api.post(`/api/livechat/${streamId}`, requestData);
-      
-      if (response.data && response.data.success) {
-        // Nettoyer le cache pour ce stream
-        commentsCache.clear(`comments_${streamId}_page_1`, streamId);
-        
-        if (parentId) {
-          // Si c'est une réponse, ajouter la réponse au commentaire parent
-          setComments(prevComments => 
-            prevComments.map(comment => 
-              comment._id === parentId 
-                ? { 
-                    ...comment, 
-                    replies: [
-                      ...(comment.replies || []),
-                      response.data.data
-                    ]
-                  }
-                : comment
-            )
+      if (!isReply) {
+        setComments((list) =>
+          list.map((c) =>
+            c._id === id
+              ? { ...c, likes: c.userLiked ? c.likes - 1 : c.likes + 1, userLiked: !c.userLiked }
+              : c
+          )
+        );
+      } else {
+        setRepliesMap((map) => {
+          const bucket = map[parentId] || { items: [], page: 1, hasMore: true, loading: false, open: true };
+          const newItems = bucket.items.map((r) =>
+            r._id === id ? { ...r, likes: r.userLiked ? r.likes - 1 : r.likes + 1, userLiked: !r.userLiked } : r
           );
-        } else {
-          // Si c'est un nouveau commentaire, ajouter au début de la liste
-          setComments(prevComments => [
-            response.data.data,
-            ...prevComments
-          ]);
-        }
-        
-        // Réinitialiser l'état
-        setReplyingTo(null);
-        
-        // Forcer un rafraîchissement après un court délai
-        setTimeout(() => {
-          commentsCache.clear(`comments_${streamId}_page_1`, streamId);
-          if (page === 1) {
-            fetchComments();
-          }
-        }, 1000);
+          return { ...map, [parentId]: { ...bucket, items: newItems } };
+        });
       }
-    } catch (error) {
-      logger.error('Error posting comment:', error);
-      
-      // Vérifier si l'erreur indique un bannissement ou une désactivation du chat
-      if (error.response) {
-        if (error.response.status === 403) {
-          if (error.response.data?.message?.includes('chat is disabled')) {
-            setChatDisabled(true);
-            setError('Chat has been disabled for this livestream.');
-          } else if (error.response.data?.message?.includes('banned')) {
-            setIsBanned(true);
-            setError('You have been banned from this chat by the moderator.');
-          }
-        } else if (error.response.status === 401) {
-          setError('You must be logged in to send a message.');
-        }
-      }
+
+      await api.post(`/api/livechat/${streamId}/messages/${id}/like`);
+    } catch (e) {
+      // rollback simple (on relance un refresh à la prochaine boucle)
+      log.e('toggleLike', e);
     }
   };
 
-  // Affichage de l'erreur ou du contenu normal
+  // -------- replies: open / fetch / submit --------
+  const ensureRepliesBucket = (commentId) =>
+    setRepliesMap((map) => map[commentId] ? map : { ...map, [commentId]: { items: [], page: 1, hasMore: true, loading: false, open: false } });
+
+  const openReplies = async (comment) => {
+    ensureRepliesBucket(comment._id);
+    setRepliesMap((map) => ({ ...map, [comment._id]: { ...(map[comment._id] || {}), open: true } }));
+    if (!(repliesMap[comment._id]?.items?.length)) {
+      await loadMoreReplies(comment._id, 1);
+    }
+  };
+
+  const loadMoreReplies = async (commentId, pageToLoad = null) => {
+    try {
+      const bucket = repliesMap[commentId] || { items: [], page: 1, hasMore: true, loading: false, open: true };
+      if (bucket.loading || (!bucket.hasMore && pageToLoad !== 1)) return;
+
+      const nextPage = pageToLoad || bucket.page;
+      setRepliesMap((map) => ({ ...map, [commentId]: { ...bucket, loading: true } }));
+
+      const res = await api.get(`/api/livechat/${streamId}/messages/${commentId}/replies`, {
+        params: { page: nextPage, limit: REPLIES_PAGE_SIZE }
+      });
+
+      if (!res.data?.success || !Array.isArray(res.data.data)) {
+        throw new Error('Invalid replies response');
+      }
+
+      const items = res.data.data;
+      const newItems = nextPage === 1 ? items : [...bucket.items, ...items];
+
+      setRepliesMap((map) => ({
+        ...map,
+        [commentId]: {
+          ...bucket,
+          items: newItems,
+          page: nextPage + 1,
+          hasMore: items.length === REPLIES_PAGE_SIZE,
+          loading: false,
+          open: true
+        }
+      }));
+    } catch (e) {
+      log.e('loadMoreReplies', e);
+      setRepliesMap((map) => ({
+        ...map,
+        [commentId]: { ...(map[commentId] || {}), loading: false }
+      }));
+    }
+  };
+
+  const submitReply = async (parentId, raw) => {
+    try {
+      if (!user || !raw.trim() || chatDisabled || isBanned) return;
+      const content = raw.trim();
+
+      const res = await api.post(`/api/livechat/${streamId}`, { content, parentId });
+      if (!res.data?.success || !res.data.data) throw new Error('Reply failed');
+
+      // injecter la reply localement
+      setRepliesMap((map) => {
+        const bucket = map[parentId] || { items: [], page: 1, hasMore: true, loading: false, open: true };
+        return {
+          ...map,
+          [parentId]: { ...bucket, items: [...bucket.items, res.data.data], open: true }
+        };
+      });
+
+      // mettre à jour le compteur au niveau du parent
+      setComments((list) =>
+        list.map((c) => (c._id === parentId ? { ...c, replyCount: (c.replyCount || 0) + 1 } : c))
+      );
+
+      setReplyingTo(null);
+    } catch (e) {
+      log.e('submitReply', e);
+    }
+  };
+
+  const beginReply = (comment) => {
+    setReplyingTo({ id: comment._id, name: `${comment?.userId?.prenom || ''} ${comment?.userId?.nom || ''}`.trim() });
+    openReplies(comment);
+  };
+
+  const commentList = useMemo(() => comments, [comments]);
+
+  // -------- render --------
   if (error) {
     return (
       <div className={styles.commentsError}>
@@ -364,141 +290,142 @@ const CommentSection = ({ streamId }) => {
   }
 
   return (
-    <div 
-      className={styles.commentsContainer}
-      ref={commentsContainerRef}
-    >
+    <div className={styles.commentsContainer} ref={containerRef}>
       {loading && page === 1 ? (
         <div className={styles.loadingComments}>Loading comments...</div>
-      ) : comments.length === 0 ? (
+      ) : commentList.length === 0 ? (
         <div className={styles.noComments}>No comments yet. Be the first to comment!</div>
       ) : (
-        <>
-          {loading && page > 1 && (
-            <div className={styles.loadingMoreComments}>Loading more comments...</div>
-          )}
-          
-          <div className={styles.commentsList}>
-            {comments.map(comment => (
-              <div key={comment._id} className={styles.comment}>
-                <img 
-                  src={comment.userId?.photo_profil || '/images/bob4.png'} 
-                  alt={comment.userId?.prenom || 'User'} 
+        <div className={styles.commentsList}>
+          {commentList.map((c) => {
+            const bucket = repliesMap[c._id] || { items: [], page: 1, hasMore: true, loading: false, open: false };
+            const replies = bucket.items;
+
+            return (
+              <div key={c._id} className={styles.comment}>
+                <img
+                  src={c.userId?.photo_profil || '/images/bob4.png'}
+                  alt={c.userId?.prenom || 'User'}
                   className={styles.commentAvatar}
-                  onError={(e) => {
-                    e.target.onerror = null; 
-                    e.target.src = '/images/bob4.png';
-                  }}
+                  onError={(e) => { e.currentTarget.src = '/images/bob4.png'; }}
                 />
-                
+
                 <div className={styles.commentContent}>
                   <div className={styles.commentHeader}>
                     <span className={styles.commentAuthor}>
-                      {comment.userId?.prenom} {comment.userId?.nom}
+                      {c.userId?.prenom} {c.userId?.nom}
                     </span>
-                    <span className={styles.commentTime}>
-                      {formatDate(comment.createdAt)}
-                    </span>
+                    <span className={styles.commentTime}>{formatDate(c.createdAt)}</span>
                   </div>
-                  
-                  <p className={styles.commentText}>{comment.content}</p>
-                  
+
+                  <p className={styles.commentText}>{c.content}</p>
+
                   <div className={styles.commentActions}>
-                    <button 
-                      className={`${styles.commentAction} ${comment.userLiked ? styles.liked : ''}`}
-                      onClick={() => handleLikeComment(comment._id)}
+                    <button
+                      className={`${styles.commentAction} ${c.userLiked ? styles.liked : ''}`}
+                      onClick={() => toggleLike(c._id)}
                     >
-                      <FontAwesomeIcon icon={faThumbsUp} />
-                      <span>{comment.likes}</span>
+                      <FontAwesomeIcon icon={faThumbsUp} /> <span>{c.likes}</span>
                     </button>
-                    
-                    <button 
+
+                    <button
                       className={styles.commentAction}
-                      onClick={() => handleReplyToComment(comment._id, `${comment.userId?.prenom} ${comment.userId?.nom}`)}
+                      onClick={() => beginReply(c)}
                     >
-                      <FontAwesomeIcon icon={faReply} />
-                      <span>Reply</span>
+                      <FontAwesomeIcon icon={faReply} /> <span>Reply</span>
                     </button>
+
+                    {/* compteur de réponses */}
+                    <span className={styles.commentAction} style={{ cursor: 'default' }}>
+                      {c.replyCount ?? 0} replies
+                    </span>
+
+                    {/* ouvrir / charger les réponses */}
+                    {!bucket.open ? (
+                      <button className={styles.commentAction} onClick={() => openReplies(c)}>
+                        View replies
+                      </button>
+                    ) : (
+                      bucket.hasMore && (
+                        <button className={styles.commentAction} onClick={() => loadMoreReplies(c._id)}>
+                          Load more
+                        </button>
+                      )
+                    )}
                   </div>
-                  
-                  {/* Sous-commentaires */}
-                  {comment.replies && comment.replies.length > 0 && (
+
+                  {/* zone de réponses */}
+                  {bucket.open && (
                     <div className={styles.replies}>
-                      {comment.replies.map(reply => (
-                        <div key={reply._id} className={styles.reply}>
-                          <img 
-                            src={reply.userId?.photo_profil || '/images/bob6.png'} 
-                            alt={reply.userId?.prenom || 'User'} 
+                      {replies.map((r) => (
+                        <div key={r._id} className={styles.reply}>
+                          <img
+                            src={r.userId?.photo_profil || '/images/bob6.png'}
+                            alt={r.userId?.prenom || 'User'}
                             className={styles.replyAvatar}
-                            onError={(e) => {
-                              e.target.onerror = null; 
-                              e.target.src = '/images/bob6.png';
-                            }}
+                            onError={(e) => { e.currentTarget.src = '/images/bob6.png'; }}
                           />
-                          
                           <div className={styles.replyContent}>
                             <div className={styles.replyHeader}>
                               <span className={styles.replyAuthor}>
-                                {reply.userId?.prenom} {reply.userId?.nom}
+                                {r.userId?.prenom} {r.userId?.nom}
                               </span>
-                              <span className={styles.replyTime}>
-                                {formatDate(reply.createdAt)}
-                              </span>
+                              <span className={styles.replyTime}>{formatDate(r.createdAt)}</span>
                             </div>
-                            
-                            <p className={styles.replyText}>{reply.content}</p>
+                            <p className={styles.replyText}>{r.content}</p>
+                            <div className={styles.commentActions}>
+                              <button
+                                className={`${styles.commentAction} ${r.userLiked ? styles.liked : ''}`}
+                                onClick={() => toggleLike(r._id, true, c._id)}
+                              >
+                                <FontAwesomeIcon icon={faThumbsUp} /> <span>{r.likes}</span>
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}
-                    </div>
-                  )}
-                  
-                  {/* Formulaire de réponse si ce commentaire est sélectionné */}
-                  {replyingTo && replyingTo.id === comment._id && (
-                    <div className={styles.replyFormContainer}>
-                      <form 
-                        className={styles.replyInputForm}
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          const input = e.target.querySelector('input');
-                          if (input && input.value) {
-                            handleSubmitComment(input.value, comment._id);
-                            input.value = '';
-                          }
-                          setReplyingTo(null);
-                        }}
-                      >
-                        <input 
-                          type="text" 
-                          placeholder={`Reply to ${replyingTo.name}...`}
-                          className={styles.replyInput}
-                          autoFocus
-                        />
-                        <div className={styles.replyFormActions}>
-                          <button 
-                            type="button" 
-                            className={styles.cancelReplyBtn}
-                            onClick={() => setReplyingTo(null)}
+
+                      {/* formulaire de reply */}
+                      {replyingTo?.id === c._id && (
+                        <div className={styles.replyFormContainer}>
+                          <form
+                            className={styles.replyInputForm}
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const input = e.currentTarget.querySelector('input');
+                              const value = input?.value || '';
+                              if (value.trim()) submitReply(c._id, value);
+                              if (input) input.value = '';
+                            }}
                           >
-                            Cancel
-                          </button>
-                          <button 
-                            type="submit" 
-                            className={styles.submitReplyBtn}
-                          >
-                            Reply
-                          </button>
+                            <input
+                              type="text"
+                              placeholder={`Reply to ${replyingTo?.name || 'this message'}...`}
+                              className={styles.replyInput}
+                              autoFocus
+                            />
+                            <div className={styles.replyFormActions}>
+                              <button
+                                type="button"
+                                className={styles.cancelReplyBtn}
+                                onClick={() => setReplyingTo(null)}
+                              >
+                                Cancel
+                              </button>
+                              <button type="submit" className={styles.submitReplyBtn}>
+                                Reply
+                              </button>
+                            </div>
+                          </form>
                         </div>
-                      </form>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
-            ))}
-          </div>
-          
-          <div ref={commentsEndRef} />
-        </>
+            );
+          })}
+        </div>
       )}
     </div>
   );

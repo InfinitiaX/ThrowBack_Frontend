@@ -17,13 +17,21 @@ import LoadingSpinner from '../../../Common/LoadingSpinner';
 import { useAuth } from '../../../../contexts/AuthContext';
 import api from '../../../../utils/api';
 
-// Cache simple
+// Cache utilitaire
 const cache = {
   data: {},
-  get: (k) => cache.data[k],
-  set: (k, v, ttl = 60000) => cache.data[k] = { value: v, expiry: Date.now() + ttl },
-  isValid: (k) => cache.data[k] && cache.data[k].expiry > Date.now(),
-  clear: (k) => k ? delete cache.data[k] : (cache.data = {})
+  get: (key) => cache.data[key],
+  set: (key, value, ttl = 60000) => {
+    cache.data[key] = { value, expiry: Date.now() + ttl };
+  },
+  isValid: (key) => {
+    const item = cache.data[key];
+    return item && item.expiry > Date.now();
+  },
+  clear: (key) => {
+    if (key) delete cache.data[key];
+    else cache.data = {};
+  }
 };
 
 const LOG_LEVEL = process.env.NODE_ENV === 'development' ? 'debug' : 'error';
@@ -42,19 +50,22 @@ const LiveThrowback = () => {
   const [viewCount, setViewCount] = useState(0);
   const [comment, setComment] = useState('');
   const [chatDisabled, setChatDisabled] = useState(false);
+  const videoRef = useRef(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const isStreamValid = (s) => {
-    if (!s) return false;
+  const isStreamValid = (stream) => {
+    if (!stream) return false;
     const now = new Date();
-    return s.status === 'LIVE' && new Date(s.scheduledEndTime) > now && new Date(s.scheduledStartTime) <= now;
+    const end = new Date(stream.scheduledEndTime);
+    const start = new Date(stream.scheduledStartTime);
+    return stream.status === 'LIVE' && end > now && start <= now;
   };
 
   const extractYoutubeId = (url) => {
     if (!url) return null;
-    const short = url.match(/youtu\.be\/([^?&]+)/);
-    const long = url.match(/youtube\.com\/watch\?v=([^?&]+)/);
+    const short = /youtu\.be\/([^?&]+)/.exec(url);
+    const long = /youtube\.com\/watch\?v=([^?&]+)/.exec(url);
     return short ? short[1] : long ? long[1] : null;
   };
 
@@ -70,27 +81,27 @@ const LiveThrowback = () => {
         Array.isArray(currentStream.compilationVideos) &&
         currentStream.compilationVideos.length > 0) {
       const vids = currentStream.compilationVideos;
+
       if (vids.every(v => v.sourceType === 'YOUTUBE')) {
         const ids = vids.map(v => v.sourceId).join(',');
-        let url = `https://www.youtube.com/embed/?playlist=${ids}&autoplay=${autoplay?1:0}`;
+        let url = `https://www.youtube.com/embed/?playlist=${ids}&autoplay=${autoplay ? 1 : 0}`;
         if (loop) url += '&loop=1';
         if (shuffle) url += '&shuffle=1';
         url += '&rel=0&modestbranding=1&enablejsapi=1&origin=' + window.location.origin;
         return url;
       }
+
       const first = vids[0];
       if (first?.sourceType === 'YOUTUBE') {
-        let url = `https://www.youtube.com/embed/${first.sourceId}?autoplay=${autoplay?1:0}`;
+        let url = `https://www.youtube.com/embed/${first.sourceId}?autoplay=${autoplay ? 1 : 0}`;
         if (loop) url += `&loop=1&playlist=${first.sourceId}`;
         url += '&rel=0&modestbranding=1&enablejsapi=1&origin=' + window.location.origin;
         return url;
       }
-      if (first?.sourceType === 'VIMEO') {
-        return `https://player.vimeo.com/video/${first.sourceId}?autoplay=${autoplay?1:0}&loop=${loop?1:0}`;
-      }
-      if (first?.sourceType === 'DAILYMOTION') {
-        return `https://www.dailymotion.com/embed/video/${first.sourceId}?autoplay=${autoplay?1:0}`;
-      }
+      if (first?.sourceType === 'VIMEO')
+        return `https://player.vimeo.com/video/${first.sourceId}?autoplay=${autoplay ? 1 : 0}&loop=${loop ? 1 : 0}&transparent=0&dnt=1&playsinline=1`;
+      if (first?.sourceType === 'DAILYMOTION')
+        return `https://www.dailymotion.com/embed/video/${first.sourceId}?autoplay=${autoplay ? 1 : 0}`;
     }
 
     if (currentStream.playbackUrl) return currentStream.playbackUrl;
@@ -98,7 +109,7 @@ const LiveThrowback = () => {
     if (currentStream.youtubeUrl) {
       const id = extractYoutubeId(currentStream.youtubeUrl);
       if (id) {
-        let url = `https://www.youtube.com/embed/${id}?autoplay=${autoplay?1:0}`;
+        let url = `https://www.youtube.com/embed/${id}?autoplay=${autoplay ? 1 : 0}`;
         if (loop) url += `&loop=1&playlist=${id}`;
         url += '&rel=0&modestbranding=1&enablejsapi=1&origin=' + window.location.origin;
         return url;
@@ -110,105 +121,153 @@ const LiveThrowback = () => {
     return '';
   };
 
-  // Fetch streams
   useEffect(() => {
     const fetchLiveStreams = async () => {
-      const ck = 'livestreams';
-      if (cache.isValid(ck)) {
-        const cached = cache.get(ck).value;
-        const valid = cached.filter(isStreamValid);
-        setLiveStreams(valid);
-        if (!currentStream && valid.length > 0) setCurrentStream(valid[0]);
-        setLoading(false);
-        return;
-      }
       try {
+        setLoading(true);
+        setError(null);
         const res = await api.get('/api/user/livestreams?activeOnly=true');
-        const valid = res.data.data.filter(isStreamValid);
-        setLiveStreams(valid);
-        cache.set(ck, valid, 60000);
-        setCurrentStream(prev => {
-          if (!prev) return valid[0] || null;
-          return valid.find(s => s._id === prev._id) || valid[0] || null;
-        });
-        if (valid[0]) {
-          setViewCount(valid[0].statistics?.totalUniqueViewers || 0);
-          setLikeCount(valid[0].statistics?.likes || 0);
+        if (res.data?.success) {
+          const valid = res.data.data.filter(isStreamValid);
+          setLiveStreams(valid);
+          cache.set('livestreams', valid, 60000);
+
+          setCurrentStream(prev => {
+            if (!prev) return valid[0] || null;
+            const still = valid.find(s => s._id === prev._id);
+            return still ? { ...still } : valid[0] || null;
+          });
+
+          if (valid[0]) {
+            setViewCount(valid[0].statistics?.totalUniqueViewers || 0);
+            setLikeCount(valid[0].statistics?.likes || 0);
+            setChatDisabled(valid[0].chatEnabled === false);
+            if (user && valid[0].userLiked) setLiked(true);
+          }
         }
-        setLoading(false);
       } catch (e) {
-        logger.error('fetch error', e);
-        setError('Could not load live streams');
+        setError('Failed to load livestreams');
+        logger.error(e);
+      } finally {
         setLoading(false);
       }
     };
     fetchLiveStreams();
-    const interval = setInterval(fetchLiveStreams, 60000);
-    return () => clearInterval(interval);
+    const intv = setInterval(fetchLiveStreams, 60000);
+    return () => clearInterval(intv);
   }, [user]);
 
-  // Expiration sans reload
+  useEffect(() => {
+    if (currentStream && user && isStreamValid(currentStream)) {
+      api.get(`/api/user/livestreams/${currentStream._id}`)
+        .then(() => setViewCount(p => p + 1))
+        .catch(err => logger.error(err));
+    }
+  }, [currentStream, user]);
+
   useEffect(() => {
     if (!currentStream) return;
-    const checkExpiration = () => {
+    const intv = setInterval(() => {
       if (!isStreamValid(currentStream)) setError('This livestream has ended');
-    };
-    const exp = setInterval(checkExpiration, 10000);
-    return () => clearInterval(exp);
+    }, 10000);
+    return () => clearInterval(intv);
   }, [currentStream]);
 
   const handleLike = async () => {
     if (!user) return navigate('/login');
-    if (!isStreamValid(currentStream)) return;
+    if (!isStreamValid(currentStream)) return setError('This livestream is no longer active');
     try {
+      if (!liked) {
+        setLiked(true); setLikeCount(p => p + 1);
+        await api.post(`/api/user/livestreams/${currentStream._id}/like`);
+      } else {
+        setLiked(false); setLikeCount(p => Math.max(0, p - 1));
+      }
+    } catch (err) {
+      logger.error(err);
       setLiked(!liked);
-      setLikeCount(p => Math.max(0, p + (liked ? -1 : 1)));
-      await api.post(`/api/user/livestreams/${currentStream._id}/like`);
-    } catch (e) {
-      logger.error('like error', e);
     }
   };
 
+  const handleShare = async () => {
+    if (!currentStream) return;
+    const url = `${window.location.origin}/dashboard/live/${currentStream._id}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: currentStream.title, url }); }
+      catch { navigator.clipboard.writeText(url); }
+    } else navigator.clipboard.writeText(url);
+  };
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!comment.trim() || !user || !currentStream) return;
+    if (!isStreamValid(currentStream)) return setError('This livestream is no longer active');
+    const content = comment;
+    setComment('');
+    try {
+      const res = await api.post(`/api/livechat/${currentStream._id}`, { content });
+      if (res.data?.success) cache.clear(`comments_${currentStream._id}_page_1`);
+    } catch (err) {
+      logger.error(err);
+      setComment(content);
+    }
+  };
+
+  const renderCompilationRail = () => {
+    if (!currentStream?.compilationVideos?.length) return null;
+    return (
+      <div className={styles.compilationRail}>
+        {currentStream.compilationVideos.map((v, i) => (
+          <button key={v.sourceId + '_' + i} className={styles.compilationItem} type="button" title={v.title}>
+            <img src={v.thumbnailUrl || '/images/default-thumb.jpg'} alt={v.title}
+                 onError={e => { e.currentTarget.src = '/images/default-thumb.jpg'; }} />
+            <span className={styles.compilationItemTitle}>{v.title}</span>
+          </button>
+        ))}
+      </div>
+    );
+  };
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <div className={styles.errorContainer}><p>{error}</p></div>;
+  if (!liveStreams.length) return <div className={styles.noStreamContainer}><p>No streams</p></div>;
+
   return (
     <div className={styles.liveThrowbackContainer}>
-      <h1 className={styles.pageTitle}>Livethrowback</h1>
+      <h1>Livethrowback</h1>
       <div className={styles.mainContent}>
         <div className={styles.videoSection}>
-          <div className={styles.videoWrapper}>
-            {currentStream && (
-              <div className={styles.videoPlayer}>
-                {isStreamValid(currentStream) ? (
-                  <VideoPlayer src={getPlaybackUrl()} autoPlay controls />
-                ) : (
-                  <div className={styles.streamExpired}>
-                    <FontAwesomeIcon icon={faExclamationTriangle}/>
-                    <p>This livestream has ended</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
           {currentStream && (
-            <div className={styles.videoInfo}>
+            <div className={styles.videoWrapper}>
+              <VideoPlayer src={getPlaybackUrl()} ref={videoRef} autoPlay controls loop />
+              {!isStreamValid(currentStream) && <div className={styles.streamExpired}>This livestream has ended</div>}
+              {isStreamValid(currentStream) && (
+                <div className={styles.viewCount}><FontAwesomeIcon icon={faEye}/> {viewCount}</div>
+              )}
+            </div>
+          )}
+          {currentStream && (
+            <div>
               <h2>{currentStream.title}</h2>
-              <div className={styles.interactionBar}>
-                <button onClick={handleLike}>
-                  <FontAwesomeIcon icon={liked ? faHeart : faHeartBroken}/> {likeCount}
-                </button>
-                <button><FontAwesomeIcon icon={faShare}/> Share</button>
-              </div>
+              {renderCompilationRail()}
+              <button onClick={handleLike}>{liked ? '♥' : '♡'} {likeCount}</button>
+              <button onClick={handleShare}><FontAwesomeIcon icon={faShare}/> Share</button>
+              {!chatDisabled && isStreamValid(currentStream) && (
+                <form onSubmit={handleCommentSubmit}>
+                  <input value={comment} onChange={e => setComment(e.target.value)} />
+                  <button disabled={!comment.trim()}>Chat</button>
+                </form>
+              )}
             </div>
           )}
         </div>
         {currentStream && (
-          <div className={styles.commentsSection}>
-            <h3>Live Chat</h3>
-            <CommentSection streamId={currentStream._id}/>
-          </div>
+          currentStream.chatEnabled !== false && isStreamValid(currentStream)
+            ? <CommentSection streamId={currentStream._id}/>
+            : <div>Chat disabled</div>
         )}
       </div>
     </div>
   );
 };
-
 export default LiveThrowback;

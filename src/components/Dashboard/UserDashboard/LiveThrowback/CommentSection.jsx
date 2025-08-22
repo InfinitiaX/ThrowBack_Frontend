@@ -1,85 +1,80 @@
 // CommentSection.jsx
 import React, { useState, useEffect, useRef } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faThumbsUp, faReply } from '@fortawesome/free-solid-svg-icons';
+import styles from './LiveThrowback.module.css';
 import api from '../../../../utils/api';
-import styles from './CommentSection.module.css';
+import { useAuth } from '../../../../contexts/AuthContext';
 
-const cache = {
-  data: {},
-  get: k => cache.data[k],
-  set: (k,v,ttl=60000)=>cache.data[k]={value:v,expiry:Date.now()+ttl},
-  isValid: k => cache.data[k] && cache.data[k].expiry>Date.now(),
-  clear: k=>k?delete cache.data[k]:(cache.data={})
-};
+const commentsCache = { data: {}, get: (k)=>commentsCache.data[k], set: (k,v,t=60000)=>commentsCache.data[k]={value:v,expiry:Date.now()+t}, isValid:(k)=>commentsCache.data[k]?.expiry>Date.now(), clear:(k)=>{if(k)delete commentsCache.data[k];else commentsCache.data={};} };
 
 const CommentSection = ({ streamId }) => {
-  const [comments, setComments] = useState([]);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const containerRef = useRef();
+  const [comments,setComments]=useState([]);
+  const [page,setPage]=useState(1);
+  const [hasMore,setHasMore]=useState(true);
+  const [error,setError]=useState(null);
+  const [isBanned,setIsBanned]=useState(false);
+  const [chatDisabled,setChatDisabled]=useState(false);
+  const {user}=useAuth();
+  const commentsEndRef=useRef(null);
+  const containerRef=useRef(null);
+  const [autoRefresh,setAutoRefresh]=useState(true);
 
-  const fetchComments = async (pg=1) => {
-    const ck = `comments_${streamId}_page_${pg}`;
-    if (cache.isValid(ck)) {
-      setComments(prev => pg===1 ? cache.get(ck).value : [...prev, ...cache.get(ck).value]);
-      return;
-    }
-    try {
-      setLoading(true);
-      const res = await api.get(`/api/livechat/${streamId}?page=${pg}`);
-      const data = res.data;
-      if (data.length === 0) setHasMore(false);
-      cache.set(ck, data);
-      setComments(prev => pg===1 ? data : [...prev, ...data]);
-    } finally {
-      setLoading(false);
-    }
+  const fetchComments=async()=>{
+    if(!streamId||chatDisabled||isBanned)return;
+    try{
+      const res=await api.get(`/api/livechat/${streamId}`,{params:{page,limit:10}});
+      if(res.data?.success && Array.isArray(res.data.data)){
+        if(page===1)setComments(res.data.data);
+        else{
+          const prevHeight=containerRef.current?.scrollHeight||0;
+          setComments(p=>[...p,...res.data.data]);
+          setTimeout(()=>{
+            const el=containerRef.current;
+            if(el)el.scrollTop=el.scrollHeight-prevHeight+el.scrollTop;
+          },0);
+        }
+        setHasMore(res.data.data.length===10);
+      }
+    }catch(e){setError('Error loading comments');}
   };
 
-  useEffect(()=>{ if(streamId) fetchComments(1); },[streamId]);
+  useEffect(()=>{fetchComments();},[streamId,page]);
 
-  // polling seulement si en bas
   useEffect(()=>{
-    if(!streamId) return;
-    const int = setInterval(()=>{
-      if(autoRefresh) {
-        cache.clear(`comments_${streamId}_page_1`);
-        fetchComments(1);
-      }
-    },15000);
-    return ()=>clearInterval(int);
-  },[streamId,autoRefresh]);
+    if(!streamId||chatDisabled||isBanned)return;
+    const intv=setInterval(()=>{if(page===1&&autoRefresh)fetchComments();},15000);
+    return()=>clearInterval(intv);
+  },[streamId,page,chatDisabled,isBanned,autoRefresh]);
 
   useEffect(()=>{
     const el=containerRef.current;
-    if(!el) return;
+    if(!el)return;
     const onScroll=()=>{
-      const nearBottom = el.scrollHeight-el.scrollTop-el.clientHeight<60;
+      const nearBottom=el.scrollHeight-el.scrollTop-el.clientHeight<60;
       setAutoRefresh(nearBottom);
-      if(el.scrollTop<=20 && hasMore && !loading) setPage(p=>p+1);
+      if(el.scrollTop<=20 && hasMore)setPage(p=>p+1);
     };
     el.addEventListener('scroll',onScroll);
-    return ()=>el.removeEventListener('scroll',onScroll);
-  },[hasMore,loading]);
+    return()=>el.removeEventListener('scroll',onScroll);
+  },[hasMore]);
 
-  useEffect(()=>{ if(page>1) fetchComments(page); },[page]);
+  const handleLike=async(id)=>{
+    if(!user)return;
+    setComments(cs=>cs.map(c=>c._id===id?{...c,likes:c.userLiked?c.likes-1:c.likes+1,userLiked:!c.userLiked}:c));
+    try{await api.post(`/api/livechat/${streamId}/messages/${id}/like`);}catch{}
+  };
 
-  return (
-    <div className={styles.commentContainer} ref={containerRef}>
-      {comments.map(c=>(
-        <div key={c._id} className={styles.comment}>
-          <img src={c.userId.photo_profil||'/images/default-user.jpg'} alt=""/>
-          <div>
-            <strong>{c.userId.prenom} {c.userId.nom}</strong>
-            <p>{c.content}</p>
-          </div>
+  return(
+    <div ref={containerRef} className={styles.commentsContainer}>
+      {error?<div>{error}</div>:comments.map(c=>
+        <div key={c._id}>
+          <span>{c.userId?.prenom}: {c.content}</span>
+          <button onClick={()=>handleLike(c._id)}><FontAwesomeIcon icon={faThumbsUp}/> {c.likes}</button>
         </div>
-      ))}
-      {loading && <div>Loading...</div>}
-      {!hasMore && <div>No more comments</div>}
+      )}
+      <div ref={commentsEndRef}/>
     </div>
   );
 };
-
 export default CommentSection;

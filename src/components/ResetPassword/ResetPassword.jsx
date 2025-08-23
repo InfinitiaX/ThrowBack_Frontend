@@ -2,11 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../utils/api';
-import './ResetPassword.css'; // CSS global
+import './ResetPassword.css';
 
 function ResetPassword() {
   const passwordRef = useRef(null);
-  const confirmRef = useRef(null);
+  const confirmPasswordRef = useRef(null);
 
   const [token, setToken] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,39 +18,38 @@ function ResetPassword() {
   const navigate = useNavigate();
   const { clearError } = useAuth();
 
-  // Récupération robuste du token (même si Render a renvoyé /index.html)
   useEffect(() => {
     clearError();
     setError('');
 
-    const fromRouter = new URLSearchParams(location.search || '');
-    let t = fromRouter.get('token');
+    const sp = new URLSearchParams(location.search || '');
+    let t = sp.get('token');
     if (!t && typeof window !== 'undefined') {
       t = new URL(window.location.href).searchParams.get('token');
     }
-
     setToken(t || '');
-    setMsg(fromRouter.get('message') || '');
+    setMsg(sp.get('message') || '');
 
-    // Autofocus après montage (utile si une extension bloque le focus initial)
-    setTimeout(() => {
-      try {
-        passwordRef.current?.focus();
-      } catch {}
-    }, 0);
+    // Focus initial pour faciliter la saisie
+    setTimeout(() => passwordRef.current?.focus(), 0);
   }, [location.search, clearError]);
+
+  const stopBubbling = (e) => {
+    // Certaines extensions captent les événements ; on protège nos inputs
+    e.stopPropagation();
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const password = passwordRef.current?.value || '';
-    const confirm = confirmRef.current?.value || '';
+    const confirmPassword = confirmPasswordRef.current?.value || '';
 
     if (!token) {
       setError("Lien invalide ou expiré. Merci de relancer 'Mot de passe oublié'.");
       return;
     }
-    if (password !== confirm) {
+    if (password !== confirmPassword) {
       setError('Les mots de passe ne correspondent pas.');
       return;
     }
@@ -87,12 +86,8 @@ function ResetPassword() {
       <div className="reset-password-form-container">
         <h2>Réinitialisation du mot de passe</h2>
 
-        {msg && !error && !done && (
-          <div className="info-message"><p>{msg}</p></div>
-        )}
-        {error && (
-          <div className="error-message"><p>{error}</p></div>
-        )}
+        {msg && !error && !done && <div className="info-message"><p>{msg}</p></div>}
+        {error && <div className="error-message"><p>{error}</p></div>}
 
         {done ? (
           <div className="success-message">
@@ -101,7 +96,7 @@ function ResetPassword() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} autoComplete="off" noValidate>
-            <div className="form-group">
+            <div className="form-group field-guard">
               <label htmlFor="password">Nouveau mot de passe</label>
               <input
                 id="password"
@@ -110,27 +105,38 @@ function ResetPassword() {
                 name="new-password"
                 placeholder="Entrez votre nouveau mot de passe"
                 autoComplete="new-password"
-                disabled={loading}      /* on ne bloque plus la saisie à cause du token */
+                disabled={loading}
+                onKeyDown={stopBubbling}
+                onKeyUp={stopBubbling}
+                onKeyPress={stopBubbling}
+                onMouseDown={stopBubbling}
+                onClick={stopBubbling}
               />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="confirm">Confirmer le mot de passe</label>
+            <div className="form-group field-guard">
+              <label htmlFor="confirmPassword">Confirmer le mot de passe</label>
               <input
-                id="confirm"
-                ref={confirmRef}
+                id="confirmPassword"             // ✅ plus de id="confirm"
+                ref={confirmPasswordRef}
                 type="password"
                 name="confirm-password"
                 placeholder="Confirmez votre nouveau mot de passe"
                 autoComplete="new-password"
                 disabled={loading}
+                tabIndex={0}
+                onKeyDown={stopBubbling}
+                onKeyUp={stopBubbling}
+                onKeyPress={stopBubbling}
+                onMouseDown={stopBubbling}
+                onClick={stopBubbling}
               />
             </div>
 
             <button
               type="submit"
               className="reset-button"
-              disabled={loading || !token}  /* on bloque seulement le SUBMIT */
+              disabled={loading || !token}
             >
               {loading ? 'Réinitialisation…' : 'Réinitialiser le mot de passe'}
             </button>

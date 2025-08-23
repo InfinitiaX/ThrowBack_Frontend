@@ -1,6 +1,6 @@
 // src/App.js
-import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/Common/PrivateRoute';
 import ApiRedirect from './components/Common/ApiRedirect';
@@ -18,7 +18,7 @@ import LandingPage from './pages/LandingPage';
 
 // Dashboard
 import DashboardLayout from './components/Dashboard/UserDashboard/DashboardLayout';
-import ProfilePage from './components/Profile/Profile';
+import ProfilePage from './components/Profile/Profile';          
 import DashboardHome from './components/Dashboard/UserDashboard/Home/Home';
 import Settings from './components/Dashboard/UserDashboard/Settings/Settings';
 import Shorts from './components/Dashboard/UserDashboard/Short/Shorts';
@@ -42,7 +42,7 @@ import UserDetails from './components/Dashboard/AdminDashboard/admin/UserDetails
 import UserForm from './components/Dashboard/AdminDashboard/admin/UserForm';
 import AdminShorts from './components/Dashboard/AdminDashboard/Shorts';
 import AdminVideos from './components/Dashboard/AdminDashboard/Videos';
-import AdminPodcasts from './components/Dashboard/AdminDashboard/Podcasts';
+import AdminPodcasts from './components/Dashboard/AdminDashboard/Podcasts'; 
 import AdminLivethrowback from './components/Dashboard/AdminDashboard/LiveStreams';
 import Playlists from './components/Dashboard/AdminDashboard/Playlists';
 import PlaylistDetail from './components/Dashboard/AdminDashboard/Playlists/PlaylistDetail';
@@ -56,32 +56,6 @@ const TempPage = ({ title }) => (
   </div>
 );
 
-/**
- * NotFoundRedirect
- * - Si Render (ou autre hébergeur) renvoie /index.html?token=... ou toute route inconnue
- *   => on redirige proprement :
- *      - vers /reset-password?token=... si un token est présent
- *      - sinon vers /login en préservant la query (message, etc.)
- */
-function NotFoundRedirect() {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const search = location.search || '';
-    const params = new URLSearchParams(search);
-    const token = params.get('token');
-
-    if (token) {
-      navigate(`/reset-password${search}`, { replace: true });
-    } else {
-      navigate(`/login${search}`, { replace: true });
-    }
-  }, [location, navigate]);
-
-  return null;
-}
-
 function App() {
   return (
     <Router>
@@ -93,33 +67,24 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
 
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route
-            path="/api/auth/verify-reset/:token"
-            element={<ApiRedirect endpoint="/api/auth/verify-reset/:token" />}
-          />
+          <Route path="/api/auth/verify-reset/:token" element={<ApiRedirect endpoint="/api/auth/verify-reset/:token" />} />
 
           <Route path="/email-verify/:id/:token" element={<EmailVerify />} />
           <Route path="/email-sent" element={<EmailSent />} />
 
           {/* redirections API */}
-          <Route
-            path="/api/auth/verify/:id/:token"
-            element={<ApiRedirect endpoint="/api/auth/verify/:id/:token" />}
-          />
+          <Route path="/api/auth/verify/:id/:token" element={<ApiRedirect endpoint="/api/auth/verify/:id/:token" />} />
           {/* <Route path="/api/auth/verify-reset/:token" element={<ApiRedirect endpoint="/api/auth/verify-reset/:token" />} /> */}
 
           {/* Dashboard Protected + Nested Routes */}
-          <Route
-            path="/dashboard/"
-            element={
-              <PrivateRoute allowedRoles={['user']}>
-                <DashboardLayout />
-              </PrivateRoute>
-            }
-          >
-            {/* /dashboard affiche LiveThrowback par défaut */}
+          <Route path="/dashboard/" element={
+            <PrivateRoute allowedRoles={['user']}>
+              <DashboardLayout />
+            </PrivateRoute>
+          }>
+            {/* /dashboard affiche LiveThrowback par défaut - CORRECTION: ajout de l'attribut index */}
             <Route index element={<LiveThrowback />} />
-
+            
             {/* Routes existantes */}
             <Route path="profile" element={<ProfilePage />} />
             <Route path="settings" element={<Settings />} />
@@ -134,10 +99,10 @@ function App() {
             <Route path="playlists/:id/edit" element={<PlaylistForm />} />
             <Route path="playlists/:id/play" element={<PlaylistPlayer />} />
             <Route path="search" element={<Search />} />
-            <Route path="help-support" element={<HelpAndSupport />} />
-
+             <Route path="help-support" element={<HelpAndSupport />} />
+            
             {/* Ajouter les routes manquantes avec pages temporaires */}
-            <Route path="live" element={<LiveThrowback />} />
+            <Route path="live" element={<LiveThrowback />} /> {/* Redirection vers la même page que l'index */}
             <Route path="wall" element={<UserTempPage title="ThrowBack Wall" />} />
             <Route path="chat" element={<UserTempPage title="ThrowBack Chat" />} />
             <Route path="discover" element={<UserTempPage title="Discover" />} />
@@ -152,52 +117,50 @@ function App() {
           </Route>
 
           {/* Admin Dashboard */}
-          <Route
-            path="/admin"
-            element={
-              <PrivateAdminRoute>
-                <AdminDashboard />
-              </PrivateAdminRoute>
-            }
-          >
+          <Route path="/admin" element={
+            <PrivateAdminRoute>
+              <AdminDashboard />
+            </PrivateAdminRoute>
+          }>
             <Route index element={<Dashboard />} />
-
+            
             {/* Gestion des utilisateurs */}
             <Route path="users" element={<Users />} />
             <Route path="users/:id" element={<UserDetails />} />
             <Route path="users/create" element={<UserForm />} />
             <Route path="users/:id/edit" element={<UserForm />} />
-
+            
             {/* Gestion des vidéos */}
             <Route path="videos" element={<AdminVideos />} />
-
+            
             {/* Gestion des shorts */}
             <Route path="shorts" element={<AdminShorts />} />
 
-            {/* Gestion des livestreams */}
+            {/* Gestion des livestreams  */}
             <Route path="livestreams" element={<AdminLivethrowback />} />
 
             {/* Gestion des podcasts */}
             <Route path="podcasts" element={<AdminPodcasts />} />
-
+            
             {/* Gestion des playlists */}
             <Route path="playlists" element={<Playlists />} />
             <Route path="playlists/:id" element={<PlaylistDetail />} />
             <Route path="playlists/:id/edit" element={<PlaylistEdit />} />
             <Route path="playlists/new" element={<PlaylistEdit />} />
-
+            
             {/* Modération */}
             <Route path="comments" element={<TempPage title="Modération des Commentaires" />} />
             <Route path="posts" element={<TempPage title="Modération des Posts" />} />
             <Route path="likes" element={<TempPage title="Gestion des Likes" />} />
             <Route path="messages" element={<TempPage title="Gestion des Messages" />} />
             <Route path="friends" element={<TempPage title="Gestion des Amis" />} />
-
+            
             {/* Système */}
             <Route path="security" element={<TempPage title="Sécurité" />} />
             <Route path="logs" element={<TempPage title="Logs Système" />} />
 
-            {/* Pages du header en développement */}
+
+              {/* Pages du header en développement */}
             <Route path="profile" element={<TempPage title="My Profile" />} />
             <Route path="settings" element={<TempPage title="Account Settings" />} />
             <Route path="preferences" element={<TempPage title="Preferences" />} />
@@ -205,12 +168,9 @@ function App() {
             <Route path="notifications" element={<TempPage title="Notifications" />} />
           </Route>
 
-          {/* Fallbacks */}
+          {/* fallback */}
           <Route path="/" element={<LandingPage />} />
-          {/* Certaines plateformes réécrivent vers /index.html : on intercepte ici */}
-          <Route path="/index.html" element={<NotFoundRedirect />} />
-          {/* Toute route inconnue → on preserve la query et on route selon présence du token */}
-          <Route path="*" element={<NotFoundRedirect />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </AuthProvider>
     </Router>

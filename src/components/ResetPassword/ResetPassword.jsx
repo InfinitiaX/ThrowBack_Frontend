@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../utils/api';
-import './ResetPassword.css'; // ✅ CSS global (PAS "styles.module.css")
+import './ResetPassword.css'; // CSS global
 
 function ResetPassword() {
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
+  const passwordRef = useRef(null);
+  const confirmRef = useRef(null);
+
   const [token, setToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
@@ -17,28 +18,33 @@ function ResetPassword() {
   const navigate = useNavigate();
   const { clearError } = useAuth();
 
-  // Récupération robuste du token (même si Render passe un moment par /index.html)
+  // Récupération robuste du token (même si Render a renvoyé /index.html)
   useEffect(() => {
     clearError();
     setError('');
 
     const fromRouter = new URLSearchParams(location.search || '');
     let t = fromRouter.get('token');
-
     if (!t && typeof window !== 'undefined') {
-      const sp = new URL(window.location.href).searchParams;
-      t = sp.get('token');
+      t = new URL(window.location.href).searchParams.get('token');
     }
 
     setToken(t || '');
     setMsg(fromRouter.get('message') || '');
 
-    // Debug utile si nécessaire
-    // console.log('[ResetPassword] token:', t);
+    // Autofocus après montage (utile si une extension bloque le focus initial)
+    setTimeout(() => {
+      try {
+        passwordRef.current?.focus();
+      } catch {}
+    }, 0);
   }, [location.search, clearError]);
 
-  const onSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const password = passwordRef.current?.value || '';
+    const confirm = confirmRef.current?.value || '';
 
     if (!token) {
       setError("Lien invalide ou expiré. Merci de relancer 'Mot de passe oublié'.");
@@ -56,7 +62,6 @@ function ResetPassword() {
     try {
       setLoading(true);
       setError('');
-
       const { data } = await api.put('/api/auth/reset-password', { token, password });
       if (data?.success) {
         setDone(true);
@@ -83,14 +88,10 @@ function ResetPassword() {
         <h2>Réinitialisation du mot de passe</h2>
 
         {msg && !error && !done && (
-          <div className="info-message">
-            <p>{msg}</p>
-          </div>
+          <div className="info-message"><p>{msg}</p></div>
         )}
         {error && (
-          <div className="error-message">
-            <p>{error}</p>
-          </div>
+          <div className="error-message"><p>{error}</p></div>
         )}
 
         {done ? (
@@ -99,19 +100,17 @@ function ResetPassword() {
             <p>Redirection vers la page de connexion…</p>
           </div>
         ) : (
-          <form onSubmit={onSubmit} noValidate>
+          <form onSubmit={handleSubmit} autoComplete="off" noValidate>
             <div className="form-group">
               <label htmlFor="password">Nouveau mot de passe</label>
               <input
                 id="password"
+                ref={passwordRef}
                 type="password"
                 name="new-password"
-                autoComplete="new-password"
                 placeholder="Entrez votre nouveau mot de passe"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                // ✅ on NE bloque plus la saisie (seul le bouton de submit est bloqué)
-                disabled={loading}
+                autoComplete="new-password"
+                disabled={loading}      /* on ne bloque plus la saisie à cause du token */
               />
             </div>
 
@@ -119,12 +118,11 @@ function ResetPassword() {
               <label htmlFor="confirm">Confirmer le mot de passe</label>
               <input
                 id="confirm"
+                ref={confirmRef}
                 type="password"
                 name="confirm-password"
-                autoComplete="new-password"
                 placeholder="Confirmez votre nouveau mot de passe"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
+                autoComplete="new-password"
                 disabled={loading}
               />
             </div>
@@ -132,8 +130,7 @@ function ResetPassword() {
             <button
               type="submit"
               className="reset-button"
-              // 🔒 on bloque seulement le SUBMIT si pas de token ou en chargement
-              disabled={loading || !token}
+              disabled={loading || !token}  /* on bloque seulement le SUBMIT */
             >
               {loading ? 'Réinitialisation…' : 'Réinitialiser le mot de passe'}
             </button>

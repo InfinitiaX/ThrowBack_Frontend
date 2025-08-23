@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../utils/api';
-import './ResetPassword.css'; // ✅ CSS global (pas module)
+import './ResetPassword.css'; // ✅ bon import (CSS global)
 
 function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -16,15 +16,19 @@ function ResetPassword() {
   const navigate = useNavigate();
   const { clearError } = useAuth();
 
-  // Extraire le token de l'URL
+  // ✅ Extraction robuste du token (supporte index.html, proxy, etc.)
   useEffect(() => {
     clearError();
     setError('');
+    const fromLocation = new URLSearchParams(location.search || '');
+    let t = fromLocation.get('token');
 
-    const params = new URLSearchParams(location.search || window.location.search || '');
-    const t = params.get('token') || '';
+    if (!t && typeof window !== 'undefined') {
+      const sp = new URL(window.location.href).searchParams;
+      t = sp.get('token');
+    }
 
-    if (t) {
+    if (t && t.trim()) {
       setToken(t.trim());
     } else {
       setToken('');
@@ -52,14 +56,13 @@ function ResetPassword() {
       setLoading(true);
       setError('');
 
-      const { data } = await api.put('/api/auth/reset-password', {
-        token,
-        password,
-      });
+      const { data } = await api.put('/api/auth/reset-password', { token, password });
 
       if (data?.success) {
         setSuccess(true);
-        setTimeout(() => navigate('/login?message=Password reset successful. You can now sign in.'), 2500);
+        setTimeout(() => {
+          navigate('/login?message=Password reset successful. You can now sign in.', { replace: true });
+        }, 2000);
       } else {
         setError(data?.message || "Une erreur est survenue.");
       }
@@ -90,7 +93,7 @@ function ResetPassword() {
             <p>Redirection vers la page de connexion...</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             <div className="form-group">
               <label htmlFor="password">Nouveau mot de passe</label>
               <input
@@ -100,7 +103,8 @@ function ResetPassword() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Entrez votre nouveau mot de passe"
                 required
-                // ✅ la saisie reste possible même si le token est vide
+                autoComplete="new-password"
+                // ⛳️ on NE désactive plus le champ quand le token manque
                 disabled={loading}
               />
             </div>
@@ -114,6 +118,7 @@ function ResetPassword() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirmez votre nouveau mot de passe"
                 required
+                autoComplete="new-password"
                 disabled={loading}
               />
             </div>
@@ -121,7 +126,7 @@ function ResetPassword() {
             <button
               type="submit"
               className="reset-button"
-              // ✅ on bloque seulement le submit quand nécessaire
+              // 🔒 On bloque uniquement le SUBMIT si pas de token ou en chargement
               disabled={loading || !token}
             >
               {loading ? "Réinitialisation en cours..." : "Réinitialiser le mot de passe"}

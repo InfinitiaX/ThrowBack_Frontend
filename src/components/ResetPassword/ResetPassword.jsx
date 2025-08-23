@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../utils/api';
@@ -13,27 +13,28 @@ function ResetPassword() {
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+  const [initialized, setInitialized] = useState(false); // ✅ Évite les re-renders
 
   const location = useLocation();
   const navigate = useNavigate();
   const { clearError } = useAuth();
 
-  // ✅ Debug: Log des états
-  useEffect(() => {
-    console.log('🔍 Debug ResetPassword - États:', {
-      token: token ? 'présent' : 'absent',
-      loading,
-      done,
-      error,
-      msg
-    });
-  }, [token, loading, done, error, msg]);
+  // ✅ Mémoisation de clearError pour éviter les re-renders
+  const memoizedClearError = useCallback(() => {
+    if (clearError) clearError();
+  }, [clearError]);
 
-  // Récupération robuste du token
+  // ✅ Initialisation unique du composant
   useEffect(() => {
-    clearError();
+    if (initialized) return; // ✅ Évite les re-initialisations
+
+    console.log('🚀 Initialisation du composant ResetPassword');
+    
+    // Clear des erreurs
+    memoizedClearError();
     setError('');
 
+    // Récupération du token
     const fromRouter = new URLSearchParams(location.search || '');
     let t = fromRouter.get('token');
     if (!t && typeof window !== 'undefined') {
@@ -43,33 +44,25 @@ function ResetPassword() {
     console.log('🔍 Token récupéré:', t ? 'présent' : 'absent');
     setToken(t || '');
     setMsg(fromRouter.get('message') || '');
+    setInitialized(true); // ✅ Marque comme initialisé
 
-    // ✅ Autofocus amélioré avec vérification
+    // ✅ Focus initial unique
     const focusFirstInput = () => {
       try {
         if (passwordRef.current) {
-          console.log('🔍 Tentative de focus sur le premier input');
+          console.log('🔍 Focus initial sur le premier input');
           passwordRef.current.focus();
-          
-          // ✅ Test si l'input peut recevoir la saisie
-          passwordRef.current.addEventListener('focus', () => {
-            console.log('✅ Input focusé avec succès');
-          });
-          
-          passwordRef.current.addEventListener('input', () => {
-            console.log('✅ Saisie détectée dans l\'input');
-          });
         }
       } catch (err) {
         console.error('❌ Erreur de focus:', err);
       }
     };
 
-    // ✅ Attendre que le DOM soit complètement rendu
-    setTimeout(focusFirstInput, 100);
-  }, [location.search, clearError]);
+    setTimeout(focusFirstInput, 200);
+  }, []); // ✅ Dépendances vides = exécution unique
 
-  const handleSubmit = async (e) => {
+  // ✅ Gestionnaire de soumission optimisé
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
 
     const password = passwordRef.current?.value || '';
@@ -120,38 +113,29 @@ function ResetPassword() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, navigate]);
 
-  // ✅ Gestion du clic pour debug
-  const handleInputClick = (inputName) => {
-    console.log(`🔍 Clic détecté sur ${inputName}`);
-  };
+  // ✅ Gestionnaires d'événements simplifiés (sans re-render)
+  const handlePasswordFocus = useCallback(() => {
+    console.log('🔍 Focus sur le champ mot de passe');
+  }, []);
 
-  // ✅ Gestion des changements pour debug
-  const handleInputChange = (inputName, value) => {
-    console.log(`🔍 Changement détecté sur ${inputName}:`, value.length, 'caractères');
-  };
+  const handleConfirmFocus = useCallback(() => {
+    console.log('🔍 Focus sur le champ confirmation');
+  }, []);
+
+  const handlePasswordChange = useCallback((e) => {
+    console.log('🔍 Changement mot de passe:', e.target.value.length, 'caractères');
+  }, []);
+
+  const handleConfirmChange = useCallback((e) => {
+    console.log('🔍 Changement confirmation:', e.target.value.length, 'caractères');
+  }, []);
 
   return (
     <div className="reset-password-container">
       <div className="reset-password-form-container">
         <h2>Réinitialisation du mot de passe</h2>
-
-        {/* ✅ Debug info (à retirer en production) */}
-        {process.env.NODE_ENV === 'development' && (
-          <div style={{ 
-            background: '#f0f0f0', 
-            padding: '10px', 
-            marginBottom: '15px',
-            fontSize: '12px',
-            fontFamily: 'monospace'
-          }}>
-            <strong>Debug:</strong><br/>
-            Token: {token ? '✅ Présent' : '❌ Absent'}<br/>
-            Loading: {loading ? '✅' : '❌'}<br/>
-            Done: {done ? '✅' : '❌'}
-          </div>
-        )}
 
         {msg && !error && !done && (
           <div className="info-message"><p>{msg}</p></div>
@@ -176,15 +160,10 @@ function ResetPassword() {
                 name="new-password"
                 placeholder="Entrez votre nouveau mot de passe"
                 autoComplete="new-password"
-                disabled={loading}
-                onClick={() => handleInputClick('password')}
-                onChange={(e) => handleInputChange('password', e.target.value)}
-                style={{
-                  // ✅ Styles forcés pour debug
-                  pointerEvents: 'auto',
-                  userSelect: 'auto',
-                  cursor: loading ? 'not-allowed' : 'text'
-                }}
+                disabled={loading || !token}
+                onFocus={handlePasswordFocus}
+                onChange={handlePasswordChange}
+                key="password-input" // ✅ Force le re-mount si nécessaire
               />
             </div>
 
@@ -197,15 +176,10 @@ function ResetPassword() {
                 name="confirm-password"
                 placeholder="Confirmez votre nouveau mot de passe"
                 autoComplete="new-password"
-                disabled={loading}
-                onClick={() => handleInputClick('confirm')}
-                onChange={(e) => handleInputChange('confirm', e.target.value)}
-                style={{
-                  // ✅ Styles forcés pour debug
-                  pointerEvents: 'auto',
-                  userSelect: 'auto',
-                  cursor: loading ? 'not-allowed' : 'text'
-                }}
+                disabled={loading || !token}
+                onFocus={handleConfirmFocus}
+                onChange={handleConfirmChange}
+                key="confirm-input" // ✅ Force le re-mount si nécessaire
               />
             </div>
 

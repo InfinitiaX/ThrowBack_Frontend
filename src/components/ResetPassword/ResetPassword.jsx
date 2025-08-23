@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../utils/api';
-import './styles.module.css'; 
+import './ResetPassword.css'; // ✅ CSS global (pas module)
 
 function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -11,64 +11,61 @@ function ResetPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+
   const location = useLocation();
   const navigate = useNavigate();
   const { clearError } = useAuth();
 
-  // Extraire le token de l'URL dès le chargement du composant
+  // Extraire le token de l'URL
   useEffect(() => {
-    // Réinitialiser l'état
-    setError('');
     clearError();
-    
-    // Extraire le token de l'URL
-    const searchParams = new URLSearchParams(location.search);
-    const tokenFromUrl = searchParams.get('token');
-    
-    console.log("🔑 Token extrait de l'URL:", tokenFromUrl);
-    
-    if (tokenFromUrl) {
-      setToken(tokenFromUrl);
+    setError('');
+
+    const params = new URLSearchParams(location.search || window.location.search || '');
+    const t = params.get('token') || '';
+
+    if (t) {
+      setToken(t.trim());
     } else {
-      setError("Aucun token de réinitialisation trouvé dans l'URL. Veuillez réessayer le processus de réinitialisation.");
+      setToken('');
+      setError("Aucun token de réinitialisation trouvé dans l'URL. Veuillez relancer la procédure.");
     }
   }, [location.search, clearError]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    if (!token) {
+      setError("Lien invalide ou expiré. Reprenez la procédure 'Mot de passe oublié'.");
+      return;
+    }
     if (password !== confirmPassword) {
-      return setError("Les mots de passe ne correspondent pas.");
+      setError("Les mots de passe ne correspondent pas.");
+      return;
     }
-    
     if (password.length < 6) {
-      return setError("Le mot de passe doit contenir au moins 6 caractères.");
+      setError("Le mot de passe doit contenir au moins 6 caractères.");
+      return;
     }
-    
+
     try {
       setLoading(true);
-      console.log("🔄 Envoi de la demande de réinitialisation avec token:", token);
-      
-      const response = await api.put('/api/auth/reset-password', {
+      setError('');
+
+      const { data } = await api.put('/api/auth/reset-password', {
         token,
-        password
+        password,
       });
-      
-      console.log("✅ Réponse reçue:", response.data);
-      
-      if (response.data.success) {
+
+      if (data?.success) {
         setSuccess(true);
-        setError('');
-        
-        // Redirection vers la page de connexion après 3 secondes
-        setTimeout(() => {
-          navigate('/login');
-        }, 3000);
+        setTimeout(() => navigate('/login?message=Password reset successful. You can now sign in.'), 2500);
+      } else {
+        setError(data?.message || "Une erreur est survenue.");
       }
     } catch (err) {
-      console.error("❌ Erreur lors de la réinitialisation:", err);
       setError(
-        err.response?.data?.message || 
+        err.response?.data?.message ||
         "Une erreur s'est produite lors de la réinitialisation du mot de passe. Veuillez réessayer."
       );
     } finally {
@@ -80,17 +77,17 @@ function ResetPassword() {
     <div className="reset-password-container">
       <div className="reset-password-form-container">
         <h2>Réinitialisation du mot de passe</h2>
-        
+
         {error && (
           <div className="error-message">
             <p>{error}</p>
           </div>
         )}
-        
+
         {success ? (
           <div className="success-message">
-            <p>Votre mot de passe a été réinitialisé avec succès!</p>
-            <p>Vous allez être redirigé vers la page de connexion...</p>
+            <p>Votre mot de passe a été réinitialisé avec succès !</p>
+            <p>Redirection vers la page de connexion...</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
@@ -103,10 +100,11 @@ function ResetPassword() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Entrez votre nouveau mot de passe"
                 required
-                disabled={!token || loading}
+                // ✅ la saisie reste possible même si le token est vide
+                disabled={loading}
               />
             </div>
-            
+
             <div className="form-group">
               <label htmlFor="confirmPassword">Confirmer le mot de passe</label>
               <input
@@ -116,24 +114,23 @@ function ResetPassword() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirmez votre nouveau mot de passe"
                 required
-                disabled={!token || loading}
+                disabled={loading}
               />
             </div>
-            
-            <button 
-              type="submit" 
+
+            <button
+              type="submit"
               className="reset-button"
-              disabled={!token || loading}
+              // ✅ on bloque seulement le submit quand nécessaire
+              disabled={loading || !token}
             >
               {loading ? "Réinitialisation en cours..." : "Réinitialiser le mot de passe"}
             </button>
           </form>
         )}
-        
+
         <div className="form-footer">
-          <p>
-            <a href="/login">Retour à la connexion</a>
-          </p>
+          <p><a href="/login">Retour à la connexion</a></p>
         </div>
       </div>
     </div>

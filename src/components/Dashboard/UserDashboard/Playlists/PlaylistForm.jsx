@@ -9,7 +9,7 @@ import playlistAPI from '../../../../utils/playlistAPI';
 import { videoAPI } from '../../../../utils/api';
 import { useAuth } from '../../../../contexts/AuthContext';
 import LoadingSpinner from '../../../Common/LoadingSpinner';
-import Toast from '../../../Common/Toast';
+import Toast from '../../..//Common/Toast';
 import styles from './PlaylistForm.module.css';
 
 const PlaylistForm = () => {
@@ -73,7 +73,7 @@ const PlaylistForm = () => {
         setLoading(true);
         const videosData = await videoAPI.getAllVideos();
         setAvailableVideos(videosData);
-        
+
         if (isEditing) {
           const playlistData = await playlistAPI.getPlaylistById(id);
           if (!playlistData) {
@@ -81,20 +81,23 @@ const PlaylistForm = () => {
             setLoading(false);
             return;
           }
+
           const ownerId = playlistData.proprietaire._id || playlistData.proprietaire;
           const userId = user?.id || user?._id;
           const isOwner = ownerId && userId && (ownerId.toString() === userId.toString());
           if (!isOwner) {
-            setError("You don't have permission to edit this playlist");
+            setError("You are not allowed to edit this playlist");
             setLoading(false);
             return;
           }
+          
           setFormData({
             nom: playlistData.nom || '',
             description: playlistData.description || '',
             visibilite: playlistData.visibilite || 'PUBLIC',
             image_couverture: playlistData.image_couverture || ''
           });
+
           if (playlistData.videos && playlistData.videos.length > 0) {
             const sortedVideos = [...playlistData.videos].sort((a, b) => a.ordre - b.ordre);
             setPlaylistVideos(sortedVideos.map(item => item.video_id));
@@ -102,7 +105,7 @@ const PlaylistForm = () => {
         }
         setLoading(false);
       } catch (err) {
-        console.error('Error while loading data:', err);
+        console.error('Load error:', err);
         setError('An error occurred while loading data');
         setLoading(false);
       }
@@ -158,11 +161,7 @@ const PlaylistForm = () => {
   const handleDragStart = (e, index) => {
     e.dataTransfer.setData('index', index.toString());
   };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
-
+  const handleDragOver = (e) => { e.preventDefault(); };
   const handleDrop = (e, targetIndex) => {
     e.preventDefault();
     const sourceIndex = parseInt(e.dataTransfer.getData('index'));
@@ -177,40 +176,25 @@ const PlaylistForm = () => {
     const file = e.target.files[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      setFormErrors({
-        ...formErrors,
-        image_couverture: 'The file must be an image'
-      });
+      setFormErrors({ ...formErrors, image_couverture: 'File must be an image' });
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      setFormErrors({
-        ...formErrors,
-        image_couverture: 'The image must not exceed 2MB'
-      });
+      setFormErrors({ ...formErrors, image_couverture: 'Max image size is 2MB' });
       return;
     }
     const reader = new FileReader();
     reader.onload = (event) => {
-      setFormData({
-        ...formData,
-        image_couverture: event.target.result
-      });
+      setFormData({ ...formData, image_couverture: event.target.result });
     };
     reader.readAsDataURL(file);
     if (formErrors.image_couverture) {
-      setFormErrors({
-        ...formErrors,
-        image_couverture: null
-      });
+      setFormErrors({ ...formErrors, image_couverture: null });
     }
   };
 
   const handleRemoveImage = () => {
-    setFormData({
-      ...formData,
-      image_couverture: ''
-    });
+    setFormData({ ...formData, image_couverture: '' });
   };
 
   const validateForm = () => {
@@ -233,9 +217,7 @@ const PlaylistForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
     try {
       setSaving(true);
       const playlistData = {
@@ -259,7 +241,7 @@ const PlaylistForm = () => {
         navigate(`/dashboard/playlists/${isEditing ? id : response._id}`);
       }, 1500);
     } catch (err) {
-      console.error('Error while saving playlist:', err);
+      console.error('Save error:', err);
       setSaving(false);
       setToastMessage('An error occurred while saving the playlist');
       setToastType('error');
@@ -271,9 +253,7 @@ const PlaylistForm = () => {
     navigate(isEditing ? `/dashboard/playlists/${id}` : '/dashboard/playlists');
   };
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
+  if (loading) return <LoadingSpinner />;
 
   if (error) {
     return (
@@ -291,7 +271,6 @@ const PlaylistForm = () => {
 
   return (
     <div className={styles.playlistFormContainer}>
-      {/* Header with title and action buttons */}
       <div className={styles.header}>
         <h1 className={styles.title}>
           {isEditing ? 'Edit playlist' : 'Create playlist'}
@@ -319,10 +298,8 @@ const PlaylistForm = () => {
         </div>
       </div>
 
-      {/* Form */}
       <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.formContent}>
-          {/* Basic information */}
           <div className={styles.basicInfoSection}>
             <h2 className={styles.sectionTitle}>Basic information</h2>
             
@@ -488,12 +465,11 @@ const PlaylistForm = () => {
                 </div>
               )}
               <p className={styles.imageHint}>
-                Recommended: JPG or PNG, at least 800×800px
+                Recommended: JPG/PNG, at least 800×800px
               </p>
             </div>
           </div>
 
-          {/* Playlist videos */}
           <div className={styles.videosSection}>
             <h2 className={styles.sectionTitle}>Videos</h2>
             
@@ -545,7 +521,7 @@ const PlaylistForm = () => {
                     ))
                   ) : (
                     <div className={styles.noResults}>
-                      <p>No videos found</p>
+                      <p>No video found</p>
                     </div>
                   )}
                 </div>
@@ -571,9 +547,7 @@ const PlaylistForm = () => {
                       <div className={styles.videoItemIndex}>{index + 1}</div>
                       <div 
                         className={styles.videoItemThumbnail}
-                        style={{ 
-                          backgroundColor: getArtistColor(video.artiste),
-                        }}
+                        style={{ backgroundColor: getArtistColor(video.artiste) }}
                       >
                         {getArtistInitials(video.artiste)}
                       </div>
@@ -607,7 +581,6 @@ const PlaylistForm = () => {
           </div>
         </div>
 
-        {/* Action buttons at the bottom of the form */}
         <div className={styles.formActions}>
           <button 
             type="button"
@@ -627,7 +600,6 @@ const PlaylistForm = () => {
         </div>
       </form>
 
-      {/* Toast for notifications */}
       <Toast
         show={showToast}
         message={toastMessage}

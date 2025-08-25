@@ -2,18 +2,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-  faPlay, faPause, faStepForward, faStepBackward, faRandom, faRedo,
-  faVolumeUp, faVolumeMute, faExpand, faCompress, faArrowLeft, 
-  faList, faHeart, faShare
+  faStepForward, faStepBackward, faRandom, faRedo,
+  faVolumeUp, faVolumeMute, faExpand, faCompress, faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
 import playlistAPI from '../../../../utils/playlistAPI';
 import LoadingSpinner from '../../../Common/LoadingSpinner';
 import Toast from '../../../Common/Toast';
 import styles from './PlaylistPlayer.module.css';
 
+/** --------- Helpers: IDs parsing --------- */
 const parseYouTubeId = (url) => {
   try {
-    const s = url.toString();
+    const s = url?.toString() || '';
     if (s.includes('youtube.com/watch')) { const u = new URL(s); return u.searchParams.get('v'); }
     if (s.includes('youtu.be/')) return s.split('youtu.be/')[1].split(/[?&]/)[0];
     if (s.includes('youtube.com/embed/')) return s.split('embed/')[1].split(/[?&]/)[0];
@@ -21,16 +21,107 @@ const parseYouTubeId = (url) => {
   return null;
 };
 const parseVimeoId = (url) => {
-  try { const m = url.toString().match(/vimeo\.com\/(?:video\/)?(\d+)/); return m ? m[1] : null; } catch {} return null;
+  try { const m = url?.toString().match(/vimeo\.com\/(?:video\/)?(\d+)/); return m ? m[1] : null; } catch {} return null;
 };
-const getEmbedFromUrl = (rawUrl) => {
-  if (!rawUrl) return null;
-  const url = rawUrl.toString();
+const loadScriptOnce = (src) =>
+  new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) return resolve();
+    const s = document.createElement('script');
+    s.src = src; s.async = true;
+    s.onload = () => resolve();
+    s.onerror = (e) => reject(e);
+    document.body.appendChild(s);
+  });
+
+/** --------- Unified Player component --------- */
+const VideoEmbed = ({ videoUrl, muted, onEnded, className }) => {
+  const youTubeId = parseYouTubeId(videoUrl);
+  const vimeoId = parseVimeoId(videoUrl);
+  const ytRef = useRef(null);
+  const vimContainerRef = useRef(null);
+  const playerRef = useRef(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const setupYouTube = async (id) => {
+      await loadScriptOnce('https://www.youtube.com/iframe_api');
+      await new Promise((res) => {
+        if (window.YT && window.YT.Player) return res();
+        window.onYouTubeIframeAPIReady = () => res();
+      });
+      if (!mounted) return;
+
+      if (playerRef.current?.destroy) {
+        try { playerRef.current.destroy(); } catch {}
+      }
+
+      playerRef.current = new window.YT.Player(ytRef.current, {
+        videoId: id,
+        playerVars: { autoplay: 1, mute: muted ? 1 : 0, rel: 0, modestbranding: 1 },
+        events: {
+          onReady: (e) => {
+            if (muted) e.target.mute(); else e.target.unMute();
+            e.target.playVideo();
+          },
+          onStateChange: (e) => {
+            if (e.data === 0 && typeof onEnded === 'function') onEnded();
+          }
+        }
+      });
+    };
+
+    const setupVimeo = async (id) => {
+      await loadScriptOnce('https://player.vimeo.com/api/player.js');
+      if (!mounted) return;
+
+      if (playerRef.current?.unload) {
+        try { playerRef.current.unload(); } catch {}
+      }
+      const iframe = document.createElement('iframe');
+      iframe.src = `https://player.vimeo.com/video/${id}?autoplay=1&muted=${muted ? 1 : 0}`;
+      iframe.allow = 'autoplay; picture-in-picture';
+      iframe.className = styles.iframe;
+      if (vimContainerRef.current) {
+        vimContainerRef.current.innerHTML = '';
+        vimContainerRef.current.appendChild(iframe);
+      }
+      playerRef.current = new window.Vimeo.Player(iframe);
+      playerRef.current.on('ended', () => typeof onEnded === 'function' && onEnded());
+    };
+
+    const setupFallback = () => {
+      if (ytRef.current) ytRef.current.innerHTML = '';
+      if (vimContainerRef.current) vimContainerRef.current.innerHTML = '';
+    };
+
+    if (youTubeId) setupYouTube(youTubeId);
+    else if (vimeoId) setupVimeo(vimeoId);
+    else setupFallback();
+
+    return () => {
+      mounted = false;
+      try {
+        if (playerRef.current?.destroy) playerRef.current.destroy();
+        if (playerRef.current?.unload) playerRef.current.unload();
+      } catch {}
+    };
+  }, [videoUrl, muted]);
+
+  if (youTubeId) return <div className={className}><div ref={ytRef} className={styles.iframe} /></div>;
+  if (vimeoId) return <div className={className}><div ref={vimContainerRef} className={styles.iframe} /></div>;
+  return (
+    <div className={styles.fallback}>
+      <img src="/images/video-placeholder.jpg" alt="Preview" />
+      <p>Cannot play this source directly.</p>
+    </div>
+  );
+};
+
+const getThumb = (url) => {
   const yt = parseYouTubeId(url);
-  if (yt) return { provider:'youtube', id: yt, embedUrl:`https://www.youtube.com/embed/${yt}?autoplay=1&mute=1&rel=0&modestbranding=1&enablejsapi=1`, thumb:`https://img.youtube.com/vi/${yt}/hqdefault.jpg` };
-  const vm = parseVimeoId(url);
-  if (vm) return { provider:'vimeo', id: vm, embedUrl:`https://player.vimeo.com/video/${vm}?autoplay=1&muted=1&api=1`, thumb:'/images/video-placeholder.jpg' };
-  return { provider:'file', id:null, embedUrl:null, thumb:'/images/video-placeholder.jpg' };
+  if (yt) return `https://img.youtube.com/vi/${yt}/hqdefault.jpg`;
+  return '/images/video-placeholder.jpg';
 };
 
 const PlaylistPlayer = () => {
@@ -45,13 +136,12 @@ const PlaylistPlayer = () => {
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isMuted, setIsMuted] = useState(true); // start muted for autoplay policy
+  const [isMuted, setIsMuted] = useState(true);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success');
 
   const containerRef = useRef(null);
-  const iframeRef = useRef(null);
 
   useEffect(() => {
     const load = async () => {
@@ -64,7 +154,7 @@ const PlaylistPlayer = () => {
         setPlaylist(data);
         setLoading(false);
       } catch (e) {
-        setError("Failed to load playlist"); setLoading(false);
+        setError("Error while loading the playlist"); setLoading(false);
       }
     };
     load();
@@ -77,35 +167,6 @@ const PlaylistPlayer = () => {
     setCurrent(c => (c < playlist.videos.length-1 ? c+1 : c));
   };
   const prev = () => setCurrent(c=>Math.max(0,c-1));
-
-  // Auto-advance on video end (YouTube & Vimeo)
-  useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-
-    const onMessage = (e) => {
-      try {
-        if (typeof e.data === 'string') {
-          const data = JSON.parse(e.data);
-          if (data?.event === 'onStateChange' && data?.info === 0) next(); // YouTube ended
-          if (e.data.includes('"event":"ended"')) next(); // Vimeo (string)
-        } else if (e.data && typeof e.data === 'object' && e.data?.event === 'ended') {
-          next(); // Vimeo (object)
-        }
-      } catch {}
-    };
-
-    window.addEventListener('message', onMessage);
-    try {
-      // YouTube handshake and listener
-      iframe.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 'yt-player' }), '*');
-      iframe.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onStateChange'] }), '*');
-      // Vimeo subscribe to "ended"
-      iframe.contentWindow?.postMessage(JSON.stringify({ method: 'addEventListener', value: 'ended' }), '*');
-    } catch {}
-
-    return () => window.removeEventListener('message', onMessage);
-  }, [current, playlist?.videos?.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const onFs = () => setIsFullscreen(
@@ -134,7 +195,6 @@ const PlaylistPlayer = () => {
   }
   const list = playlist.videos;
   const now = list[current]?.video_id;
-  const emb = getEmbedFromUrl(now?.youtubeUrl);
 
   return (
     <div className={styles.playerPage}>
@@ -147,50 +207,42 @@ const PlaylistPlayer = () => {
       </div>
 
       <div className={styles.playerLayout} ref={containerRef}>
-        <div className={styles.playerArea}>
-          {emb?.embedUrl ? (
-            <iframe
-              ref={iframeRef}
-              key={emb.embedUrl}
-              src={emb.embedUrl + (isMuted ? '' : '&mute=0')}
-              title={now?.titre || 'Video'}
-              className={styles.iframe}
-              allow="autoplay; encrypted-media; picture-in-picture"
-              allowFullScreen
-            />
-          ) : (
-            <div className={styles.fallback}>
-              <img src={emb?.thumb || '/images/video-placeholder.jpg'} alt="Preview" />
-              <p>Cannot play this source directly.</p>
-            </div>
-          )}
+        <VideoEmbed
+          className={styles.playerArea}
+          videoUrl={now?.youtubeUrl}
+          muted={isMuted}
+          onEnded={() => {
+            if (repeat) return;
+            if (shuffle) return setCurrent(Math.floor(Math.random()*list.length));
+            setCurrent((c)=> (c < list.length-1 ? c+1 : c));
+          }}
+        />
 
-          <div className={styles.controls}>
-            <button className={styles.ctrlBtn} onClick={prev}><FontAwesomeIcon icon={faStepBackward}/></button>
-            <button className={`${styles.ctrlBtn} ${shuffle?styles.active:''}`} onClick={()=>setShuffle(s=>!s)} title="Shuffle"><FontAwesomeIcon icon={faRandom}/></button>
-            <button className={`${styles.ctrlBtn} ${repeat?styles.active:''}`} onClick={()=>setRepeat(r=>!r)} title="Repeat"><FontAwesomeIcon icon={faRedo}/></button>
-            <button className={styles.ctrlBtn} onClick={next}><FontAwesomeIcon icon={faStepForward}/></button>
-            <button className={styles.ctrlBtn} onClick={()=>setIsMuted(m=>!m)} title="Mute"><FontAwesomeIcon icon={isMuted?faVolumeMute:faVolumeUp}/></button>
-            <button className={styles.ctrlBtn} onClick={()=>{
-              if (!isFullscreen) {
-                if (containerRef.current.requestFullscreen) containerRef.current.requestFullscreen();
-                else if (containerRef.current.webkitRequestFullscreen) containerRef.current.webkitRequestFullscreen();
-              } else {
-                if (document.exitFullscreen) document.exitFullscreen();
-                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-              }
-            }}>
-              <FontAwesomeIcon icon={isFullscreen?faCompress:faExpand}/>
-            </button>
-          </div>
+        <div className={styles.controls}>
+          <button className={styles.ctrlBtn} onClick={prev}><FontAwesomeIcon icon={faStepBackward}/></button>
+          <button className={`${styles.ctrlBtn} ${shuffle?styles.active:''}`} onClick={()=>setShuffle(s=>!s)} title="Shuffle"><FontAwesomeIcon icon={faRandom}/></button>
+          <button className={`${styles.ctrlBtn} ${repeat?styles.active:''}`} onClick={()=>setRepeat(r=>!r)} title="Repeat"><FontAwesomeIcon icon={faRedo}/></button>
+          <button className={styles.ctrlBtn} onClick={next}><FontAwesomeIcon icon={faStepForward}/></button>
+          <button className={styles.ctrlBtn} onClick={()=>setIsMuted(m=>!m)} title="Mute"><FontAwesomeIcon icon={isMuted?faVolumeMute:faVolumeUp}/></button>
+          <button className={styles.ctrlBtn} onClick={()=>{
+            if (!isFullscreen) {
+              if (containerRef.current.requestFullscreen) containerRef.current.requestFullscreen();
+              else if (containerRef.current.webkitRequestFullscreen) containerRef.current.webkitRequestFullscreen();
+            } else {
+              if (document.exitFullscreen) document.exitFullscreen();
+              else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            }
+          }}>
+            <FontAwesomeIcon icon={isFullscreen?faCompress:faExpand}/>
+          </button>
         </div>
 
         <div className={styles.sideList}>
-          <h3>Queue</h3>
+          <h3>Up next</h3>
           <ol className={styles.videoList}>
             {list.map((it, idx) => {
               const v = it.video_id;
-              const th = getEmbedFromUrl(v?.youtubeUrl)?.thumb || '/images/video-placeholder.jpg';
+              const th = getThumb(v?.youtubeUrl);
               return (
                 <li key={v?._id || idx} className={`${styles.row} ${idx===current?styles.active:''}`} onClick={()=>setCurrent(idx)}>
                   <img src={th} alt={v?.titre || 'Video'} onError={(e)=>{e.currentTarget.src='/images/video-placeholder.jpg';}}/>

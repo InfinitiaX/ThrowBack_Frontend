@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faPlay, faPause, faStepForward, faStepBackward, faRandom, faRedo,
-  faHeart, faShare, faEllipsisV, faEdit, faTrash,
+  faHeart, faShare, faEdit, faTrash,
   faArrowLeft, faPlus, faGlobe, faLock, faUserFriends,
   faEye, faCalendarAlt, faMusic, faVolumeMute, faVolumeUp
 } from '@fortawesome/free-solid-svg-icons';
@@ -11,12 +11,13 @@ import playlistAPI from '../../../../utils/playlistAPI';
 import { useAuth } from '../../../../contexts/AuthContext';
 import LoadingSpinner from '../../../Common/LoadingSpinner';
 import ConfirmModal from '../../../Common/ConfirmModal';
-import Toast from '../../..//Common/Toast';
+import Toast from '../../../Common/Toast';
 import styles from './PlaylistDetail.module.css';
 
+/** --------- Helpers: IDs parsing --------- */
 const parseYouTubeId = (url) => {
   try {
-    const s = url.toString();
+    const s = url?.toString() || '';
     if (s.includes('youtube.com/watch')) {
       const u = new URL(s);
       return u.searchParams.get('v');
@@ -26,40 +27,132 @@ const parseYouTubeId = (url) => {
   } catch {}
   return null;
 };
-
 const parseVimeoId = (url) => {
   try {
-    const m = url.toString().match(/vimeo\.com\/(?:video\/)?(\d+)/);
+    const m = url?.toString().match(/vimeo\.com\/(?:video\/)?(\d+)/);
     return m ? m[1] : null;
   } catch {}
   return null;
 };
 
-const getEmbedFromUrl = (rawUrl) => {
-  if (!rawUrl) return null;
-  const url = rawUrl.toString();
+/** --------- Script loader --------- */
+const loadScriptOnce = (src) =>
+  new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) return resolve();
+    const s = document.createElement('script');
+    s.src = src; s.async = true;
+    s.onload = () => resolve();
+    s.onerror = (e) => reject(e);
+    document.body.appendChild(s);
+  });
 
-  const yt = parseYouTubeId(url);
-  if (yt) {
-    return {
-      provider: 'youtube',
-      id: yt,
-      embedUrl: `https://www.youtube.com/embed/${yt}?autoplay=1&mute=1&rel=0&modestbranding=1&enablejsapi=1`,
-      thumb: `https://img.youtube.com/vi/${yt}/hqdefault.jpg`
+/** --------- Unified Player component --------- */
+const VideoEmbed = ({ videoUrl, muted, onEnded }) => {
+  const containerRef = useRef(null);
+  const vimeoRef = useRef(null);
+  const playerRef = useRef(null);
+  const youTubeId = parseYouTubeId(videoUrl);
+  const vimeoId = parseVimeoId(videoUrl);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const setupYouTube = async (id) => {
+      await loadScriptOnce('https://www.youtube.com/iframe_api');
+      await new Promise((res) => {
+        if (window.YT && window.YT.Player) return res();
+        window.onYouTubeIframeAPIReady = () => res();
+      });
+
+      if (!isMounted || !containerRef.current) return;
+
+      if (playerRef.current && playerRef.current.destroy) {
+        try { playerRef.current.destroy(); } catch {}
+      }
+
+      playerRef.current = new window.YT.Player(containerRef.current, {
+        videoId: id,
+        playerVars: {
+          autoplay: 1,
+          mute: muted ? 1 : 0,
+          rel: 0,
+          modestbranding: 1
+        },
+        events: {
+          onReady: (e) => {
+            if (muted) e.target.mute(); else e.target.unMute();
+            e.target.playVideo();
+          },
+          onStateChange: (e) => {
+            // 0 = ENDED
+            if (e.data === 0 && typeof onEnded === 'function') onEnded();
+          }
+        }
+      });
     };
-  }
 
-  const vm = parseVimeoId(url);
-  if (vm) {
-    return {
-      provider: 'vimeo',
-      id: vm,
-      embedUrl: `https://player.vimeo.com/video/${vm}?autoplay=1&muted=1&api=1`,
-      thumb: '/images/video-placeholder.jpg'
+    const setupVimeo = async (id) => {
+      await loadScriptOnce('https://player.vimeo.com/api/player.js');
+      if (!isMounted) return;
+
+      // clean previous
+      if (playerRef.current && playerRef.current.unload) {
+        try { playerRef.current.unload(); } catch {}
+      }
+      const iframe = document.createElement('iframe');
+      iframe.src = `https://player.vimeo.com/video/${id}?autoplay=1&muted=${muted ? 1 : 0}`;
+      iframe.allow = 'autoplay; picture-in-picture';
+      iframe.className = styles.iframe;
+      if (vimeoRef.current) {
+        vimeoRef.current.innerHTML = '';
+        vimeoRef.current.appendChild(iframe);
+      }
+      playerRef.current = new window.Vimeo.Player(iframe);
+      playerRef.current.on('ended', () => typeof onEnded === 'function' && onEnded());
     };
-  }
 
-  return { provider: 'file', id: null, embedUrl: null, thumb: '/images/video-placeholder.jpg' };
+    const setupFileFallback = () => {
+      // Nothing to control; just show a placeholder.
+      if (containerRef.current) containerRef.current.innerHTML = '';
+      if (vimeoRef.current) vimeoRef.current.innerHTML = '';
+    };
+
+    if (youTubeId) {
+      setupYouTube(youTubeId);
+    } else if (vimeoId) {
+      setupVimeo(vimeoId);
+    } else {
+      setupFileFallback();
+    }
+
+    return () => {
+      isMounted = false;
+      try {
+        if (playerRef.current?.destroy) playerRef.current.destroy();
+        if (playerRef.current?.unload) playerRef.current.unload();
+      } catch {}
+    };
+  }, [videoUrl, muted]);
+
+  if (youTubeId) {
+    return <div className={styles.player}><div ref={containerRef} className={styles.iframe} /></div>;
+  }
+  if (vimeoId) {
+    return <div className={styles.player}><div ref={vimeoRef} className={styles.iframe} /></div>;
+  }
+  // Fallback
+  return (
+    <div className={styles.fallback}>
+      <img src="/images/video-placeholder.jpg" alt="Preview" />
+      <p>This source cannot be played inline. Open it on its platform.</p>
+    </div>
+  );
+};
+
+const getEmbedThumb = (rawUrl) => {
+  const yt = parseYouTubeId(rawUrl);
+  if (yt) return `https://img.youtube.com/vi/${yt}/hqdefault.jpg`;
+  return '/images/video-placeholder.jpg';
 };
 
 const UserPlaylistDetail = () => {
@@ -74,15 +167,13 @@ const UserPlaylistDetail = () => {
   const [current, setCurrent] = useState(0);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
 
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success');
-
-  const iframeRef = useRef(null);
 
   const getInitials = () => {
     if (!playlist || !playlist.proprietaire) return 'PL';
@@ -94,13 +185,12 @@ const UserPlaylistDetail = () => {
     if (nom) initials += nom.charAt(0).toUpperCase();
     return initials || 'PL';
   };
-  
   const getBackgroundColor = () => {
     const colors = [
       '#4a6fa5', '#6fb98f', '#2c786c', '#f25f5c', '#a16ae8', 
       '#ffa600', '#58508d', '#bc5090', '#ff6361', '#003f5c'
     ];
-    if (!playlist || !playlist._id) return colors[0];
+    if (!playlist?._id) return colors[0];
     const sum = playlist._id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return colors[sum % colors.length];
   };
@@ -115,7 +205,7 @@ const UserPlaylistDetail = () => {
         setPlaylist(data);
         setLoading(false);
       } catch (e) {
-        setError("Failed to load playlist");
+        setError("Error while loading the playlist");
         setLoading(false);
       }
     };
@@ -136,23 +226,23 @@ const UserPlaylistDetail = () => {
     const recordView = async () => {
       try {
         await playlistAPI.incrementPlaylistViews(id);
-        setPlaylist(prevPlaylist => ({
-          ...prevPlaylist,
-          nb_lectures: (prevPlaylist.nb_lectures || 0) + 1
+        setPlaylist(prev => ({
+          ...prev,
+          nb_lectures: (prev.nb_lectures || 0) + 1
         }));
       } catch (error) {
-        console.error("Error while recording view:", error);
+        console.error("View increment error:", error);
       }
     };
     if (playlist && !loading) {
       recordView();
     }
-  }, [id, playlist?._id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, playlist?._id, loading]);
 
   const onPrev = () => setCurrent((i)=> Math.max(0, i-1));
   const onNext = () => {
     if (!playlist?.videos?.length) return;
-    if (repeat) return setCurrent((i)=>i); 
+    if (repeat) return setCurrent((i)=>i);
     if (shuffle) return setCurrent(Math.floor(Math.random()*playlist.videos.length));
     setCurrent((i)=> Math.min(playlist.videos.length-1, i+1));
   };
@@ -165,7 +255,7 @@ const UserPlaylistDetail = () => {
       setToastMessage('Video removed from playlist'); setToastType('success'); setShowToast(true);
       if (current >= rest.length) setCurrent(Math.max(0, rest.length-1));
     } catch (e) {
-      setToastMessage("Failed to delete"); setToastType('error'); setShowToast(true);
+      setToastMessage("Error while removing the video"); setToastType('error'); setShowToast(true);
     }
   };
 
@@ -173,56 +263,23 @@ const UserPlaylistDetail = () => {
     try {
       const isLiked = playlist.userHasLiked;
       await playlistAPI.togglePlaylistLike(id, !isLiked);
-      setPlaylist(prevPlaylist => ({
-        ...prevPlaylist,
+      setPlaylist(prev => ({
+        ...prev,
         nb_favoris: isLiked 
-          ? Math.max(0, (prevPlaylist.nb_favoris || 0) - 1) 
-          : (prevPlaylist.nb_favoris || 0) + 1,
+          ? Math.max(0, (prev.nb_favoris || 0) - 1) 
+          : (prev.nb_favoris || 0) + 1,
         userHasLiked: !isLiked
       }));
       setToastMessage(isLiked ? 'Like removed' : 'Playlist liked');
       setToastType('success');
       setShowToast(true);
     } catch (error) {
-      console.error("Error while toggling like:", error);
-      setToastMessage("An error occurred");
+      console.error("Like toggle error:", error);
+      setToastMessage("Something went wrong");
       setToastType('error');
       setShowToast(true);
     }
   };
-
-  // Auto-advance on video end (YouTube & Vimeo)
-  useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-
-    const onMessage = (e) => {
-      try {
-        if (typeof e.data === 'string') {
-          const data = JSON.parse(e.data);
-          if (data?.event === 'onStateChange' && data?.info === 0) onNext(); // YouTube ended
-          if (e.data.includes('"event":"ended"')) onNext(); // Vimeo (string payload)
-        } else if (e.data && typeof e.data === 'object' && e.data?.event === 'ended') {
-          onNext(); // Vimeo (object payload)
-        }
-      } catch {}
-    };
-
-    window.addEventListener('message', onMessage);
-
-    try {
-      // YouTube handshake
-      iframe.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 'yt-player' }), '*');
-      iframe.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onStateChange'] }), '*');
-      // Vimeo subscribe
-      iframe.contentWindow?.postMessage(JSON.stringify({ method: 'addEventListener', value: 'ended' }), '*');
-    } catch {}
-
-    return () => window.removeEventListener('message', onMessage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current, playlist?.videos?.length]);
-
-  const embed = playlist?.videos?.length ? getEmbedFromUrl(playlist.videos[current].video_id?.youtubeUrl) : null;
 
   if (loading) return <LoadingSpinner />;
   if (error) {
@@ -294,24 +351,15 @@ const UserPlaylistDetail = () => {
       {/* PLAYER */}
       <div className={styles.playerSection}>
         <div className={styles.playerLeft}>
-          <div className={styles.player}>
-            {embed?.embedUrl ? (
-              <iframe
-                ref={iframeRef}
-                key={embed.embedUrl}
-                src={embed.embedUrl}
-                title={now?.titre || 'Video'}
-                className={styles.iframe}
-                allow="autoplay; encrypted-media; picture-in-picture"
-                allowFullScreen
-              />
-            ) : (
-              <div className={styles.fallback}>
-                <img src={embed?.thumb || '/images/video-placeholder.jpg'} alt="Preview" />
-                <p>This source cannot be played inline. Open it on its platform.</p>
-              </div>
-            )}
-          </div>
+          <VideoEmbed
+            videoUrl={now?.youtubeUrl}
+            muted={isMuted}
+            onEnded={() => {
+              if (repeat) return;
+              if (shuffle) return setCurrent(Math.floor(Math.random()*videoList.length));
+              setCurrent((i)=> Math.min(videoList.length-1, i+1));
+            }}
+          />
 
           <div className={styles.controls}>
             <button onClick={onPrev} className={styles.ctrlBtn}><FontAwesomeIcon icon={faStepBackward}/></button>
@@ -335,10 +383,10 @@ const UserPlaylistDetail = () => {
           <ol className={styles.videoList}>
             {videoList.map((it, idx) => {
               const vd = it.video_id;
-              const emb = getEmbedFromUrl(vd?.youtubeUrl);
+              const thumb = getEmbedThumb(vd?.youtubeUrl);
               return (
                 <li key={vd?._id || idx} className={`${styles.videoRow} ${idx===current ? styles.activeRow : ''}`} onClick={()=>setCurrent(idx)}>
-                  <img src={(emb?.thumb)||'/images/video-placeholder.jpg'}
+                  <img src={thumb}
                        alt={vd?.titre || 'Video'}
                        onError={(e)=>{e.currentTarget.src='/images/video-placeholder.jpg';}} />
                   <div className={styles.videoInfo}>
@@ -367,7 +415,7 @@ const UserPlaylistDetail = () => {
             await playlistAPI.deletePlaylist(id);
             navigate('/dashboard/playlists');
           }catch(e){
-            setToastMessage('Failed to delete'); setToastType('error'); setShowToast(true);
+            setToastMessage('Error while deleting'); setToastType('error'); setShowToast(true);
             setShowConfirmDelete(false);
           }
         }}

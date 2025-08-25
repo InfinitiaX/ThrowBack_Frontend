@@ -1,5 +1,5 @@
 // components/Dashboard/UserDashboard/Playlists/index.js
-// Fichier d'exportation pour simplifier les imports
+// Export barrel
 
 import UserPlaylists from './UserPlaylists';
 import UserPlaylistDetail from './UserPlaylistDetail';
@@ -17,5 +17,4 @@ export {
   AddToPlaylistModal
 };
 
-// Export par défaut
 export default UserPlaylists;

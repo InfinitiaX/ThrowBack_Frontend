@@ -865,3 +865,112 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Confirm Dialog (Popup) ===== */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(17, 24, 39, 0.65); /* slate-900 @65% */
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modalCard {
+  width: min(92vw, 460px);
+  background: #111827;              /* slate-900 */
+  color: #F9FAFB;                    /* gray-50 */
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  box-shadow:
+    0 10px 15px -3px rgba(0,0,0,.3),
+    0 4px 6px -4px rgba(0,0,0,.3);
+  overflow: hidden;
+  animation: modalFadeIn .18s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: .3; transform: translateY(6px) scale(.98); }
+  to   { opacity: 1;  transform: translateY(0)   scale(1); }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 8px 18px;
+}
+
+.modalHeader h4 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.modalClose {
+  background: transparent;
+  border: 0;
+  color: #9CA3AF;                    /* gray-400 */
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  line-height: 0;
+}
+.modalClose:hover { color: #E5E7EB; }
+
+.modalBody {
+  padding: 0 18px 4px 18px;
+  color: #D1D5DB;                    /* gray-300 */
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 18px 18px 18px;
+}
+
+.modalCancel,
+.modalConfirm {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 14px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: transform .06s ease, opacity .12s ease, background-color .12s ease, border-color .12s ease;
+}
+
+.modalCancel {
+  background: #1F2937;               /* gray-800 */
+  color: #E5E7EB;                     /* gray-200 */
+  border-color: rgba(255,255,255,0.08);
+}
+.modalCancel:hover { background: #273245; }
+
+.modalConfirm {
+  background: #DC2626;               /* red-600 */
+  color: white;
+  border-color: rgba(0,0,0,0.1);
+}
+.modalConfirm:hover { background: #B91C1C; } /* red-700 */
+
+.modalCancel:active,
+.modalConfirm:active { transform: translateY(1px); }
+
+/* Small helpers for the rest of the UI (optional) */
+.wrongVideoWarning {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, .12); /* amber-500 @12% */
+  color: #F59E0B;
+  font-size: 12px;
+}

@@ -3,10 +3,10 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import api, { videoAPI } from '../../../../utils/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFacebook, faTwitter, faWhatsapp } from '@fortawesome/free-brands-svg-icons';
-import { 
-  faHeart, 
-  faComment, 
-  faEye, 
+import {
+  faHeart,
+  faComment,
+  faEye,
   faShare,
   faSpinner,
   faExclamationTriangle,
@@ -20,15 +20,44 @@ import styles from './VideoDetail.module.css';
 import PlaylistModal from './PlaylistModal';
 import MemoryCard from './MemoryCard';
 
-// Petit composant modal de confirmation (popup)
-const ConfirmDialog = ({ open, title, message, confirmText = 'Confirmer', cancelText = 'Annuler', onConfirm, onCancel }) => {
+/* ========= Styled Confirm Dialog (EN) ========= */
+const ConfirmDialog = ({
+  open,
+  title = 'Delete',
+  message = 'Are you sure you want to delete this item? This action cannot be undone.',
+  confirmText = 'Delete',
+  cancelText = 'Cancel',
+  onConfirm,
+  onCancel
+}) => {
+  const cardRef = useRef(null);
+  const confirmBtnRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') onCancel?.();
+      if (e.key === 'Enter') onConfirm?.();
+    };
+    document.addEventListener('keydown', onKey);
+    const t = setTimeout(() => confirmBtnRef.current?.focus(), 0);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open, onCancel, onConfirm]);
+
+  const handleOverlayClick = (e) => {
+    if (cardRef.current && !cardRef.current.contains(e.target)) onCancel?.();
+  };
+
   if (!open) return null;
   return (
-    <div className={styles.modalOverlay}>
-      <div className={styles.modalCard}>
+    <div className={styles.modalOverlay} role="dialog" aria-modal="true" onMouseDown={handleOverlayClick}>
+      <div className={styles.modalCard} ref={cardRef} onMouseDown={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h4>{title}</h4>
-          <button className={styles.modalClose} onClick={onCancel} aria-label="Fermer">
+          <button className={styles.modalClose} onClick={onCancel} aria-label="Close">
             <FontAwesomeIcon icon={faTimes} />
           </button>
         </div>
@@ -37,17 +66,18 @@ const ConfirmDialog = ({ open, title, message, confirmText = 'Confirmer', cancel
         </div>
         <div className={styles.modalFooter}>
           <button className={styles.modalCancel} onClick={onCancel}>{cancelText}</button>
-          <button className={styles.modalConfirm} onClick={onConfirm}>{confirmText}</button>
+          <button className={styles.modalConfirm} onClick={onConfirm} ref={confirmBtnRef}>{confirmText}</button>
         </div>
       </div>
     </div>
   );
 };
+/* ========= /Confirm Dialog ========= */
 
 const VideoDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   // Main states
   const [video, setVideo] = useState(null);
   const [allVideos, setAllVideos] = useState([]);
@@ -57,14 +87,14 @@ const VideoDetail = () => {
   const [allMemories, setAllMemories] = useState([]);
   const [memoryText, setMemoryText] = useState('');
   const [showAllMemories, setShowAllMemories] = useState(false);
-  
+
   // Interaction states
   const [userLiked, setUserLiked] = useState(false);
   const [viewCount, setViewCount] = useState(0);
   const [likeCount, setLikeCount] = useState(0);
   const [isLiking, setIsLiking] = useState(false);
   const [isAddingMemory, setIsAddingMemory] = useState(false);
-  
+
   // Interface states
   const [videosLoading, setVideosLoading] = useState(false);
   const [memoriesLoading, setMemoriesLoading] = useState(false);
@@ -112,7 +142,6 @@ const VideoDetail = () => {
     }
   };
 
-  // ⚠️ Utilise l’endpoint public “recent” fiable, puis fallback
   const fetchAllMemories = async () => {
     try {
       setMemoriesLoading(true);
@@ -137,10 +166,10 @@ const VideoDetail = () => {
     if (!videoId || !Array.isArray(memoriesArray) || memoriesArray.length === 0) return [];
     const currentVideoId = videoId.toString().trim();
     return memoriesArray.filter(memory => {
-      const memoryVideoId = 
-        (memory.video && typeof memory.video === 'object' ? memory.video._id : null) || 
+      const memoryVideoId =
+        (memory.video && typeof memory.video === 'object' ? memory.video._id : null) ||
         (memory.video && typeof memory.video === 'string' ? memory.video : null) ||
-        memory.videoId || 
+        memory.videoId ||
         memory.video_id;
       const normalized = memoryVideoId ? memoryVideoId.toString().trim() : '';
       return normalized === currentVideoId;
@@ -175,7 +204,7 @@ const VideoDetail = () => {
     try {
       setMemoriesLoading(true);
 
-      // 1) Essai via cache présent en mémoire
+      // 1) from state cache
       const memFromState = allMemories.length > 0 ? filterMemoriesForCurrentVideo(allMemories, videoId) : [];
       if (myToken !== requestTokenRef.current.memories) return;
       if (memFromState.length > 0) {
@@ -183,7 +212,7 @@ const VideoDetail = () => {
         return;
       }
 
-      // 2) Essai via localStorage
+      // 2) from localStorage
       try {
         const cached = localStorage.getItem('allMemories');
         if (cached) {
@@ -198,11 +227,10 @@ const VideoDetail = () => {
         }
       } catch {}
 
-      // 3) API stricte
+      // 3) strict API
       const apiMem = await videoAPI.getVideoMemories(videoId);
       if (myToken !== requestTokenRef.current.memories) return;
       if (Array.isArray(apiMem)) {
-        // Re-filtrage préventif
         const strictly = apiMem.filter(m => {
           const vid =
             (m.video && typeof m.video === 'object' ? m.video._id : null) ||
@@ -368,16 +396,16 @@ const VideoDetail = () => {
 
   const handleLikeMemory = async (memoryId) => {
     try {
-      // MAJ optimiste
+      // optimistic
       setMemories(memories.map(m => (m.id === memoryId ? {
         ...m,
         likes: m.userInteraction?.liked ? Math.max(0, (m.likes || 0) - 1) : (m.likes || 0) + 1,
         userInteraction: { ...(m.userInteraction || {}), liked: !m.userInteraction?.liked }
       } : {
         ...m,
-        replies: (m.replies || []).map(r => ( (r.id || r._id) === memoryId
-          ? { 
-              ...r, 
+        replies: (m.replies || []).map(r => ((r.id || r._id) === memoryId
+          ? {
+              ...r,
               likes: r.userInteraction?.liked ? Math.max(0, (r.likes || 0) - 1) : (r.likes || 0) + 1,
               userInteraction: { ...(r.userInteraction || {}), liked: !r.userInteraction?.liked }
             }
@@ -387,7 +415,6 @@ const VideoDetail = () => {
       // API
       const r = await videoAPI.likeMemory(memoryId);
       if (r?.success && r.data) {
-        // Recalibrer
         setMemories(cur => cur.map(m => (m.id === memoryId ? {
           ...m,
           likes: r.data.likes,
@@ -404,7 +431,7 @@ const VideoDetail = () => {
     }
   };
 
-  // Ouvre le popup de confirmation et exécute l’action si confirmé
+  // open the confirmation modal with EN strings
   const openConfirm = (title, message, onConfirm) => {
     setConfirm({
       open: true,
@@ -416,20 +443,19 @@ const VideoDetail = () => {
       }
     });
   };
-
   const cancelConfirm = () => setConfirm({ open: false, title: '', message: '', onConfirm: null });
 
   const handleDeleteMemory = async (memoryId) => {
     openConfirm(
-      'Supprimer',
-      "Êtes-vous sûr de vouloir supprimer cet élément ? Cette action est irréversible.",
+      'Delete',
+      'Are you sure you want to delete this item? This action cannot be undone.',
       async () => {
         try {
-          // MAJ optimiste
+          // optimistic remove (card or reply)
           setMemories(prev =>
             prev
               .map(m => {
-                if (m.id === memoryId) return null; // supprimer la carte principale
+                if (m.id === memoryId) return null; // remove main card
                 return {
                   ...m,
                   replies: (m.replies || []).filter(r => (r.id || r._id) !== memoryId)
@@ -438,16 +464,16 @@ const VideoDetail = () => {
               .filter(Boolean)
           );
 
-          // API
+          // API (internal first, then public)
           try {
             await api.delete(`/api/memories/${memoryId}`);
           } catch (apiErr) {
             try {
               await api.delete(`/api/public/memories/${memoryId}`);
             } catch (err2) {
-              if (apiErr.response?.status === 401) alert("You must be logged in to delete this item");
-              else if (apiErr.response?.status === 403) alert("You cannot delete this item");
-              // Recharger pour restaurer si échec
+              if (apiErr.response?.status === 401) alert('You must be logged in to delete this item');
+              else if (apiErr.response?.status === 403) alert("You don't have permission to delete this item");
+              // restore by reload if failed
               fetchVideoMemories(id);
             }
           }
@@ -606,14 +632,14 @@ const VideoDetail = () => {
       navigate(`/dashboard/videos/${recommendedVideo._id}`);
     };
     return (
-      <a 
+      <a
         href={`/dashboard/videos/${recommendedVideo._id}`}
         className={`${styles.recommendedVideo} ${isCurrentVideo ? styles.currentVideo : ''}`}
         onClick={handleClick}
       >
-        <img 
-          src={getYouTubeThumbnail(recommendedVideo.youtubeUrl)} 
-          alt={`${recommendedVideo.artiste || 'Artist'} - ${recommendedVideo.titre || 'Title'}`} 
+        <img
+          src={getYouTubeThumbnail(recommendedVideo.youtubeUrl)}
+          alt={`${recommendedVideo.artiste || 'Artist'} - ${recommendedVideo.titre || 'Title'}`}
           className={styles.recommendedImg}
           onError={(e) => { e.target.src = '/images/video-placeholder.jpg'; }}
         />
@@ -653,10 +679,10 @@ const VideoDetail = () => {
 
   return (
     <div className={styles.throwbackVideosBg}>
-      {/* Modal playlist */}
+      {/* Playlist Modal */}
       {showPlaylistModal && (
-        <PlaylistModal 
-          videoId={id} 
+        <PlaylistModal
+          videoId={id}
           onClose={() => setShowPlaylistModal(false)}
           onSuccess={() => {
             setShowPlaylistModal(false);
@@ -665,17 +691,17 @@ const VideoDetail = () => {
         />
       )}
 
-      {/* Popup suppression */}
+      {/* Delete Confirmation Popup */}
       <ConfirmDialog
         open={confirm.open}
-        title={confirm.title}
-        message={confirm.message}
+        title={confirm.title || 'Delete'}
+        message={confirm.message || 'Are you sure you want to delete this item? This action cannot be undone.'}
         onConfirm={confirm.onConfirm || (() => {})}
         onCancel={cancelConfirm}
-        confirmText="Supprimer"
-        cancelText="Annuler"
+        confirmText="Delete"
+        cancelText="Cancel"
       />
-      
+
       <div className={styles.mainContentWrap}>
         <main className={styles.mainContent}>
           {/* Player */}
@@ -692,9 +718,9 @@ const VideoDetail = () => {
               </div>
             ) : (
               <div className={styles.videoThumbnail}>
-                <img 
-                  src={getYouTubeThumbnail(video.youtubeUrl)} 
-                  alt={`${video.artiste} - ${video.titre}`} 
+                <img
+                  src={getYouTubeThumbnail(video.youtubeUrl)}
+                  alt={`${video.artiste} - ${video.titre}`}
                   className={styles.thumbnailImg}
                   onError={(e) => { e.target.src = '/images/video-placeholder.jpg'; }}
                 />
@@ -703,7 +729,7 @@ const VideoDetail = () => {
             )}
           </div>
 
-          {/* Titre / Stats */}
+          {/* Title / Stats */}
           <div className={styles.videoInfoBar}>
             <h1 className={styles.videoTitle}>
               {video.artiste || 'Artist'} : <span style={{ fontWeight: 300, fontSize: 18 }}>{video.titre || 'Title'} ({video.annee || '----'})</span>
@@ -713,7 +739,7 @@ const VideoDetail = () => {
                 <FontAwesomeIcon icon={faEye} />
                 <span>{viewCount}</span>
               </div>
-              <div 
+              <div
                 className={`${styles.statItem} ${userLiked ? styles.liked : ''} ${isLiking ? styles.loading : ''}`}
                 onClick={handleLikeVideo}
               >
@@ -729,7 +755,7 @@ const VideoDetail = () => {
                 <span>Add Playlist</span>
               </div>
             </div>
-            
+
             {/* Share Options */}
             {showShareOptions && (
               <div className={styles.shareOptions}>
@@ -750,10 +776,10 @@ const VideoDetail = () => {
             {shareMessage && <div className={styles.shareMessage}>{shareMessage}</div>}
           </div>
 
-          {/* Ajout souvenir */}
+          {/* Add Memory */}
           <div className={styles.memoryInputContainer}>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className={styles.memoryInput}
               placeholder="Share A Memory......"
               value={memoryText}
@@ -761,7 +787,7 @@ const VideoDetail = () => {
               onKeyDown={(e) => { if (e.key === 'Enter' && !isAddingMemory) handleAddMemory(e); }}
               disabled={isAddingMemory}
             />
-            <button 
+            <button
               className={`${styles.commentButton} ${isAddingMemory ? styles.loading : ''}`}
               onClick={handleAddMemory}
               disabled={isAddingMemory}
@@ -770,7 +796,7 @@ const VideoDetail = () => {
             </button>
           </div>
 
-          {/* Recos */}
+          {/* Recommendations */}
           <div className={styles.recommendedVideosSection}>
             <h3 className={styles.recommendedSectionTitle}>All Music Videos</h3>
             <div className={styles.recommendedVideosGrid}>
@@ -792,22 +818,25 @@ const VideoDetail = () => {
           </div>
         </main>
 
-        {/* Sidebar souvenirs */}
+        {/* Sidebar Memories */}
         <aside className={styles.rightCards}>
           <div className={styles.memoriesHeader}>
-            <h3>Memories {!showAllMemories && "for this video"}</h3>
+            <h3>Memories {!showAllMemories && 'for this video'}</h3>
             <div className={styles.memoriesControls}>
               <button className={styles.refreshButton} onClick={refreshMemories} title="Refresh memories">
                 <FontAwesomeIcon icon={faSync} spin={memoriesLoading} />
               </button>
-              <button className={styles.filterToggleButton} onClick={() => setShowAllMemories(!showAllMemories)}
-                title={showAllMemories ? "Show only memories for this video" : "Show all memories"}>
+              <button
+                className={styles.filterToggleButton}
+                onClick={() => setShowAllMemories(!showAllMemories)}
+                title={showAllMemories ? 'Show only memories for this video' : 'Show all memories'}
+              >
                 <FontAwesomeIcon icon={faFilter} />
-                <span>{showAllMemories ? "Filter" : "All"}</span>
+                <span>{showAllMemories ? 'Filter' : 'All'}</span>
               </button>
             </div>
           </div>
-          
+
           {memoriesLoading ? (
             <div className={styles.memoriesLoading}>
               <FontAwesomeIcon icon={faSpinner} spin className={styles.spinnerIcon} />
@@ -815,13 +844,13 @@ const VideoDetail = () => {
             </div>
           ) : memoriesToDisplay.length > 0 ? (
             memoriesToDisplay.map((memory) => (
-              <MemoryCard 
-                key={memory.id || `memory-${Math.random()}`} 
+              <MemoryCard
+                key={memory.id || `memory-${Math.random()}`}
                 memory={memory}
                 baseUrl={baseUrl}
                 onLike={handleLikeMemory}
                 onAddReply={handleAddReply}
-                onRequestDelete={handleDeleteMemory}  
+                onRequestDelete={handleDeleteMemory}   // popup handled here
                 onToggleReplies={handleToggleReplies}
                 currentVideoId={id}
                 replies={memory.replies || []}
@@ -830,7 +859,7 @@ const VideoDetail = () => {
             ))
           ) : (
             <div className={styles.emptyMemories}>
-              <p>No memories shared{!showAllMemories && " for this video"}.</p>
+              <p>No memories shared{!showAllMemories && ' for this video'}.</p>
               <p>Be the first to share a memory!</p>
               {!showAllMemories && allMemories.length > 0 && (
                 <button className={styles.showAllButton} onClick={() => setShowAllMemories(true)}>

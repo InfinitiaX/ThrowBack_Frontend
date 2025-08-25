@@ -6,6 +6,13 @@ import api from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import Captcha from '../Common/Captcha';
 
+const LS_KEYS = {
+  remember: 'tb_remember',
+  email: 'tb_email',
+  token: 'tb_auth_token',
+  user: 'tb_auth_user',
+};
+
 const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
@@ -25,37 +32,43 @@ const Login = () => {
   const location = useLocation();
   const { login, user, isAuthenticated } = useAuth();
 
+  // 1) Charger le remember/email au tout premier rendu
   useEffect(() => {
-    // Redirect if already logged in
+    const savedRemember = localStorage.getItem(LS_KEYS.remember) === '1';
+    const savedEmail = localStorage.getItem(LS_KEYS.email) || '';
+    if (savedRemember) {
+      setFormData(prev => ({ ...prev, email: savedEmail, remember: true }));
+      // Met à jour les tentatives liées à cet email si existantes
+      const savedAttempts = localStorage.getItem(`login_attempts_${savedEmail}`);
+      if (savedAttempts) {
+        const attempts = parseInt(savedAttempts, 10);
+        setAttemptCount(attempts);
+        setShowCaptcha(attempts >= 3);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    // Redirect si déjà connecté
     if (isAuthenticated && user) {
-      console.log(' User data:', user);
-      console.log(' User role:', user.role);
-      
-      // Vérification du rôle unique
       const isAdmin = user.role === 'admin' || user.role === 'superadmin';
-      
-      console.log(' Is admin:', isAdmin);
-      const redirectUrl = isAdmin ? '/admin' : '/dashboard';
-      console.log(' Redirecting to:', redirectUrl);
-      
-      navigate(redirectUrl);
+      navigate(isAdmin ? '/admin' : '/dashboard');
       return;
     }
 
-    // Check URL parameters for messages
+    // Messages via URL
     const params = new URLSearchParams(location.search);
     const success = params.get('verified');
-    const error = params.get('error');
+    const errorParam = params.get('error');
     const messageParam = params.get('message');
 
     if (success === 'true') {
       setSuccessMessage(messageParam || 'Email verified successfully. You can now sign in.');
       setError(''); 
-    } else if (error) {
+    } else if (errorParam) {
       setError(messageParam || 'An error occurred');
       setSuccessMessage(''); 
     } else if (messageParam) {
-      // Check if this is a success message (like password reset)
       if (messageParam.includes('successfully') || messageParam.includes('verified')) {
         setSuccessMessage(messageParam);
         setError('');
@@ -65,14 +78,12 @@ const Login = () => {
       }
     }
 
-    // Récupérer le compteur de tentatives depuis le localStorage
+    // Récupérer le compteur pour l'email courant
     const savedAttempts = localStorage.getItem(`login_attempts_${formData.email}`);
     if (savedAttempts) {
       const attempts = parseInt(savedAttempts, 10);
       setAttemptCount(attempts);
-      if (attempts >= 3) {
-        setShowCaptcha(true);
-      }
+      if (attempts >= 3) setShowCaptcha(true);
     }
   }, [location, isAuthenticated, user, navigate, formData.email]);
 
@@ -80,21 +91,31 @@ const Login = () => {
   const handleCaptchaChange = (id, answer) => {
     setCaptchaId(id);
     setCaptchaAnswer(answer);
-    // Effacer l'erreur si elle concerne le CAPTCHA
-    if (error.includes('CAPTCHA')) {
-      setError('');
-    }
+    if (error.includes('CAPTCHA')) setError('');
   };
 
+  // 2) Gérer les changements de champs + storage remember/email
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
 
-    // Reset attempt count when email changes
+    if (name === 'remember') {
+      if (checked) {
+        localStorage.setItem(LS_KEYS.remember, '1');
+        // Sauvegarder l’email courant si présent
+        if (formData.email) localStorage.setItem(LS_KEYS.email, formData.email);
+      } else {
+        localStorage.removeItem(LS_KEYS.remember);
+        localStorage.removeItem(LS_KEYS.email);
+      }
+    }
+
     if (name === 'email') {
+      // Mettre à jour les tentatives & captcha pour ce nouvel email
       const savedAttempts = localStorage.getItem(`login_attempts_${value}`);
       if (savedAttempts) {
         const attempts = parseInt(savedAttempts, 10);
@@ -103,6 +124,11 @@ const Login = () => {
       } else {
         setAttemptCount(0);
         setShowCaptcha(false);
+      }
+      // Si remember actif, on met aussi à jour l'email mémorisé
+      const remembered = localStorage.getItem(LS_KEYS.remember) === '1';
+      if (remembered) {
+        localStorage.setItem(LS_KEYS.email, value);
       }
     }
   };
@@ -113,14 +139,12 @@ const Login = () => {
     setError('');
     setSuccessMessage('');
 
-    // Vérifier le CAPTCHA si nécessaire
     if (showCaptcha && (!captchaId || !captchaAnswer)) {
       setError('Please complete the CAPTCHA verification');
       setLoading(false);
       return;
     }
 
-    // Préparer les données à envoyer
     const loginData = { ...formData };
     if (showCaptcha) {
       loginData.captchaId = captchaId;
@@ -128,75 +152,73 @@ const Login = () => {
     }
 
     try {
-      console.log(' Tentative de connexion...');
       const response = await api.post('/api/auth/login', loginData);
-      
-      console.log(' Réponse complète:', response.data);
-      
       if (response.data.success) {
-        // Réinitialiser le compteur de tentatives en cas de succès
+        // reset tentatives
         localStorage.removeItem(`login_attempts_${formData.email}`);
         setAttemptCount(0);
         setShowCaptcha(false);
         
-        // Correction : gestion robuste du token et de l'utilisateur
-        let token, user;
+        // Récup token/user selon payload
+        let token, userObj;
         if (response.data.token && response.data.data) {
-          // Cas 1 : token à la racine, user dans data
           token = response.data.token;
-          user = response.data.data;
-        } else if (response.data.data && response.data.data.token && response.data.data.user) {
-          // Cas 2 : tout dans data
+          userObj = response.data.data;
+        } else if (response.data.data?.token && response.data.data?.user) {
           token = response.data.data.token;
-          user = response.data.data.user;
+          userObj = response.data.data.user;
         }
 
-        if (token && user) {
-          login(token, user);
-          console.log(' Connexion réussie');
-          console.log(' User data complet:', user);
-          console.log(' User role:', user.role);
-          
-          // Vérification du rôle unique
-          const isAdmin = user.role === 'admin' || user.role === 'superadmin';
-          
-          console.log(' Is admin:', isAdmin);
-          const redirectUrl = isAdmin ? '/admin' : '/dashboard';
-          console.log(' Redirecting to:', redirectUrl);
-          
-          navigate(redirectUrl);
+        if (token && userObj) {
+          // 3) Persister selon remember
+          if (formData.remember) {
+            localStorage.setItem(LS_KEYS.token, token);
+            localStorage.setItem(LS_KEYS.user, JSON.stringify(userObj));
+            localStorage.setItem(LS_KEYS.remember, '1');
+            if (formData.email) localStorage.setItem(LS_KEYS.email, formData.email);
+          } else {
+            sessionStorage.setItem(LS_KEYS.token, token);
+            sessionStorage.setItem(LS_KEYS.user, JSON.stringify(userObj));
+            // Ne pas garder le flag remember/email
+            localStorage.removeItem(LS_KEYS.remember);
+            // On laisse tb_email si tu veux pré-remplir, sinon décommente la ligne suivante:
+            // localStorage.removeItem(LS_KEYS.email);
+          }
+
+          // Optionnel : si ton AuthContext accepte une option remember
+          try {
+            login(token, userObj, { remember: formData.remember });
+          } catch {
+            // fallback si signature différente
+            login(token, userObj);
+          }
+
+          const isAdmin = userObj.role === 'admin' || userObj.role === 'superadmin';
+          navigate(isAdmin ? '/admin' : '/dashboard');
         } else {
-          console.error(' Token or user data missing');
-          setError('Erreur lors de la récupération du token ou de l\'utilisateur.');
+          setError('Erreur lors de la récupération du token ou de l’utilisateur.');
         }
       }
     } catch (error) {
-      console.error(' Erreur de connexion:', error);
-      
-      // Incrémenter le compteur de tentatives
       const newAttemptCount = attemptCount + 1;
       setAttemptCount(newAttemptCount);
       localStorage.setItem(`login_attempts_${formData.email}`, newAttemptCount.toString());
       
-      // Gérer différents types d'erreurs
       if (error.response?.data?.captchaError) {
         setError('Invalid CAPTCHA. Please try again.');
-        // Régénérer le CAPTCHA
         setCaptchaReset(prev => prev + 1);
         setCaptchaId('');
         setCaptchaAnswer('');
       } else if (error.response?.data?.captchaRequired || newAttemptCount >= 3) {
         setShowCaptcha(true);
-        setError(error.response?.data?.message || `Too many failed attempts. CAPTCHA verification required.`);
+        setError(error.response?.data?.message || 'Too many failed attempts. CAPTCHA verification required.');
       } else if (error.response?.status === 403) {
         setError(error.response.data.message || 'Please verify your email before signing in.');
       } else if (error.response?.status === 401) {
-        setError(error.response.data.message || 'Invalid email or password.');
-        // Afficher le nombre de tentatives restantes
+        let msg = error.response.data.message || 'Invalid email or password.';
         const remainingAttempts = 3 - newAttemptCount;
-        if (remainingAttempts > 0) {
-          setError(prev => `${prev} (${remainingAttempts} attempts remaining before CAPTCHA required)`);
-        }
+        if (remainingAttempts > 0) msg = `${msg} (${remainingAttempts} attempts remaining before CAPTCHA required)`;
+        setError(msg);
       } else {
         setError(error.response?.data?.message || 'An error occurred during login.');
       }
@@ -206,7 +228,6 @@ const Login = () => {
     }
   };
 
-  // Fonction pour réinitialiser les tentatives
   const resetAttempts = () => {
     localStorage.removeItem(`login_attempts_${formData.email}`);
     setAttemptCount(0);
@@ -217,7 +238,7 @@ const Login = () => {
   };
   
   return (
-    <div className={styles.auth_container}>
+   <div className={styles.auth_container}>
       <div className={styles.auth_left}>
         <div className={styles.logo_container}>
           <img src="/images/Logo.png" alt="ThrowBack Logo" className={styles.logo} />
@@ -341,7 +362,7 @@ const Login = () => {
           className={styles.music_collage}
         />
       </div>
-    </div>   
+    </div>  
   );
 };
 

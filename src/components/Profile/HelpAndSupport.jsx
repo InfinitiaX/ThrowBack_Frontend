@@ -218,7 +218,7 @@ const HelpAndSupport = () => {
             <div className={styles.contactInfo}>
               <div className={styles.contactItem}>
                 <FontAwesomeIcon icon={faEnvelope} />
-                <span>support@throwback.com</span>
+                <span>support@throwback-connect.com</span>
               </div>
               {/* <div className={styles.contactItem}>
                 <FontAwesomeIcon icon={faPhone} />

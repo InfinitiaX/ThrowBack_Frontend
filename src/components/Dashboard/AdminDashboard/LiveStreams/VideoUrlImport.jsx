@@ -322,7 +322,7 @@ const VideoUrlImport = ({ onVideoSelect, apiBaseUrl }) => {
               </button>
             </div>
             <p className={styles.inputHelp}>
-              <i className="fas fa-info-circle"></i> Collez plusieurs URLs, une par ligne, pour les importer en lot
+              <i className="fas fa-info-circle"></i> Collez 3 URLs, une par ligne, pour les importer en lot
             </p>
           </>
         )}

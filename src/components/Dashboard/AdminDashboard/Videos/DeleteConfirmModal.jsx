@@ -8,28 +8,61 @@ const DeleteConfirmModal = ({ isOpen, onClose, videoId, videoTitle, onVideoDelet
 
   if (!isOpen) return null;
 
+  const tryDelete = async (url, token) => {
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return res;
+  };
+
   const handleDelete = async () => {
     try {
       setLoading(true);
       setError('');
-      
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/videos/${videoId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete video');
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('You are not authenticated.');
       }
 
-      // Call the parent component's callback
-      onVideoDeleted(videoId);
+      const urls = [
+        `/api/admin/videos/${videoId}`,           // 1) admin mount directe
+        `/api/videos/admin/videos/${videoId}`,    // 2) admin monté sous /api/videos
+        `/api/videos/${videoId}`                  // 3) fallback générique (protégé)
+      ];
+
+      let success = false;
+      let lastError = null;
+
+      for (const url of urls) {
+        try {
+          const response = await tryDelete(url, token);
+          if (response.ok) {
+            success = true;
+            break;
+          } else if (response.status === 404) {
+            // On essaie l'URL suivante si 404 (mauvaise route)
+            lastError = `Endpoint not found: ${url}`;
+            continue;
+          } else {
+            const data = await response.json().catch(() => ({}));
+            lastError = data?.message || `Failed at ${url}`;
+          }
+        } catch (e) {
+          lastError = e.message;
+        }
+      }
+
+      if (!success) {
+        throw new Error(lastError || 'Failed to delete video');
+      }
+
+      // Succès : informer le parent pour retirer la vidéo de la liste + fermer
+      onVideoDeleted?.(videoId);
+      onClose?.();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Delete failed');
       console.error('Error deleting video:', err);
     } finally {
       setLoading(false);
@@ -45,38 +78,38 @@ const DeleteConfirmModal = ({ isOpen, onClose, videoId, videoTitle, onVideoDelet
             <i className="fas fa-times"></i>
           </button>
         </div>
-        
+
         <div className={styles.modalBody}>
           <div className={styles.deleteWarning}>
             <i className="fas fa-exclamation-triangle"></i>
             <p>Are you sure you want to delete this video?</p>
           </div>
-          
+
           <p className={styles.deleteInfo}>
             You are about to delete: <strong>{videoTitle}</strong>
           </p>
-          
+
           <p className={styles.deletePermanent}>
             This action cannot be undone.
           </p>
-          
+
           {error && (
             <div className={styles.errorMessage}>
               <i className="fas fa-exclamation-circle"></i> {error}
             </div>
           )}
         </div>
-        
+
         <div className={styles.modalFooter}>
-          <button 
-            className={styles.cancelButton} 
+          <button
+            className={styles.cancelButton}
             onClick={onClose}
             disabled={loading}
           >
             Cancel
           </button>
-          <button 
-            className={styles.deleteButton} 
+          <button
+            className={styles.deleteButton}
             onClick={handleDelete}
             disabled={loading}
           >

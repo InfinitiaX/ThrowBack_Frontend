@@ -113,6 +113,42 @@ export default function Shorts() {
   const [isShareLoading, setIsShareLoading] = useState(false);
   const [feedback, setFeedback] = useState({ visible: false, message: '', type: '' });
 
+  // ✅ CORRECTION : Fonction handleChange optimisée avec useCallback
+  const handleChange = useCallback((e) => {
+    // Empêcher les interférences d'événements
+    e.stopPropagation();
+    
+    const { name, value } = e.target;
+    
+    console.log('🔍 handleChange - Field:', name, 'Value:', `"${value}"`, 'Length:', value.length, 'Has spaces:', value.includes(' '));
+    
+    // Mise à jour directe du state sans modification de la valeur
+    setForm(prevForm => {
+      const newForm = {
+        ...prevForm,
+        [name]: value // Valeur brute, préservation des espaces
+      };
+      console.log('✅ Form updated - Full state:', newForm);
+      return newForm;
+    });
+  }, []);
+
+  // ✅ Gestionnaire d'événement input pour double sécurité
+  const handleInputEvent = useCallback((e) => {
+    console.log('🔍 Input event:', e.type, 'Field:', e.target.name, 'Value:', `"${e.target.value}"`);
+    handleChange(e);
+  }, [handleChange]);
+
+  // ✅ Gestionnaire de clavier pour debug
+  const handleKeyDown = useCallback((e) => {
+    console.log('🔍 Key pressed:', e.key, 'in field:', e.target.name);
+    
+    // Permettre explicitement les espaces
+    if (e.key === ' ') {
+      console.log('✅ Space key allowed and processed');
+    }
+  }, []);
+
   // Function to load shorts with retry mechanism
   const fetchShorts = async () => {
     try {
@@ -522,7 +558,7 @@ export default function Shorts() {
 
   // Handle keyboard keys
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDownGlobal = (e) => {
       if (e.key === 'ArrowLeft') {
         handleHorizontalScroll('left');
       } else if (e.key === 'ArrowRight') {
@@ -542,8 +578,8 @@ export default function Shorts() {
       }
     };
     
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDownGlobal);
+    return () => document.removeEventListener('keydown', handleKeyDownGlobal);
   }, [handleHorizontalScroll, isCenterPlaying]);
 
   // Drag and drop handler for video
@@ -617,21 +653,6 @@ export default function Shorts() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     handleFileSelected(file);
-  };
-
-  // CORRECTION: Modification de la fonction handleChange pour préserver les espaces
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    
-    // Assurons-nous que la valeur est traitée comme une chaîne brute
-    // et garantissons que les espaces sont préservés
-    setForm(prevForm => ({
-      ...prevForm,
-      [name]: value
-    }));
-    
-    // Vérification optionnelle pour le débogage
-    console.log(`Field ${name} updated with value: "${value}"`);
   };
 
   // Form submission
@@ -1230,7 +1251,7 @@ export default function Shorts() {
         )}
       </div>
       
-      {/* Add short modal */}
+      {/* ✅ MODAL CORRIGÉ - Add short modal */}
       {showModal && (
         <div className={styles.modalOverlay} onClick={() => !isUploading && setShowModal(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
@@ -1246,6 +1267,7 @@ export default function Shorts() {
               </button>
             </div>
             
+            {/* ✅ FORMULAIRE ENTIÈREMENT CORRIGÉ */}
             <form onSubmit={handleSubmit} className={styles.modalForm}>
               <div className={styles.formGroup}>
                 <label htmlFor="titre">Title</label>
@@ -1255,10 +1277,29 @@ export default function Shorts() {
                   type="text"
                   value={form.titre}
                   onChange={handleChange}
+                  onInput={handleInputEvent}
+                  onKeyDown={handleKeyDown}
                   required
                   disabled={isUploading}
                   placeholder="Give your short a title"
-                  aria-required="true"
+                  autoComplete="off"
+                  spellCheck="false"
+                  // ✅ Styles inline forcés pour garantir l'interactivité
+                  style={{
+                    pointerEvents: isUploading ? 'none' : 'auto',
+                    userSelect: 'text',
+                    cursor: isUploading ? 'not-allowed' : 'text',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '12px 16px',
+                    border: '2px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    backgroundColor: '#fff',
+                    color: '#333',
+                    fontFamily: 'inherit',
+                    lineHeight: '1.4'
+                  }}
                 />
               </div>
               
@@ -1270,10 +1311,29 @@ export default function Shorts() {
                   type="text"
                   value={form.artiste}
                   onChange={handleChange}
+                  onInput={handleInputEvent}
+                  onKeyDown={handleKeyDown}
                   required
                   disabled={isUploading}
                   placeholder="Artist name"
-                  aria-required="true"
+                  autoComplete="off"
+                  spellCheck="false"
+                  // ✅ Styles inline forcés pour garantir l'interactivité
+                  style={{
+                    pointerEvents: isUploading ? 'none' : 'auto',
+                    userSelect: 'text',
+                    cursor: isUploading ? 'not-allowed' : 'text',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '12px 16px',
+                    border: '2px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    backgroundColor: '#fff',
+                    color: '#333',
+                    fontFamily: 'inherit',
+                    lineHeight: '1.4'
+                  }}
                 />
               </div>
               
@@ -1285,8 +1345,28 @@ export default function Shorts() {
                   type="text"
                   value={form.description}
                   onChange={handleChange}
+                  onInput={handleInputEvent}
+                  onKeyDown={handleKeyDown}
                   disabled={isUploading}
                   placeholder="Describe your short (optional)"
+                  autoComplete="off"
+                  spellCheck="false"
+                  // ✅ Styles inline forcés pour garantir l'interactivité
+                  style={{
+                    pointerEvents: isUploading ? 'none' : 'auto',
+                    userSelect: 'text',
+                    cursor: isUploading ? 'not-allowed' : 'text',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '12px 16px',
+                    border: '2px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    backgroundColor: '#fff',
+                    color: '#333',
+                    fontFamily: 'inherit',
+                    lineHeight: '1.4'
+                  }}
                 />
               </div>
               
@@ -1369,7 +1449,7 @@ export default function Shorts() {
                 type="button"
                 className={styles.uploadBtn}
                 onClick={handleSubmit}
-                disabled={isUploading || !form.video || !form.titre || !form.artiste}
+                disabled={isUploading || !form.video || !form.titre.trim() || !form.artiste.trim()}
                 aria-label="Upload"
               >
                 {isUploading ? (
@@ -1388,6 +1468,28 @@ export default function Shorts() {
       {feedback.visible && (
         <div className={`${styles.feedback} ${styles[feedback.type]}`} role="alert">
           {feedback.message}
+        </div>
+      )}
+
+      {/* ✅ DEBUG TEMPORAIRE - À retirer en production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{
+          position: 'fixed',
+          bottom: '10px',
+          left: '10px',
+          background: 'rgba(0,0,0,0.8)',
+          color: 'white',
+          padding: '10px',
+          borderRadius: '5px',
+          fontSize: '12px',
+          zIndex: 9999,
+          maxWidth: '300px'
+        }}>
+          <div>📝 Form State Debug:</div>
+          <div>Title: "{form.titre}" ({form.titre.length} chars)</div>
+          <div>Artist: "{form.artiste}" ({form.artiste.length} chars)</div>
+          <div>Description: "{form.description}" ({form.description.length} chars)</div>
+          <div>Modal: {showModal ? 'Open' : 'Closed'}</div>
         </div>
       )}
     </div>

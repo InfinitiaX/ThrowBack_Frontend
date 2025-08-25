@@ -756,7 +756,16 @@
   background: #f5f5f5;
   cursor: not-allowed;
 }
-
+.modalForm input[type="text"] {
+  pointer-events: auto !important;
+  user-select: text !important;
+  cursor: text !important;
+  background: white !important;
+  border: 2px solid #ddd !important;
+  padding: 12px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
 .fileUploadContainer {
   border: 2px dashed #c6c6c6;
   border-radius: 8px;

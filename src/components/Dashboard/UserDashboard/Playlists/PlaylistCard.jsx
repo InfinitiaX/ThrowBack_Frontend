@@ -12,32 +12,22 @@ const PlaylistCard = ({ playlist }) => {
   const vis = playlist.visibilite === 'PRIVE' ? faLock : (playlist.visibilite === 'AMIS' ? faUserFriends : faGlobe);
   const fmt = (n)=> !n ? '0' : n>=1_000_000 ? `${(n/1_000_000).toFixed(1)}M` : n>=1_000 ? `${(n/1_000).toFixed(1)}K` : n;
   
-  // Génération des initiales du créateur
   const getInitials = () => {
-    // Obtenir le propriétaire (selon le format disponible)
     const owner = playlist.proprietaire || {};
     const nom = owner.nom || '';
     const prenom = owner.prenom || '';
-    
     let initials = '';
     if (prenom) initials += prenom.charAt(0).toUpperCase();
     if (nom) initials += nom.charAt(0).toUpperCase();
-    
-    // Si on n'a pas d'initiales, utiliser une valeur par défaut
     return initials || 'PL';
   };
   
-  // Génération d'une couleur basée sur l'ID de la playlist
   const getBackgroundColor = () => {
-    // Générer une couleur basée sur l'ID de la playlist pour être consistant
     const colors = [
       '#4a6fa5', '#6fb98f', '#2c786c', '#f25f5c', '#a16ae8', 
       '#ffa600', '#58508d', '#bc5090', '#ff6361', '#003f5c'
     ];
-    
     if (!playlist._id) return colors[0];
-    
-    // Générer un nombre à partir de l'ID pour choisir une couleur
     const sum = playlist._id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return colors[sum % colors.length];
   };
@@ -45,7 +35,6 @@ const PlaylistCard = ({ playlist }) => {
   return (
     <div className={styles.playlistCard} onClick={go}>
       <div className={styles.imageContainer}>
-        {/* Remplacer l'image par un div avec les initiales */}
         <div 
           className={styles.initialsContainer}
           style={{ backgroundColor: getBackgroundColor() }}
@@ -62,9 +51,9 @@ const PlaylistCard = ({ playlist }) => {
           <h3 className={styles.title}>{playlist.nom || 'Playlist'}</h3>
           <div className={styles.visibility}><FontAwesomeIcon icon={vis}/></div>
         </div>
-        <p className={styles.description}>{playlist.description || 'Aucune description'}</p>
+        <p className={styles.description}>{playlist.description || 'No description'}</p>
         <div className={styles.stats}>
-          <span><FontAwesomeIcon icon={faMusic}/> {playlist.nb_videos || playlist.videos?.length || 0} vidéos</span>
+          <span><FontAwesomeIcon icon={faMusic}/> {playlist.nb_videos || playlist.videos?.length || 0} videos</span>
           <span><FontAwesomeIcon icon={faEye}/> {fmt(playlist.nb_lectures || 0)}</span>
           <span><FontAwesomeIcon icon={faHeart}/> {fmt(playlist.nb_favoris || 0)}</span>
         </div>

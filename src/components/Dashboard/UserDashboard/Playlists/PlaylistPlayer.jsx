@@ -27,9 +27,9 @@ const getEmbedFromUrl = (rawUrl) => {
   if (!rawUrl) return null;
   const url = rawUrl.toString();
   const yt = parseYouTubeId(url);
-  if (yt) return { provider:'youtube', id: yt, embedUrl:`https://www.youtube.com/embed/${yt}?autoplay=1&mute=1&rel=0&modestbranding=1`, thumb:`https://img.youtube.com/vi/${yt}/hqdefault.jpg` };
+  if (yt) return { provider:'youtube', id: yt, embedUrl:`https://www.youtube.com/embed/${yt}?autoplay=1&mute=1&rel=0&modestbranding=1&enablejsapi=1`, thumb:`https://img.youtube.com/vi/${yt}/hqdefault.jpg` };
   const vm = parseVimeoId(url);
-  if (vm) return { provider:'vimeo', id: vm, embedUrl:`https://player.vimeo.com/video/${vm}?autoplay=1&muted=1`, thumb:'/images/video-placeholder.jpg' };
+  if (vm) return { provider:'vimeo', id: vm, embedUrl:`https://player.vimeo.com/video/${vm}?autoplay=1&muted=1&api=1`, thumb:'/images/video-placeholder.jpg' };
   return { provider:'file', id:null, embedUrl:null, thumb:'/images/video-placeholder.jpg' };
 };
 
@@ -45,25 +45,26 @@ const PlaylistPlayer = () => {
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isMuted, setIsMuted] = useState(true); // démarrer muet pour autoplay policy
+  const [isMuted, setIsMuted] = useState(true); // start muted for autoplay policy
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success');
 
   const containerRef = useRef(null);
+  const iframeRef = useRef(null);
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
         const data = await playlistAPI.getPlaylistById(id);
-        if (!data) { setError('Playlist introuvable'); setLoading(false); return; }
-        if (!data.videos || data.videos.length === 0) { setError('Cette playlist ne contient aucune vidéo'); setLoading(false); return; }
+        if (!data) { setError('Playlist not found'); setLoading(false); return; }
+        if (!data.videos || data.videos.length === 0) { setError('This playlist has no videos'); setLoading(false); return; }
         data.videos.sort((a,b)=>a.ordre-b.ordre);
         setPlaylist(data);
         setLoading(false);
       } catch (e) {
-        setError("Erreur lors du chargement de la playlist"); setLoading(false);
+        setError("Failed to load playlist"); setLoading(false);
       }
     };
     load();
@@ -76,6 +77,35 @@ const PlaylistPlayer = () => {
     setCurrent(c => (c < playlist.videos.length-1 ? c+1 : c));
   };
   const prev = () => setCurrent(c=>Math.max(0,c-1));
+
+  // Auto-advance on video end (YouTube & Vimeo)
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    const onMessage = (e) => {
+      try {
+        if (typeof e.data === 'string') {
+          const data = JSON.parse(e.data);
+          if (data?.event === 'onStateChange' && data?.info === 0) next(); // YouTube ended
+          if (e.data.includes('"event":"ended"')) next(); // Vimeo (string)
+        } else if (e.data && typeof e.data === 'object' && e.data?.event === 'ended') {
+          next(); // Vimeo (object)
+        }
+      } catch {}
+    };
+
+    window.addEventListener('message', onMessage);
+    try {
+      // YouTube handshake and listener
+      iframe.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 'yt-player' }), '*');
+      iframe.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onStateChange'] }), '*');
+      // Vimeo subscribe to "ended"
+      iframe.contentWindow?.postMessage(JSON.stringify({ method: 'addEventListener', value: 'ended' }), '*');
+    } catch {}
+
+    return () => window.removeEventListener('message', onMessage);
+  }, [current, playlist?.videos?.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const onFs = () => setIsFullscreen(
@@ -98,7 +128,7 @@ const PlaylistPlayer = () => {
     return (
       <div className={styles.errorContainer}>
         <p className={styles.errorMessage}>{error}</p>
-        <button className={styles.retryButton} onClick={()=>window.location.reload()}>Réessayer</button>
+        <button className={styles.retryButton} onClick={()=>window.location.reload()}>Retry</button>
       </div>
     );
   }
@@ -110,7 +140,7 @@ const PlaylistPlayer = () => {
     <div className={styles.playerPage}>
       <div className={styles.topBar}>
         <button className={styles.backBtn} onClick={()=>navigate(`/dashboard/playlists/${id}`)}>
-          <FontAwesomeIcon icon={faArrowLeft}/> Retour
+          <FontAwesomeIcon icon={faArrowLeft}/> Back
         </button>
         <div className={styles.topTitle}>{playlist.nom}</div>
         <div/>
@@ -120,6 +150,7 @@ const PlaylistPlayer = () => {
         <div className={styles.playerArea}>
           {emb?.embedUrl ? (
             <iframe
+              ref={iframeRef}
               key={emb.embedUrl}
               src={emb.embedUrl + (isMuted ? '' : '&mute=0')}
               title={now?.titre || 'Video'}
@@ -130,16 +161,16 @@ const PlaylistPlayer = () => {
           ) : (
             <div className={styles.fallback}>
               <img src={emb?.thumb || '/images/video-placeholder.jpg'} alt="Preview" />
-              <p>Impossible de lire cette source directement.</p>
+              <p>Cannot play this source directly.</p>
             </div>
           )}
 
           <div className={styles.controls}>
             <button className={styles.ctrlBtn} onClick={prev}><FontAwesomeIcon icon={faStepBackward}/></button>
-            <button className={`${styles.ctrlBtn} ${shuffle?styles.active:''}`} onClick={()=>setShuffle(s=>!s)} title="Aléatoire"><FontAwesomeIcon icon={faRandom}/></button>
-            <button className={`${styles.ctrlBtn} ${repeat?styles.active:''}`} onClick={()=>setRepeat(r=>!r)} title="Répéter"><FontAwesomeIcon icon={faRedo}/></button>
+            <button className={`${styles.ctrlBtn} ${shuffle?styles.active:''}`} onClick={()=>setShuffle(s=>!s)} title="Shuffle"><FontAwesomeIcon icon={faRandom}/></button>
+            <button className={`${styles.ctrlBtn} ${repeat?styles.active:''}`} onClick={()=>setRepeat(r=>!r)} title="Repeat"><FontAwesomeIcon icon={faRedo}/></button>
             <button className={styles.ctrlBtn} onClick={next}><FontAwesomeIcon icon={faStepForward}/></button>
-            <button className={styles.ctrlBtn} onClick={()=>setIsMuted(m=>!m)} title="Muet"><FontAwesomeIcon icon={isMuted?faVolumeMute:faVolumeUp}/></button>
+            <button className={styles.ctrlBtn} onClick={()=>setIsMuted(m=>!m)} title="Mute"><FontAwesomeIcon icon={isMuted?faVolumeMute:faVolumeUp}/></button>
             <button className={styles.ctrlBtn} onClick={()=>{
               if (!isFullscreen) {
                 if (containerRef.current.requestFullscreen) containerRef.current.requestFullscreen();
@@ -155,7 +186,7 @@ const PlaylistPlayer = () => {
         </div>
 
         <div className={styles.sideList}>
-          <h3>Liste de lecture</h3>
+          <h3>Queue</h3>
           <ol className={styles.videoList}>
             {list.map((it, idx) => {
               const v = it.video_id;
@@ -164,8 +195,8 @@ const PlaylistPlayer = () => {
                 <li key={v?._id || idx} className={`${styles.row} ${idx===current?styles.active:''}`} onClick={()=>setCurrent(idx)}>
                   <img src={th} alt={v?.titre || 'Video'} onError={(e)=>{e.currentTarget.src='/images/video-placeholder.jpg';}}/>
                   <div className={styles.info}>
-                    <div className={styles.title}>{v?.titre || 'Sans titre'}</div>
-                    <div className={styles.sub}>{v?.artiste || 'Artiste inconnu'} {v?.annee ? `(${v.annee})` : ''}</div>
+                    <div className={styles.title}>{v?.titre || 'Untitled'}</div>
+                    <div className={styles.sub}>{v?.artiste || 'Unknown artist'} {v?.annee ? `(${v.annee})` : ''}</div>
                   </div>
                 </li>
               );

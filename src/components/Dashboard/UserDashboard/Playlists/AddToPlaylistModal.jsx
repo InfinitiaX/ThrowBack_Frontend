@@ -51,39 +51,39 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>Ajouter à une playlist</h2>
-          <button className={styles.closeButton} onClick={onClose} aria-label="Fermer"><FontAwesomeIcon icon={faTimes}/></button>
+          <h2 className={styles.modalTitle}>Add to a playlist</h2>
+          <button className={styles.closeButton} onClick={onClose} aria-label="Close"><FontAwesomeIcon icon={faTimes}/></button>
         </div>
 
         <div className={styles.videoPreview}>
           <div className={styles.videoThumbnail}>
-            <img src={img(video.thumbnail) || '/images/video-placeholder.jpg'} alt={video.titre || 'Vidéo'}
+            <img src={img(video.thumbnail) || '/images/video-placeholder.jpg'} alt={video.titre || 'Video'}
                  onError={(e)=>{e.currentTarget.src='/images/video-placeholder.jpg';}} />
           </div>
           <div className={styles.videoInfo}>
-            <h3 className={styles.videoTitle}>{video.titre || 'Vidéo'}</h3>
-            <p className={styles.videoArtist}>{video.artiste || 'Artiste'}</p>
+            <h3 className={styles.videoTitle}>{video.titre || 'Video'}</h3>
+            <p className={styles.videoArtist}>{video.artiste || 'Artist'}</p>
           </div>
         </div>
 
         <div className={styles.searchContainer}>
           <FontAwesomeIcon className={styles.searchIcon} icon={faSearch}/>
-          <input className={styles.searchInput} value={searchTerm} onChange={(e)=>setSearchTerm(e.target.value)} placeholder="Rechercher..." />
+          <input className={styles.searchInput} value={searchTerm} onChange={(e)=>setSearchTerm(e.target.value)} placeholder="Search..." />
         </div>
 
         {loading ? (
-          <div className={styles.loading}><FontAwesomeIcon icon={faSpinner} spin/> Chargement…</div>
+          <div className={styles.loading}><FontAwesomeIcon icon={faSpinner} spin/> Loading…</div>
         ) : (
           <div className={styles.playlistsList}>
             {filtered.length === 0 ? (
-              <div className={styles.empty}>Aucune playlist</div>
+              <div className={styles.empty}>No playlist</div>
             ) : filtered.map(pl => (
               <div key={pl._id} className={styles.item}>
                 <div className={styles.left}>
                   <img src={img(pl.image_couverture)} alt={pl.nom} onError={(e)=>{e.currentTarget.src='/images/playlist-placeholder.jpg';}}/>
                   <div className={styles.meta}>
                     <div className={styles.name}>{pl.nom}</div>
-                    <div className={styles.desc}>{pl.nb_videos || pl.videos?.length || 0} vidéos</div>
+                    <div className={styles.desc}>{pl.nb_videos || pl.videos?.length || 0} videos</div>
                   </div>
                 </div>
                 <div className={styles.right}>
@@ -93,7 +93,7 @@ const AddToPlaylistModal = ({ isOpen, onClose, video, existingPlaylists = [] }) 
                     onClick={()=>add(pl._id)}
                     disabled={pl.hasVideo || adding[pl._id]}
                   >
-                    {pl.hasVideo ? (<><FontAwesomeIcon icon={faCheck}/> Ajoutée</>) : adding[pl._id] ? (<FontAwesomeIcon icon={faSpinner} spin/>) : (<><FontAwesomeIcon icon={faPlus}/> Ajouter</>)}
+                    {pl.hasVideo ? (<><FontAwesomeIcon icon={faCheck}/> Added</>) : adding[pl._id] ? (<FontAwesomeIcon icon={faSpinner} spin/>) : (<><FontAwesomeIcon icon={faPlus}/> Add</>)}
                   </button>
                 </div>
               </div>

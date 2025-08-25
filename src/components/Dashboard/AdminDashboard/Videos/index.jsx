@@ -40,12 +40,7 @@ const Videos = () => {
   const [totalPages, setTotalPages] = useState(1);
   
   // Stats
-  const [stats, setStats] = useState({
-    total: 0,
-    music: 0,
-    // podcast: 0,
-    short: 0
-  });
+  const [stats, setStats] = useState({ total: 0, music: 0, short: 0 });
 
   // Toggle view mode (grid or table)
   const [viewMode, setViewMode] = useState('grid');
@@ -53,17 +48,12 @@ const Videos = () => {
   // Screen size detection for responsive behavior
   const [isMobile, setIsMobile] = useState(false);
 
-  // Detect screen size changes
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
-      // Auto switch to grid on mobile for better UX
-      if (window.innerWidth <= 768 && viewMode === 'table') {
-        setViewMode('grid');
-      }
+      if (window.innerWidth <= 768 && viewMode === 'table') setViewMode('grid');
     };
-
-    handleResize(); // Check initial size
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [viewMode]);
@@ -71,14 +61,8 @@ const Videos = () => {
   // Fonction pour obtenir l'URL complète
   const getFullVideoUrl = (path) => {
     if (!path) return '';
-    
-    // Si l'URL est déjà absolue, la retourner telle quelle
     if (path.startsWith('http')) return path;
-    
-    // S'assurer que le chemin commence par un slash
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    
-    // Utiliser l'URL de base de l'API
     return `${API_BASE_URL}${normalizedPath}`;
   };
 
@@ -88,8 +72,6 @@ const Videos = () => {
       setLoading(true);
       setShowError(false);
       const token = localStorage.getItem('token');
-      
-      // Build query parameters
       const params = new URLSearchParams();
       if (searchQuery) params.append('search', searchQuery);
       if (typeFilter) params.append('type', typeFilter);
@@ -97,70 +79,33 @@ const Videos = () => {
       if (genreFilter) params.append('genre', genreFilter);
       params.append('page', currentPage);
       params.append('limit', 12);
-      
-      // Utiliser l'URL de base configurée
       const apiUrl = `${API_BASE_URL}/api/admin/videos?${params.toString()}`;
-      console.log(`Fetching videos from: ${apiUrl}`);
-      
       const response = await fetch(apiUrl, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        },
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
         credentials: 'include'
       });
-      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
-      
       const data = await response.json();
-      console.log("Videos data received:", data);
-      
-      // Normalisation des données pour gérer différents formats de réponse API
+
       let videosData = [];
       let pagination = null;
-      
-      if (data.videos && Array.isArray(data.videos)) {
-        videosData = data.videos;
-        pagination = data.pagination;
-      } else if (data.data && Array.isArray(data.data)) {
-        videosData = data.data;
-        pagination = data.pagination;
-      } else if (Array.isArray(data)) {
-        videosData = data;
-      }
-      
-      // Traiter les URL vidéo pour les rendre absolues
-      videosData = videosData.map(video => {
-        if (video.youtubeUrl && video.youtubeUrl.startsWith('/uploads/')) {
-          return {
-            ...video,
-            youtubeUrl: getFullVideoUrl(video.youtubeUrl)
-          };
-        }
-        return video;
-      });
-      
+      if (data.videos && Array.isArray(data.videos)) { videosData = data.videos; pagination = data.pagination; }
+      else if (data.data && Array.isArray(data.data)) { videosData = data.data; pagination = data.pagination; }
+      else if (Array.isArray(data)) { videosData = data; }
+
+      videosData = videosData.map(video =>
+        (video.youtubeUrl && video.youtubeUrl.startsWith('/uploads/'))
+          ? { ...video, youtubeUrl: getFullVideoUrl(video.youtubeUrl) }
+          : video
+      );
+
       setVideos(videosData);
-      
-      // Gestion cohérente de la pagination
-      if (pagination) {
-        setTotalPages(pagination.totalPages || 1);
-      } else {
-        setTotalPages(data.totalPages || 1);
-      }
-      
-      // Set total count
-      if (data.total) {
-        setStats(prev => ({
-          ...prev,
-          total: data.total
-        }));
-      }
-      
-      // Fetch video stats if we're on the first page with no filters
+      setTotalPages(pagination ? (pagination.totalPages || 1) : (data.totalPages || 1));
+      if (data.total) setStats(prev => ({ ...prev, total: data.total }));
+
       if (currentPage === 1 && !decadeFilter && !genreFilter && !searchQuery) {
         fetchVideoStats();
       }
@@ -177,260 +122,119 @@ const Videos = () => {
   const fetchVideoStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      
-      // Utiliser l'URL de base configurée
       const apiUrl = `${API_BASE_URL}/api/admin/videos/stats`;
-      console.log(`Fetching video stats from: ${apiUrl}`);
-      
       const response = await fetch(apiUrl, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        },
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
         credentials: 'include'
       });
-      
-      if (!response.ok) {
-        console.warn(`Stats fetch failed: ${response.status} ${response.statusText}`);
-        return; // Silently fail stats
-      }
-      
+      if (!response.ok) return;
       const data = await response.json();
-      console.log("Video stats received:", data);
-      
-      if (data.success) {
-        setStats(data.stats);
-      }
-    } catch (err) {
-      console.error('Error fetching video stats:', err);
-      // Ne pas afficher d'erreur pour les stats, ce n'est pas critique
-    }
+      if (data.success) setStats(data.stats);
+    } catch {}
   };
 
-  // Load videos on mount and when filters change
-  useEffect(() => {
-    fetchVideos();
-  }, [typeFilter, decadeFilter, genreFilter, currentPage]);
+  useEffect(() => { fetchVideos(); }, [typeFilter, decadeFilter, genreFilter, currentPage]);
 
-  // Handle search form submission
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setCurrentPage(1);
-    fetchVideos();
-  };
+  const handleSearch = (e) => { e.preventDefault(); setCurrentPage(1); fetchVideos(); };
+  const handleReset = () => { setSearchQuery(''); setTypeFilter('music'); setDecadeFilter(''); setGenreFilter(''); setCurrentPage(1); };
 
-  // Handle filters reset
-  const handleReset = () => {
-    setSearchQuery('');
-    setTypeFilter('music'); // Réinitialiser au type "music" par défaut
-    setDecadeFilter('');
-    setGenreFilter('');
-    setCurrentPage(1);
-    // fetchVideos sera appelé par l'effet useEffect
-  };
+  const toggleViewMode = () => { if (!isMobile) setViewMode(prev => prev === 'grid' ? 'table' : 'grid'); };
 
-  // Toggle view mode between grid and table
-  const toggleViewMode = () => {
-    if (!isMobile) { // Prevent table view on mobile
-      setViewMode(prev => prev === 'grid' ? 'table' : 'grid');
-    }
-  };
-
-  // Handle video creation
   const handleVideoCreated = (newVideo) => {
-    // Ajouter la nouvelle vidéo seulement si elle correspond au filtre actuel
-    if (!typeFilter || newVideo.type === typeFilter) {
-      setVideos(prevVideos => [newVideo, ...prevVideos]);
-    }
+    if (!typeFilter || newVideo.type === typeFilter) setVideos(prev => [newVideo, ...prev]);
     setAddModalOpen(false);
     fetchVideoStats();
   };
 
-  // Handle video update
   const handleVideoUpdated = (updatedVideo) => {
-    // Vérifier si la vidéo mise à jour correspond toujours au filtre actuel
     if (!typeFilter || updatedVideo.type === typeFilter) {
-      setVideos(prevVideos => 
-        prevVideos.map(video => 
-          video._id === updatedVideo._id ? updatedVideo : video
-        )
-      );
+      setVideos(prev => prev.map(v => v._id === updatedVideo._id ? updatedVideo : v));
     } else {
-      // Si la vidéo a changé de type et ne correspond plus au filtre, la retirer
-      setVideos(prevVideos => 
-        prevVideos.filter(video => video._id !== updatedVideo._id)
-      );
+      setVideos(prev => prev.filter(v => v._id !== updatedVideo._id));
     }
     setEditModalOpen(false);
     setSelectedVideo(null);
   };
 
-  // Handle video deletion
-  const handleDeleteClick = (video) => {
-    setSelectedVideo(video);
-    setDeleteModalOpen(true);
-  };
+  // Ouverture modale suppression
+  const handleDeleteClick = (video) => { setSelectedVideo(video); setDeleteModalOpen(true); };
 
+  // ✅ Retire la carte localement dès que l'API confirme
   const handleVideoDeleted = (deletedId) => {
-    setVideos(prevVideos => 
-      prevVideos.filter(video => video._id !== deletedId)
-    );
+    setVideos(prev => prev.filter(v => v._id !== deletedId));
     setDeleteModalOpen(false);
     setSelectedVideo(null);
     fetchVideoStats();
   };
 
-  // Handle video detail view
-  const handleViewDetails = (video) => {
-    setSelectedVideo(video);
-    setDetailModalOpen(true);
-  };
+  const handleViewDetails = (video) => { setSelectedVideo(video); setDetailModalOpen(true); };
+  const handleEditClick = (video) => { setSelectedVideo(video); setEditModalOpen(true); };
 
-  // Handle video edit
-  const handleEditClick = (video) => {
-    setSelectedVideo(video);
-    setEditModalOpen(true);
-  };
-
-  // Helper function to extract YouTube video ID
   const getYouTubeVideoId = (url) => {
     try {
       if (!url) return 'placeholder';
       if (!url.includes('youtube.com') && !url.includes('youtu.be')) return 'placeholder';
-      
       try {
         const videoUrl = new URL(url);
         let videoId = '';
-        
         if (videoUrl.hostname.includes('youtube.com')) {
-          // Classic format: youtube.com/watch?v=VIDEO_ID
-          if (videoUrl.searchParams.get('v')) {
-            videoId = videoUrl.searchParams.get('v');
-          }
-          // Shorts format: youtube.com/shorts/VIDEO_ID
-          else if (videoUrl.pathname.startsWith('/shorts/')) {
-            videoId = videoUrl.pathname.replace('/shorts/', '');
-          }
-          // Embed format: youtube.com/embed/VIDEO_ID
-          else if (videoUrl.pathname.startsWith('/embed/')) {
-            videoId = videoUrl.pathname.replace('/embed/', '');
-          }
+          if (videoUrl.searchParams.get('v')) videoId = videoUrl.searchParams.get('v');
+          else if (videoUrl.pathname.startsWith('/shorts/')) videoId = videoUrl.pathname.replace('/shorts/', '');
+          else if (videoUrl.pathname.startsWith('/embed/')) videoId = videoUrl.pathname.replace('/embed/', '');
         } else if (videoUrl.hostname.includes('youtu.be')) {
-          // Short format: youtu.be/VIDEO_ID
           videoId = videoUrl.pathname.substring(1);
         }
-        
         return videoId || 'placeholder';
-      } catch (urlError) {
-        // Fallback pour les URLs mal formées
+      } catch {
         const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
-        if (match && match[1]) {
-          return match[1];
-        }
+        if (match && match[1]) return match[1];
         return 'placeholder';
       }
-    } catch (error) {
-      console.error("Error parsing YouTube URL:", error);
+    } catch {
       return 'placeholder';
     }
   };
 
-  // Fonction pour obtenir la miniature de la vidéo
   const getVideoThumbnail = (video) => {
     const { youtubeUrl } = video;
-    
-    // Pour les vidéos YouTube, utiliser la miniature YouTube
     if (youtubeUrl && (youtubeUrl.includes('youtube.com') || youtubeUrl.includes('youtu.be'))) {
       const videoId = getYouTubeVideoId(youtubeUrl);
-      if (videoId !== 'placeholder') {
-        return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-      }
+      if (videoId !== 'placeholder') return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
     }
-    
-    // Pour les vidéos Vimeo
-    if (youtubeUrl && youtubeUrl.includes('vimeo.com')) {
-      return 'https://i.vimeocdn.com/favicon/main-touch_180';
-    }
-    
-    // Pour les fichiers uploadés, utiliser une image de placeholder
-    if (youtubeUrl) {
-      // On pourrait générer une miniature à partir de la vidéo, mais pour l'instant on utilise un placeholder
-      return '/images/video-thumbnail.jpg';
-    }
-    
-    // Fallback
+    if (youtubeUrl && youtubeUrl.includes('vimeo.com')) return 'https://i.vimeocdn.com/favicon/main-touch_180';
+    if (youtubeUrl) return '/images/video-thumbnail.jpg';
     return '/images/placeholder-video.jpg';
   };
 
-  // Render video grid item
   const renderVideoGridItem = (video) => (
     <div key={video._id} className={styles.videoCard}>
       <div className={styles.videoType}>{video.type.toUpperCase()}</div>
-      <div 
-        className={styles.videoThumbnail}
-        onClick={() => handleViewDetails(video)}
-      >
+      <div className={styles.videoThumbnail} onClick={() => handleViewDetails(video)}>
         <img 
           src={getVideoThumbnail(video)}
           alt={video.titre}
           crossOrigin="anonymous"
-          onError={(e) => {
-            console.error("Error loading thumbnail:", e);
-            e.target.onerror = null;
-            e.target.src = '/images/placeholder-video.jpg';
-          }}
+          onError={(e) => { e.target.onerror = null; e.target.src = '/images/placeholder-video.jpg'; }}
         />
-        
-        {video.decennie && (
-          <div className={styles.videoDecade}>{video.decennie}</div>
-        )}
-        
-        {video.genre && (
-          <div className={styles.videoGenre}>{video.genre}</div>
-        )}
-        
-        {video.type === 'short' && video.duree && (
-          <div className={styles.videoDuration}>{video.duree}s</div>
-        )}
+        {video.decennie && <div className={styles.videoDecade}>{video.decennie}</div>}
+        {video.genre && <div className={styles.videoGenre}>{video.genre}</div>}
+        {video.type === 'short' && video.duree && <div className={styles.videoDuration}>{video.duree}s</div>}
       </div>
-      
       <div className={styles.videoInfo}>
-        <h3 className={styles.videoTitle} title={video.titre}>
-          {video.titre}
-        </h3>
+        <h3 className={styles.videoTitle} title={video.titre}>{video.titre}</h3>
         <div className={styles.videoMeta}>
           <div className={styles.videoArtist}>{video.artiste || 'Unknown artist'}</div>
           <div className={styles.videoYear}>{video.annee || ''}</div>
         </div>
       </div>
-      
       <div className={styles.videoActions}>
-        <button 
-          className={styles.actionButton} 
-          onClick={() => handleViewDetails(video)}
-          title="View details"
-        >
-          <i className="fas fa-eye"></i>
-        </button>
-        <button 
-          className={styles.actionButton} 
-          onClick={() => handleEditClick(video)}
-          title="Edit video"
-        >
-          <i className="fas fa-edit"></i>
-        </button>
-        <button 
-          className={styles.actionButton} 
-          onClick={() => handleDeleteClick(video)}
-          title="Delete video"
-        >
-          <i className="fas fa-trash"></i>
-        </button>
+        <button className={styles.actionButton} onClick={() => handleViewDetails(video)} title="View details"><i className="fas fa-eye"></i></button>
+        <button className={styles.actionButton} onClick={() => handleEditClick(video)} title="Edit video"><i className="fas fa-edit"></i></button>
+        <button className={styles.actionButton} onClick={() => handleDeleteClick(video)} title="Delete video"><i className="fas fa-trash"></i></button>
       </div>
     </div>
   );
 
-  // Render video table row
   const renderVideoTableRow = (video) => (
     <tr key={video._id} className={styles.videoTableRow}>
       <td className={styles.thumbnailCell}>
@@ -439,44 +243,19 @@ const Videos = () => {
           alt={video.titre}
           className={styles.tableThumbnail}
           crossOrigin="anonymous"
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = '/images/placeholder-video.jpg';
-          }}
+          onError={(e) => { e.target.onerror = null; e.target.src = '/images/placeholder-video.jpg'; }}
         />
       </td>
       <td>{video.titre}</td>
       <td>{video.artiste || '-'}</td>
-      <td>
-        <span className={`${styles.typeTag} ${styles[video.type]}`}>
-          {video.type}
-        </span>
-      </td>
+      <td><span className={`${styles.typeTag} ${styles[video.type]}`}>{video.type}</span></td>
       <td>{video.genre || '-'}</td>
       <td>{video.decennie || '-'}</td>
       <td>{video.annee || '-'}</td>
       <td className={styles.tableActions}>
-        <button 
-          className={styles.actionButton} 
-          onClick={() => handleViewDetails(video)}
-          title="View details"
-        >
-          <i className="fas fa-eye"></i>
-        </button>
-        <button 
-          className={styles.actionButton} 
-          onClick={() => handleEditClick(video)}
-          title="Edit video"
-        >
-          <i className="fas fa-edit"></i>
-        </button>
-        <button 
-          className={styles.actionButton} 
-          onClick={() => handleDeleteClick(video)}
-          title="Delete video"
-        >
-          <i className="fas fa-trash"></i>
-        </button>
+        <button className={styles.actionButton} onClick={() => handleViewDetails(video)} title="View details"><i className="fas fa-eye"></i></button>
+        <button className={styles.actionButton} onClick={() => handleEditClick(video)} title="Edit video"><i className="fas fa-edit"></i></button>
+        <button className={styles.actionButton} onClick={() => handleDeleteClick(video)} title="Delete video"><i className="fas fa-trash"></i></button>
       </td>
     </tr>
   );
@@ -488,57 +267,31 @@ const Videos = () => {
           <h1>Music Video Management</h1>
           <p>Manage all your music videos 🎵</p>
         </div>
-  
         <div className={styles.headerActions}>
           {!isMobile && (
-            <button 
-              className={styles.viewToggleButton}
-              onClick={toggleViewMode}
-              title={viewMode === 'grid' ? 'Switch to table view' : 'Switch to grid view'}
-            >
+            <button className={styles.viewToggleButton} onClick={toggleViewMode} title={viewMode === 'grid' ? 'Switch to table view' : 'Switch to grid view'}>
               <i className={`fas fa-${viewMode === 'grid' ? 'list' : 'th'}`}></i>
             </button>
           )}
-          <button 
-            className={styles.addButton}
-            onClick={() => setAddModalOpen(true)}
-          >
-            <i className="fas fa-plus"></i> 
-            <span>{isMobile ? 'Add' : 'Add video'}</span>
+          <button className={styles.addButton} onClick={() => setAddModalOpen(true)}>
+            <i className="fas fa-plus"></i> <span>{isMobile ? 'Add' : 'Add video'}</span>
           </button>
         </div>
       </div>
-      
+
       {/* Stats cards */}
       <div className={styles.statsRow}>
         <div className={styles.statCard}>
-          <div className={styles.statIcon}>
-            <i className="fas fa-film"></i>
-          </div>
-          <div className={styles.statContent}>
-            <div className={styles.statValue}>{stats.total}</div>
-            <div className={styles.statLabel}>Total Videos</div>
-          </div>
+          <div className={styles.statIcon}><i className="fas fa-film"></i></div>
+          <div className={styles.statContent}><div className={styles.statValue}>{stats.total}</div><div className={styles.statLabel}>Total Videos</div></div>
         </div>
-        
         <div className={styles.statCard}>
-          <div className={styles.statIcon} style={{backgroundColor: '#4c6ef5'}}>
-            <i className="fas fa-music"></i>
-          </div>
-          <div className={styles.statContent}>
-            <div className={styles.statValue}>{stats.music || 0}</div>
-            <div className={styles.statLabel}>Music Videos</div>
-          </div>
+          <div className={styles.statIcon} style={{backgroundColor: '#4c6ef5'}}><i className="fas fa-music"></i></div>
+          <div className={styles.statContent}><div className={styles.statValue}>{stats.music || 0}</div><div className={styles.statLabel}>Music Videos</div></div>
         </div>
-        
         <div className={styles.statCard}>
-          <div className={styles.statIcon} style={{backgroundColor: '#fab005'}}>
-            <i className="fas fa-bolt"></i>
-          </div>
-          <div className={styles.statContent}>
-            <div className={styles.statValue}>{stats.short || 0}</div>
-            <div className={styles.statLabel}>Shorts</div>
-          </div>
+          <div className={styles.statIcon} style={{backgroundColor: '#fab005'}}><i className="fas fa-bolt"></i></div>
+          <div className={styles.statContent}><div className={styles.statValue}>{stats.short || 0}</div><div className={styles.statLabel}>Shorts</div></div>
         </div>
       </div>
 
@@ -546,169 +299,86 @@ const Videos = () => {
       <div className={styles.filtersContainer}>
         <div className={styles.filtersTop}>
           <form onSubmit={handleSearch} className={styles.searchForm}>
-            <input
-              type="text"
-              placeholder={isMobile ? "Search videos..." : "Search for a video..."}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={styles.searchInput}
-            />
-            <button type="submit" className={styles.searchButton}>
-              <i className="fas fa-search"></i>
-            </button>
+            <input type="text" placeholder={isMobile ? "Search videos..." : "Search for a video..."} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={styles.searchInput}/>
+            <button type="submit" className={styles.searchButton}><i className="fas fa-search"></i></button>
           </form>
-          
           <div className={styles.filterButtons}>
             {(searchQuery || typeFilter !== 'music' || decadeFilter || genreFilter) && (
-              <button 
-                onClick={handleReset} 
-                className={styles.resetButton}
-              >
-                <i className="fas fa-times"></i> 
-                <span>{isMobile ? 'Reset' : 'Reset filters'}</span>
-              </button>
+              <button onClick={handleReset} className={styles.resetButton}><i className="fas fa-times"></i> <span>{isMobile ? 'Reset' : 'Reset filters'}</span></button>
             )}
           </div>
         </div>
-        
         <div className={styles.filtersBottom}>
           <div className={styles.filterGroup}>
             <label htmlFor="typeFilter" className={styles.filterLabel}>Type:</label>
-            <select
-              id="typeFilter"
-              value={typeFilter}
-              onChange={(e) => {
-                setTypeFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className={styles.filterSelect}
-            >
+            <select id="typeFilter" value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }} className={styles.filterSelect}>
               <option value="music">Music</option>
             </select>
           </div>
-          
           <div className={styles.filterGroup}>
             <label htmlFor="genreFilter" className={styles.filterLabel}>Genre:</label>
-            <select
-              id="genreFilter"
-              value={genreFilter}
-              onChange={(e) => {
-                setGenreFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className={styles.filterSelect}
-            >
+            <select id="genreFilter" value={genreFilter} onChange={(e) => { setGenreFilter(e.target.value); setCurrentPage(1); }} className={styles.filterSelect}>
               <option value="">All genres</option>
-              {GENRES.map(genre => (
-                <option key={genre} value={genre}>{genre}</option>
-              ))}
+              {GENRES.map(genre => (<option key={genre} value={genre}>{genre}</option>))}
             </select>
           </div>
-          
           <div className={styles.filterGroup}>
             <label htmlFor="decadeFilter" className={styles.filterLabel}>Decade:</label>
-            <select
-              id="decadeFilter"
-              value={decadeFilter}
-              onChange={(e) => {
-                setDecadeFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className={styles.filterSelect}
-            >
+            <select id="decadeFilter" value={decadeFilter} onChange={(e) => { setDecadeFilter(e.target.value); setCurrentPage(1); }} className={styles.filterSelect}>
               <option value="">All decades</option>
-              <option value="60s">60s</option>
-              <option value="70s">70s</option>
-              <option value="80s">80s</option>
-              <option value="90s">90s</option>
-              <option value="2000s">2000s</option>
-              <option value="2010s">2010s</option>
-              <option value="2020s">2020s</option>
+              <option value="60s">60s</option><option value="70s">70s</option><option value="80s">80s</option>
+              <option value="90s">90s</option><option value="2000s">2000s</option><option value="2010s">2010s</option><option value="2020s">2020s</option>
             </select>
           </div>
-          
           <div className={styles.resultCount}>
-            {videos.length > 0 && (
-              <>
-                <span className={styles.countValue}>
-                  {videos.length}
-                </span> 
-                <span className={styles.countLabel}>
-                  {videos.length === 1 ? 'video' : 'videos'}
-                  {!isMobile && ' found'}
-                </span>
-              </>
-            )}
+            {videos.length > 0 && (<><span className={styles.countValue}>{videos.length}</span> <span className={styles.countLabel}>{videos.length === 1 ? 'video' : 'videos'} {!isMobile && ' found'}</span></>)}
           </div>
         </div>
       </div>
 
-      {/* Loading state */}
+      {/* Loading */}
       {loading && videos.length === 0 && (
         <div className={styles.loadingState}>
-          <div className={styles.loadingSpinner}>
-            <i className="fas fa-spinner fa-spin"></i>
-          </div>
+          <div className={styles.loadingSpinner}><i className="fas fa-spinner fa-spin"></i></div>
           <div className={styles.loadingText}>Loading videos...</div>
         </div>
       )}
 
-      {/* Error state */}
+      {/* Error */}
       {showError && error && (
         <div className={styles.errorState}>
           <i className="fas fa-exclamation-circle"></i>
           <span>{error}</span>
-          <button 
-            className={styles.retryButton}
-            onClick={() => fetchVideos()}
-          >
+          <button className={styles.retryButton} onClick={() => fetchVideos()}>
             <i className="fas fa-redo"></i> Retry
           </button>
         </div>
       )}
 
-      {/* Video grid or table */}
+      {/* Grid/Table */}
       {!loading && videos.length === 0 && !showError ? (
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>
-            <i className="fas fa-film"></i>
-          </div>
+          <div className={styles.emptyIcon}><i className="fas fa-film"></i></div>
           <h3 className={styles.emptyTitle}>No videos found</h3>
           <p className={styles.emptyMessage}>
             {searchQuery || typeFilter !== 'music' || decadeFilter || genreFilter ? 
               'Try adjusting your filters or search query' :
-              'Add your first music video to get started'
-            }
+              'Add your first music video to get started'}
           </p>
-          <button 
-            onClick={() => setAddModalOpen(true)}
-            className={styles.addEmptyButton}
-          >
-            <i className="fas fa-plus"></i> Add your first music video
-          </button>
+          <button onClick={() => setAddModalOpen(true)} className={styles.addEmptyButton}><i className="fas fa-plus"></i> Add your first music video</button>
         </div>
       ) : viewMode === 'grid' || isMobile ? (
-        <div className={styles.videoGrid}>
-          {videos.map(video => renderVideoGridItem(video))}
-        </div>
+        <div className={styles.videoGrid}>{videos.map(video => renderVideoGridItem(video))}</div>
       ) : (
         <div className={styles.videoTableContainer}>
           <table className={styles.videoTable}>
             <thead>
               <tr>
                 <th className={styles.thumbnailHeader}>Thumbnail</th>
-                <th>Title</th>
-                <th>Artist</th>
-                <th>Type</th>
-                <th>Genre</th>
-                <th>Decade</th>
-                <th>Year</th>
-                <th>Actions</th>
+                <th>Title</th><th>Artist</th><th>Type</th><th>Genre</th><th>Decade</th><th>Year</th><th>Actions</th>
               </tr>
             </thead>
-            <tbody>
-              {videos.map(video => renderVideoTableRow(video))}
-            </tbody>
+            <tbody>{videos.map(video => renderVideoTableRow(video))}</tbody>
           </table>
         </div>
       )}
@@ -716,85 +386,51 @@ const Videos = () => {
       {/* Pagination */}
       {videos.length > 0 && totalPages > 1 && (
         <div className={styles.pagination}>
-          <button
-            className={styles.paginationButton}
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-          >
-            <i className="fas fa-chevron-left"></i> 
-            {!isMobile && 'Previous'}
+          <button className={styles.paginationButton} disabled={currentPage === 1}
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}>
+            <i className="fas fa-chevron-left"></i> {!isMobile && 'Previous'}
           </button>
-          
           <div className={styles.pageNumbers}>
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               let pageNum;
-              
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (currentPage <= 3) {
-                pageNum = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = currentPage - 2 + i;
-              }
-              
+              if (totalPages <= 5) pageNum = i + 1;
+              else if (currentPage <= 3) pageNum = i + 1;
+              else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+              else pageNum = currentPage - 2 + i;
               return (
-                <button
-                  key={pageNum}
-                  className={`${styles.pageNumber} ${currentPage === pageNum ? styles.currentPage : ''}`}
-                  onClick={() => setCurrentPage(pageNum)}
-                >
+                <button key={pageNum} className={`${styles.pageNumber} ${currentPage === pageNum ? styles.currentPage : ''}`}
+                  onClick={() => setCurrentPage(pageNum)}>
                   {pageNum}
                 </button>
               );
             })}
           </div>
-          
-          <button
-            className={styles.paginationButton}
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-          >
+          <button className={styles.paginationButton} disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}>
             {!isMobile && 'Next'} <i className="fas fa-chevron-right"></i>
           </button>
         </div>
       )}
 
       {/* Modals */}
-      <AddVideoModal
-        isOpen={addModalOpen}
-        onClose={() => setAddModalOpen(false)}
-        onVideoCreated={handleVideoCreated}
-      />
-      
+      <AddVideoModal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} onVideoCreated={handleVideoCreated} />
+
       {selectedVideo && (
         <>
           <EditVideoModal
             isOpen={editModalOpen}
-            onClose={() => {
-              setEditModalOpen(false);
-              setSelectedVideo(null);
-            }}
+            onClose={() => { setEditModalOpen(false); setSelectedVideo(null); }}
             video={selectedVideo}
             onVideoUpdated={handleVideoUpdated}
           />
-          
           <VideoDetailModal
             isOpen={detailModalOpen}
-            onClose={() => {
-              setDetailModalOpen(false);
-              setSelectedVideo(null);
-            }}
+            onClose={() => { setDetailModalOpen(false); setSelectedVideo(null); }}
             video={selectedVideo}
           />
-          
           <DeleteConfirmModal
             isOpen={deleteModalOpen}
-            onClose={() => {
-              setDeleteModalOpen(false);
-              setSelectedVideo(null);
-            }}
+            onClose={() => { setDeleteModalOpen(false); setSelectedVideo(null); }}
             videoId={selectedVideo._id}
             videoTitle={selectedVideo.titre}
             onVideoDeleted={handleVideoDeleted}

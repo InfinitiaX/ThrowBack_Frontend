@@ -1,5 +1,6 @@
 // src/components/admin/Videos/DeleteConfirmModal.jsx
 import React, { useState } from 'react';
+import api from '../../../../utils/api'; // ✅ utilise l'instance Axios (baseURL, token, etc.)
 import styles from './Videos.module.css';
 
 const DeleteConfirmModal = ({ isOpen, onClose, videoId, videoTitle, onVideoDeleted }) => {
@@ -8,59 +9,44 @@ const DeleteConfirmModal = ({ isOpen, onClose, videoId, videoTitle, onVideoDelet
 
   if (!isOpen) return null;
 
-  const tryDelete = async (url, token) => {
-    const res = await fetch(url, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    return res;
-  };
+  // On couvre les différents montages possibles des routes
+  const endpoints = [
+    `/api/admin/videos/${videoId}`,            // 1) route admin classique
+    `/api/videos/admin/videos/${videoId}`,     // 2) route admin sous /api/videos
+    `/api/videos/${videoId}`                   // 3) fallback (protégée)
+  ];
 
   const handleDelete = async () => {
+    setLoading(true);
+    setError('');
     try {
-      setLoading(true);
-      setError('');
+      let lastErr;
 
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('You are not authenticated.');
-      }
-
-      const urls = [
-        `/api/admin/videos/${videoId}`,           // 1) admin mount directe
-        `/api/videos/admin/videos/${videoId}`,    // 2) admin monté sous /api/videos
-        `/api/videos/${videoId}`                  // 3) fallback générique (protégé)
-      ];
-
-      let success = false;
-      let lastError = null;
-
-      for (const url of urls) {
+      for (const url of endpoints) {
         try {
-          const response = await tryDelete(url, token);
-          if (response.ok) {
-            success = true;
-            break;
-          } else if (response.status === 404) {
-            // On essaie l'URL suivante si 404 (mauvaise route)
-            lastError = `Endpoint not found: ${url}`;
-            continue;
-          } else {
-            const data = await response.json().catch(() => ({}));
-            lastError = data?.message || `Failed at ${url}`;
+          const res = await api.delete(url);
+          // Axios lève déjà pour 4xx/5xx. Si on est là, c'est 2xx
+          if (res?.status >= 200 && res?.status < 300 && res.data?.success !== false) {
+            // Informer le parent pour retirer la carte, puis fermer
+            onVideoDeleted?.(videoId);
+            onClose?.();
+            return;
           }
+          lastErr = res?.data?.message || `Request failed: ${url}`;
         } catch (e) {
-          lastError = e.message;
+          const status = e?.response?.status;
+          // 404/405 => on tente l'endpoint suivant
+          if (status === 404 || status === 405) { lastErr = `Endpoint not found: ${url}`; continue; }
+          if (status === 401) { lastErr = 'You are not authenticated.'; break; }
+          if (status === 403) { lastErr = "You don't have permission to delete this video."; break; }
+          lastErr = e?.response?.data?.message || e.message || `Failed at ${url}`;
+          // On arrête si c'est une vraie erreur d'authz/authn
+          if (status && status >= 400 && status < 500) break;
+          // Sinon on tente la suivante
         }
       }
 
-      if (!success) {
-        throw new Error(lastError || 'Failed to delete video');
-      }
-
-      // Succès : informer le parent pour retirer la vidéo de la liste + fermer
-      onVideoDeleted?.(videoId);
-      onClose?.();
+      throw new Error(lastErr || 'Failed to delete the video.');
     } catch (err) {
       setError(err.message || 'Delete failed');
       console.error('Error deleting video:', err);
@@ -74,7 +60,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, videoId, videoTitle, onVideoDelet
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
           <h2>Confirm Delete</h2>
-          <button className={styles.closeButton} onClick={onClose}>
+          <button className={styles.closeButton} onClick={onClose} aria-label="Close">
             <i className="fas fa-times"></i>
           </button>
         </div>
@@ -89,9 +75,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, videoId, videoTitle, onVideoDelet
             You are about to delete: <strong>{videoTitle}</strong>
           </p>
 
-          <p className={styles.deletePermanent}>
-            This action cannot be undone.
-          </p>
+          <p className={styles.deletePermanent}>This action cannot be undone.</p>
 
           {error && (
             <div className={styles.errorMessage}>
@@ -101,18 +85,10 @@ const DeleteConfirmModal = ({ isOpen, onClose, videoId, videoTitle, onVideoDelet
         </div>
 
         <div className={styles.modalFooter}>
-          <button
-            className={styles.cancelButton}
-            onClick={onClose}
-            disabled={loading}
-          >
+          <button className={styles.cancelButton} onClick={onClose} disabled={loading}>
             Cancel
           </button>
-          <button
-            className={styles.deleteButton}
-            onClick={handleDelete}
-            disabled={loading}
-          >
+          <button className={styles.deleteButton} onClick={handleDelete} disabled={loading}>
             {loading ? (
               <>
                 <i className="fas fa-spinner fa-spin"></i> Deleting...

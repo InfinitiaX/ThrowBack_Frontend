@@ -111,29 +111,6 @@ const Settings = () => {
     }));
   };
 
-  const handlePrivacyChange = (type, value) => {
-    setSettings(prev => ({
-      ...prev,
-      privacy: {
-        ...prev.privacy,
-        [type]: value
-      }
-    }));
-  };
-
-  const handleLanguageChange = (e) => {
-    setSettings(prev => ({
-      ...prev,
-      language: e.target.value
-    }));
-  };
-
-  const handleThemeChange = (e) => {
-    setSettings(prev => ({
-      ...prev,
-      theme: e.target.value
-    }));
-  };
 
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
@@ -253,27 +230,7 @@ const Settings = () => {
           >
             SECURITY
           </button>
-          <button
-            className={`${styles.tab} ${activeTab === 'notifications' ? styles.active : ''}`}
-            onClick={() => setActiveTab('notifications')}
-          >
-            NOTIFICATIONS
-            <span style={comingSoonStyle}>Coming Soon</span>
-          </button>
-          <button
-            className={`${styles.tab} ${activeTab === 'privacy' ? styles.active : ''}`}
-            onClick={() => setActiveTab('privacy')}
-          >
-            PRIVACY
-            <span style={comingSoonStyle}>Coming Soon</span>
-          </button>
-          <button
-            className={`${styles.tab} ${activeTab === 'Language and theme' ? styles.active : ''}`}
-            onClick={() => setActiveTab('Language and theme')}
-          >
-            L&T
-            <span style={comingSoonStyle}>Coming Soon</span>
-          </button>
+
         </div>
 
         {/* Security Block */}
@@ -337,168 +294,7 @@ const Settings = () => {
           </div>
         )}
 
-        {/* Notifications Block */}
-        {activeTab === 'notifications' && (
-          <div>
-            <div className={styles.sectionHeader}>
-              <MdNotifications className={styles.sectionIcon} />
-              <h2>Notifications</h2>
-            </div>
-            
-            <DevelopmentNotice />
-            
-            <div className={styles.settingGroup} style={{ opacity: 0.6, pointerEvents: 'none' }}>
-              <label className={styles.settingItem}>
-                <div className={styles.settingLabel}>
-                  <span>Email Notifications</span>
-                  <span className={styles.settingDescription}>Receive email updates about your account</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings.notifications.email}
-                  onChange={() => handleNotificationChange('email')}
-                  className={styles.toggle}
-                  disabled
-                />
-              </label>
-              <label className={styles.settingItem}>
-                <div className={styles.settingLabel}>
-                  <span>Push Notifications</span>
-                  <span className={styles.settingDescription}>Get notified about new activities</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings.notifications.push}
-                  onChange={() => handleNotificationChange('push')}
-                  className={styles.toggle}
-                  disabled
-                />
-              </label>
-              <label className={styles.settingItem}>
-                <div className={styles.settingLabel}>
-                  <span>Marketing Emails</span>
-                  <span className={styles.settingDescription}>Receive updates about new features and offers</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings.notifications.marketing}
-                  onChange={() => handleNotificationChange('marketing')}
-                  className={styles.toggle}
-                  disabled
-                />
-              </label>
-            </div>
-          </div>
-        )}
 
-        {/* Privacy Block */}
-        {activeTab === 'privacy' && (
-          <div>
-            <div className={styles.sectionHeader}>
-              <MdPrivacyTip className={styles.sectionIcon} />
-              <h2>Privacy</h2>
-            </div>
-            
-            <DevelopmentNotice />
-            
-            <div className={styles.settingGroup} style={{ opacity: 0.6, pointerEvents: 'none' }}>
-              <div className={styles.settingItem}>
-                <div className={styles.settingLabel}>
-                  <span>Profile Visibility</span>
-                  <span className={styles.settingDescription}>Control who can see your profile</span>
-                </div>
-                <select
-                  value={settings.privacy.profileVisibility}
-                  onChange={(e) => handlePrivacyChange('profileVisibility', e.target.value)}
-                  className={styles.select}
-                  disabled
-                >
-                  <option value="public">Public</option>
-                  <option value="private">Private</option>
-                  <option value="friends">Friends Only</option>
-                </select>
-              </div>
-              <label className={styles.settingItem}>
-                <div className={styles.settingLabel}>
-                  <span>Show Email Address</span>
-                  <span className={styles.settingDescription}>Display your email on your profile</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings.privacy.showEmail}
-                  onChange={(e) => handlePrivacyChange('showEmail', e.target.checked)}
-                  className={styles.toggle}
-                  disabled
-                />
-              </label>
-              <label className={styles.settingItem}>
-                <div className={styles.settingLabel}>
-                  <span>Show Phone Number</span>
-                  <span className={styles.settingDescription}>Display your phone number on your profile</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings.privacy.showPhone}
-                  onChange={(e) => handlePrivacyChange('showPhone', e.target.checked)}
-                  className={styles.toggle}
-                  disabled
-                />
-              </label>
-            </div>
-          </div>
-        )}
-
-        {/* Preferences Block */}
-        {activeTab === 'Language and theme' && (
-          <div>
-            <div className={styles.sectionHeader}>
-              <MdLanguage className={styles.sectionIcon} />
-              <h2>Language and theme</h2>
-            </div>
-            
-            <DevelopmentNotice />
-            
-            <div className={styles.settingGroup} style={{ opacity: 0.6, pointerEvents: 'none' }}>
-              <div className={styles.settingItem}>
-                <div className={styles.settingLabel}>
-                  <span>Language</span>
-                  <span className={styles.settingDescription}>Choose your preferred language</span>
-                </div>
-                <select
-                  value={settings.language}
-                  onChange={handleLanguageChange}
-                  className={styles.select}
-                  disabled
-                >
-                  <option value="en">English</option>
-                  <option value="fr">French</option>
-                  <option value="es">Spanish</option>
-                </select>
-              </div>
-              <div className={styles.settingItem}>
-                <div className={styles.settingLabel}>
-                  <span>Theme</span>
-                  <span className={styles.settingDescription}>Choose your preferred theme</span>
-                </div>
-                <select
-                  value={settings.theme}
-                  onChange={handleThemeChange}
-                  className={styles.select}
-                  disabled
-                >
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
-                  <option value="system">System</option>
-                </select>
-              </div>
-            </div>
-            <div className={styles.actions}>
-              <button onClick={handleSave} className={styles.saveButton} disabled>
-                Save All Changes
-              </button>
-            </div>
-          </div>
-        )}
       </section>
     </div>
   );

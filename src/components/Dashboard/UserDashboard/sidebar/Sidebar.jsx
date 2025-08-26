@@ -68,24 +68,6 @@ const libraryItems = [
     label: 'Your Playlists',
     to: '/dashboard/playlists',
     icon: faHeart
-  },
-  {
-    label: 'Discover',
-    to: '/dashboard/discover',
-    icon: faSearch,
-    inDevelopment: true
-  },
-  {
-    label: 'Find friends',
-    to: '/dashboard/friends',
-    icon: faUserFriends,
-    inDevelopment: true
-  }, 
-  {
-    label: 'Your favorites',
-    to: '/dashboard/favorites',
-    icon: faBookmark,
-    inDevelopment: true
   }, 
    {
     label: 'Help & Support',

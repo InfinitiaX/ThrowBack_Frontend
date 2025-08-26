@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { LineChart, BarChart, PieChart, Line, Bar, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { PieChart, Pie, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import styles from './Dashboard.module.css';
 
 // Couleurs pour les graphiques
@@ -16,7 +16,6 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [timeRange, setTimeRange] = useState('week');
   const [debugInfo, setDebugInfo] = useState(null);
 
   useEffect(() => {
@@ -84,43 +83,17 @@ const Dashboard = () => {
           setError("Votre session a expiré ou vous n'avez pas les droits nécessaires. Veuillez vous reconnecter.");
         }
       });
-  }, [timeRange]);
+  }, []);
 
   // Fonction pour générer des données de remplacement pour les graphiques
   const generateMockData = (type) => {
     switch(type) {
-      case 'dailyStats':
-        const result = [];
-        const today = new Date();
-        for (let i = 6; i >= 0; i--) {
-          const date = new Date();
-          date.setDate(today.getDate() - i);
-          const dateStr = date.toISOString().split('T')[0];
-          result.push({
-            date: dateStr,
-            count: Math.floor(Math.random() * 100),
-            day: new Date(dateStr).toLocaleDateString('fr-FR', { weekday: 'short' })
-          });
-        }
-        return result;
-      
       case 'contentDistribution':
         return [
           { name: 'Vidéos Musicales', value: 120 },
           { name: 'Shorts', value: 45 },
           { name: 'Podcasts', value: 30 },
           { name: 'Livestreams', value: 15 }
-        ];
-        
-      case 'decadeStats':
-        return [
-          { name: '60s', value: 30 },
-          { name: '70s', value: 45 },
-          { name: '80s', value: 90 },
-          { name: '90s', value: 75 },
-          { name: '2000s', value: 60 },
-          { name: '2010s', value: 50 },
-          { name: '2020s', value: 25 }
         ];
         
       case 'userStatusStats':
@@ -136,30 +109,6 @@ const Dashboard = () => {
     }
   };
 
-  // Formater les données pour les graphiques d'activité
-  const formatDailyStats = () => {
-    if (!stats || !stats.dailyStats || !Array.isArray(stats.dailyStats) || stats.dailyStats.length === 0) {
-      return generateMockData('dailyStats');
-    }
-    
-    // Remplir les jours manquants avec des compteurs à zéro
-    const result = [];
-    const today = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(today.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      
-      const found = stats.dailyStats.find(item => item._id === dateStr);
-      result.push({
-        date: dateStr,
-        count: found ? found.count : 0,
-        day: new Date(dateStr).toLocaleDateString('fr-FR', { weekday: 'short' })
-      });
-    }
-    return result;
-  };
-
   // Formater les données pour le graphique de répartition du contenu
   const formatContentDistribution = () => {
     if (!stats || !stats.contentDistribution) {
@@ -172,18 +121,6 @@ const Dashboard = () => {
       { name: 'Podcasts', value: stats.contentDistribution.podcasts || 0 },
       { name: 'Livestreams', value: stats.contentDistribution.liveStreams || 0 }
     ];
-  };
-
-  // Formater les données pour le graphique de répartition par décennie
-  const formatDecadeStats = () => {
-    if (!stats || !stats.decadeStats || !Array.isArray(stats.decadeStats) || stats.decadeStats.length === 0) {
-      return generateMockData('decadeStats');
-    }
-    
-    return stats.decadeStats.map(item => ({
-      name: item._id,
-      value: item.count
-    }));
   };
 
   // Formater les données pour le graphique de statut utilisateur
@@ -265,26 +202,7 @@ const Dashboard = () => {
     <div className={styles.dashboard}>
       <div className={styles.dashboard_header}>
         <h1 className={styles.page_title}>Tableau de bord administrateur</h1>
-        <div className={styles.time_range_selector}>
-          <button 
-            className={`${styles.range_btn} ${timeRange === 'week' ? styles.active : ''}`}
-            onClick={() => setTimeRange('week')}
-          >
-            7 jours
-          </button>
-          <button 
-            className={`${styles.range_btn} ${timeRange === 'month' ? styles.active : ''}`}
-            onClick={() => setTimeRange('month')}
-          >
-            30 jours
-          </button>
-          <button 
-            className={`${styles.range_btn} ${timeRange === 'year' ? styles.active : ''}`}
-            onClick={() => setTimeRange('year')}
-          >
-            12 mois
-          </button>
-        </div>
+        {/* Filtres temporels supprimés */}
       </div>
 
       {/* Statistiques de base */}
@@ -350,27 +268,8 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Graphiques principaux */}
+      {/* Graphiques principaux (restants) */}
       <div className={styles.charts_grid}>
-        {/* Graphique d'activité quotidienne */}
-        <div className={styles.chart_card}>
-          <div className={styles.card_header}>
-            <h2 className={styles.card_title}>Activité des 7 derniers jours</h2>
-          </div>
-          <div className={styles.chart_container}>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={formatDailyStats()}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="count" stroke="#8884d8" name="Activités" activeDot={{ r: 8 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
         {/* Graphique de répartition du contenu */}
         <div className={styles.chart_card}>
           <div className={styles.card_header}>
@@ -397,29 +296,6 @@ const Dashboard = () => {
                 <Tooltip />
                 <Legend />
               </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Graphique de vidéos par décennie */}
-        <div className={styles.chart_card}>
-          <div className={styles.card_header}>
-            <h2 className={styles.card_title}>Vidéos par décennie</h2>
-          </div>
-          <div className={styles.chart_container}>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={formatDecadeStats()}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="value" name="Nombre de vidéos" fill="#82ca9d">
-                  {formatDecadeStats().map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>

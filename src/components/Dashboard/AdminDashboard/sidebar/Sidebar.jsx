@@ -147,13 +147,6 @@ const Sidebar = ({ collapsed, onToggle, isMobile = false }) => {
         { path: '/admin/messages', icon: 'fas fa-envelope', label: 'Messages', comingSoon: true },
         { path: '/admin/friends', icon: 'fas fa-user-friends', label: 'Friends', comingSoon: true }
       ]
-    },
-    {
-      category: 'SYSTEM',
-      items: [
-        { path: '/admin/security', icon: 'fas fa-shield-alt', label: 'Security', comingSoon: true },
-        { path: '/admin/logs', icon: 'fas fa-history', label: 'Logs', comingSoon: true }
-      ]
     }
   ];
 

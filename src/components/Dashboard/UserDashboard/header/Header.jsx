@@ -214,9 +214,9 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
   };
 
   // Modifié pour simplement ouvrir/fermer le dropdown
-  const handleCreateClick = () => {
-    setIsCreateDropdownOpen(!isCreateDropdownOpen);
-  };
+  // const handleCreateClick = () => {
+  //   setIsCreateDropdownOpen(!isCreateDropdownOpen);
+  // };
 
   // Handle menu button click to toggle sidebar
   const handleMenuButtonClick = () => {
@@ -229,36 +229,36 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
     setShowSuggestions(false);
   };
 
-  // Modifiés pour rediriger vers la page temporaire
-  const handleUploadShortClick = () => {
-    navigate('/dashboard/upload/short', { state: { title: 'Upload Short' } });
-    setIsCreateDropdownOpen(false);
-  };
+  // // Modifiés pour rediriger vers la page temporaire
+  // const handleUploadShortClick = () => {
+  //   navigate('/dashboard/upload/short', { state: { title: 'Upload Short' } });
+  //   setIsCreateDropdownOpen(false);
+  // };
 
-  const handleUploadVideoClick = () => {
-    navigate('/dashboard/upload/video', { state: { title: 'Upload Video' } });
-    setIsCreateDropdownOpen(false);
-  };
+  // const handleUploadVideoClick = () => {
+  //   navigate('/dashboard/upload/video', { state: { title: 'Upload Video' } });
+  //   setIsCreateDropdownOpen(false);
+  // };
 
-  const handleCreatePlaylistClick = () => {
-    navigate('/dashboard/playlistsquick/create', { state: { title: 'Create Playlist' } });
-    setIsCreateDropdownOpen(false);
-  };
+  // const handleCreatePlaylistClick = () => {
+  //   navigate('/dashboard/playlistsquick/create', { state: { title: 'Create Playlist' } });
+  //   setIsCreateDropdownOpen(false);
+  // };
 
-  const handleCreatePostClick = () => {
-    navigate('/dashboard/posts/create', { state: { title: 'Create Post' } });
-    setIsCreateDropdownOpen(false);
-  };
+  // const handleCreatePostClick = () => {
+  //   navigate('/dashboard/posts/create', { state: { title: 'Create Post' } });
+  //   setIsCreateDropdownOpen(false);
+  // };
 
-  const handleCreateGroupClick = () => {
-    navigate('/dashboard/groups/create', { state: { title: 'Create Group' } });
-    setIsCreateDropdownOpen(false);
-  };
+  // const handleCreateGroupClick = () => {
+  //   navigate('/dashboard/groups/create', { state: { title: 'Create Group' } });
+  //   setIsCreateDropdownOpen(false);
+  // };
 
-  const handleHistoryClick = () => {
-    navigate('/dashboard/history', { state: { title: 'History' } });
-    setIsDropdownOpen(false);
-  };
+  // const handleHistoryClick = () => {
+  //   navigate('/dashboard/history', { state: { title: 'History' } });
+  //   setIsDropdownOpen(false);
+  // };
 
   return (
     <header className={styles.header}>
@@ -358,7 +358,7 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
       )}
 
       <div className={styles.headerRight}>
-        <div className={styles.createContainer} ref={createDropdownRef}>
+        {/* <div className={styles.createContainer} ref={createDropdownRef}>
           <button 
             className={styles.createButton} 
             onClick={handleCreateClick}
@@ -398,7 +398,7 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
               </div>
             </div>
           )}
-        </div>
+        </div> */}
         
         {/* Les notifications */}
         <button 
@@ -464,11 +464,11 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
                   <span>Your Playlists</span>
                 </button>
                 
-                <button className={styles.dropdownItem} onClick={handleHistoryClick}>
+                {/* <button className={styles.dropdownItem} onClick={handleHistoryClick}>
                   <FontAwesomeIcon icon={faHistory} className={styles.dropdownIcon} />
                   <span>History</span>
                   <span style={comingSoonStyle}>Coming Soon</span>
-                </button>
+                </button> */}
                 
                 <div className={styles.dropdownDivider}></div>
                 

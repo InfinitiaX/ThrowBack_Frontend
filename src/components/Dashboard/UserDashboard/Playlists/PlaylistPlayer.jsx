@@ -58,12 +58,12 @@ const PlaylistPlayer = () => {
         setLoading(true);
         const data = await playlistAPI.getPlaylistById(id);
         if (!data) { setError('Playlist introuvable'); setLoading(false); return; }
-        if (!data.videos || data.videos.length === 0) { setError('Cette playlist ne contient aucune vidéo'); setLoading(false); return; }
+        if (!data.videos || data.videos.length === 0) { setError('This playlist does not contain any videos'); setLoading(false); return; }
         data.videos.sort((a,b)=>a.ordre-b.ordre);
         setPlaylist(data);
         setLoading(false);
       } catch (e) {
-        setError("Erreur lors du chargement de la playlist"); setLoading(false);
+        setError("Error loading playlist"); setLoading(false);
       }
     };
     load();
@@ -98,7 +98,7 @@ const PlaylistPlayer = () => {
     return (
       <div className={styles.errorContainer}>
         <p className={styles.errorMessage}>{error}</p>
-        <button className={styles.retryButton} onClick={()=>window.location.reload()}>Réessayer</button>
+        <button className={styles.retryButton} onClick={()=>window.location.reload()}>Retry</button>
       </div>
     );
   }
@@ -118,7 +118,7 @@ const PlaylistPlayer = () => {
     <div className={styles.playerPage}>
       <div className={styles.topBar}>
         <button className={styles.backBtn} onClick={()=>navigate(`/dashboard/playlists/${id}`)}>
-          <FontAwesomeIcon icon={faArrowLeft}/> Retour
+          <FontAwesomeIcon icon={faArrowLeft}/> Back
         </button>
         <div className={styles.topTitle}>{playlist.nom}</div>
         <div/>
@@ -138,7 +138,7 @@ const PlaylistPlayer = () => {
           ) : (
             <div className={styles.fallback}>
               <img src={emb?.thumb || '/images/video-placeholder.jpg'} alt="Preview" />
-              <p>Impossible de lire cette source directement.</p>
+              <p>Unable to read this source directly.</p>
             </div>
           )}
 
@@ -163,7 +163,7 @@ const PlaylistPlayer = () => {
         </div>
 
         <div className={styles.sideList}>
-          <h3>Liste de lecture</h3>
+          <h3>Playlist</h3>
           <ol className={styles.videoList}>
             {list.map((it, idx) => {
               const v = it.video_id;
@@ -172,8 +172,8 @@ const PlaylistPlayer = () => {
                 <li key={v?._id || idx} className={`${styles.row} ${idx===current?styles.active:''}`} onClick={()=>setCurrent(idx)}>
                   <img src={th} alt={v?.titre || 'Video'} onError={(e)=>{e.currentTarget.src='/images/video-placeholder.jpg';}}/>
                   <div className={styles.info}>
-                    <div className={styles.title}>{v?.titre || 'Sans titre'}</div>
-                    <div className={styles.sub}>{v?.artiste || 'Artiste inconnu'} {v?.annee ? `(${v.annee})` : ''}</div>
+                    <div className={styles.title}>{v?.titre || 'Untitled'}</div>
+                    <div className={styles.sub}>{v?.artiste || 'Unknown artist'} {v?.annee ? `(${v.annee})` : ''}</div>
                   </div>
                 </li>
               );

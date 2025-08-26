@@ -44,7 +44,7 @@ const getEmbedFromUrl = (rawUrl) => {
     return {
       provider: 'youtube',
       id: yt,
-      // ❌ ne pas forcer mute ici ; seulement autoplay & options visuelles
+      //  ne pas forcer mute ici ; seulement autoplay & options visuelles
       embedUrl: `https://www.youtube.com/embed/${yt}?autoplay=1&rel=0&modestbranding=1`,
       thumb: `https://img.youtube.com/vi/${yt}/hqdefault.jpg`
     };
@@ -55,7 +55,7 @@ const getEmbedFromUrl = (rawUrl) => {
     return {
       provider: 'vimeo',
       id: vm,
-      // ❌ pas de muted=1 ici non plus
+      //  pas de muted=1 ici non plus
       embedUrl: `https://player.vimeo.com/video/${vm}?autoplay=1`,
       thumb: '/images/video-placeholder.jpg'
     };
@@ -113,12 +113,12 @@ const UserPlaylistDetail = () => {
       try {
         setLoading(true);
         const data = await playlistAPI.getPlaylistById(id);
-        if (!data) { setError('Playlist introuvable'); setLoading(false); return; }
+        if (!data) { setError('Playlist not found'); setLoading(false); return; }
         if (data.videos?.length) data.videos.sort((a,b)=>a.ordre-b.ordre);
         setPlaylist(data);
         setLoading(false);
       } catch (e) {
-        setError("Erreur lors du chargement de la playlist");
+        setError("Error loading playlist");
         setLoading(false);
       }
     };
@@ -143,7 +143,7 @@ const UserPlaylistDetail = () => {
         await playlistAPI.incrementPlaylistViews(id);
         setPlaylist(prev => ({ ...prev, nb_lectures: (prev.nb_lectures || 0) + 1 }));
       } catch (error) {
-        console.error("Erreur lors de l'enregistrement de la vue:", error);
+        console.error("Error saving view:", error);
       }
     };
     if (playlist && !loading) recordView();
@@ -162,10 +162,10 @@ const UserPlaylistDetail = () => {
       await playlistAPI.removeVideoFromPlaylist(id, videoId);
       const rest = playlist.videos.filter(v => v.video_id._id !== videoId);
       setPlaylist({ ...playlist, videos: rest });
-      setToastMessage('Vidéo supprimée de la playlist'); setToastType('success'); setShowToast(true);
+      setToastMessage('Video removed from playlist'); setToastType('success'); setShowToast(true);
       if (current >= rest.length) setCurrent(Math.max(0, rest.length-1));
     } catch (e) {
-      setToastMessage("Erreur lors de la suppression"); setToastType('error'); setShowToast(true);
+      setToastMessage("Error while deleting"); setToastType('error'); setShowToast(true);
     }
   };
 
@@ -178,12 +178,12 @@ const UserPlaylistDetail = () => {
         nb_favoris: isLiked ? Math.max(0, (prev.nb_favoris || 0) - 1) : (prev.nb_favoris || 0) + 1,
         userHasLiked: !isLiked
       }));
-      setToastMessage(isLiked ? 'Like retiré' : 'Playlist aimée');
+      setToastMessage(isLiked ? 'Like removed' : 'Liked playlist');
       setToastType('success');
       setShowToast(true);
     } catch (error) {
       console.error("Erreur lors de la modification du like:", error);
-      setToastMessage("Une erreur est survenue");
+      setToastMessage("An error has occurred");
       setToastType('error');
       setShowToast(true);
     }
@@ -196,7 +196,7 @@ const UserPlaylistDetail = () => {
     return (
       <div className={styles.errorContainer}>
         <p className={styles.errorMessage}>{error}</p>
-        <button className={styles.retryButton} onClick={()=>window.location.reload()}>Réessayer</button>
+        <button className={styles.retryButton} onClick={()=>window.location.reload()}>Retry</button>
       </div>
     );
   }
@@ -220,7 +220,7 @@ const UserPlaylistDetail = () => {
   return (
     <div className={styles.container}>
       <button className={styles.backBtn} onClick={()=>navigate('/dashboard/playlists')}>
-        <FontAwesomeIcon icon={faArrowLeft}/> Retour aux playlists
+        <FontAwesomeIcon icon={faArrowLeft}/> back to playlists
       </button>
 
       <div className={styles.header}>
@@ -235,7 +235,7 @@ const UserPlaylistDetail = () => {
         <div className={styles.meta}>
           <div className={styles.visibility}>{visIcon(playlist.visibilite)}</div>
           <h1 className={styles.title}>{playlist.nom}</h1>
-          <p className={styles.description}>{playlist.description || 'Aucune description'}</p>
+          <p className={styles.description}>{playlist.description || 'no description'}</p>
           <div className={styles.stats}>
             <span><FontAwesomeIcon icon={faMusic}/> {videoList.length} vidéos</span>
             <span><FontAwesomeIcon icon={faEye}/> {fmt(playlist.nb_lectures || 0)}</span>
@@ -251,15 +251,15 @@ const UserPlaylistDetail = () => {
               {playlist.userHasLiked ? 'Aimé' : 'Aimer'}
             </button>
             <button onClick={()=>{const u=`${window.location.origin}/dashboard/playlists/${id}`; navigator.clipboard.writeText(u); setToastMessage('Lien copié'); setToastType('success'); setShowToast(true);}} className={styles.actionBtn}>
-              <FontAwesomeIcon icon={faShare}/> Partager
+              <FontAwesomeIcon icon={faShare}/> Share
             </button>
             {isOwner && (
               <>
                 <button onClick={()=>navigate(`/dashboard/playlists/${id}/edit`)} className={styles.actionBtn}>
-                  <FontAwesomeIcon icon={faEdit}/> Modifier
+                  <FontAwesomeIcon icon={faEdit}/> Edit
                 </button>
                 <button onClick={()=>setShowConfirmDelete(true)} className={styles.dangerBtn}>
-                  <FontAwesomeIcon icon={faTrash}/> Supprimer
+                  <FontAwesomeIcon icon={faTrash}/> Delete
                 </button>
               </>
             )}
@@ -283,7 +283,7 @@ const UserPlaylistDetail = () => {
             ) : (
               <div className={styles.fallback}>
                 <img src={embed?.thumb || '/images/video-placeholder.jpg'} alt="Preview" />
-                <p>Cette source ne peut pas être lue en direct. Ouvrez la vidéo sur sa plateforme.</p>
+                <p>This source cannot be played live. Open the video on its platform.</p>
               </div>
             )}
           </div>
@@ -300,13 +300,13 @@ const UserPlaylistDetail = () => {
 
           {now && (
             <div className={styles.nowPlaying}>
-              <strong>Lecture :</strong> {now.artiste || 'Artiste'} — {now.titre || 'Titre'} {now.annee ? `(${now.annee})` : ''}
+              <strong>Reading :</strong> {now.artiste || 'Artist'} — {now.titre || 'Title'} {now.annee ? `(${now.annee})` : ''}
             </div>
           )}
         </div>
 
         <div className={styles.playlistRight}>
-          <h3>Vidéos dans cette playlist</h3>
+          <h3>Videos in this playlist</h3>
           <ol className={styles.videoList}>
             {videoList.map((it, idx) => {
               const vd = it.video_id;
@@ -318,10 +318,10 @@ const UserPlaylistDetail = () => {
                        onError={(e)=>{e.currentTarget.src='/images/video-placeholder.jpg';}} />
                   <div className={styles.videoInfo}>
                     <div className={styles.videoTitle}>{vd?.titre || 'Sans titre'}</div>
-                    <div className={styles.videoSub}>{vd?.artiste || 'Artiste inconnu'} {vd?.annee ? `(${vd.annee})` : ''}</div>
+                    <div className={styles.videoSub}>{vd?.artiste || 'Unknown artist'} {vd?.annee ? `(${vd.annee})` : ''}</div>
                   </div>
                   {isOwner && (
-                    <button className={styles.removeBtn} onClick={(e)=>{e.stopPropagation(); removeVideo(vd._id);}} title="Retirer">
+                    <button className={styles.removeBtn} onClick={(e)=>{e.stopPropagation(); removeVideo(vd._id);}} title="Withdraw">
                       <FontAwesomeIcon icon={faTrash}/>
                     </button>
                   )}
@@ -342,7 +342,7 @@ const UserPlaylistDetail = () => {
             await playlistAPI.deletePlaylist(id);
             navigate('/dashboard/playlists');
           }catch(e){
-            setToastMessage('Erreur lors de la suppression'); setToastType('error'); setShowToast(true);
+            setToastMessage('Error while deleting'); setToastType('error'); setShowToast(true);
             setShowConfirmDelete(false);
           }
         }}

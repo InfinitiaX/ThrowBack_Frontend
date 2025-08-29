@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import api, { videoAPI } from '../../../../utils/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFacebook, faTwitter, faWhatsapp } from '@fortawesome/free-brands-svg-icons';
@@ -13,7 +13,6 @@ import {
   faCopy,
   faList,
   faFilter,
-  faSync,
   faTimes
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './VideoDetail.module.css';
@@ -74,9 +73,42 @@ const ConfirmDialog = ({
 };
 /* ========= /Confirm Dialog ========= */
 
+/* ========= RecommendedVideo (inline) ========= */
+const RecommendedVideo = ({ video }) => {
+  if (!video) return null;
+  const thumb = (() => {
+    const url = video.youtubeUrl || '';
+    try {
+      if (url.includes('watch?v=')) {
+        const u = new URL(url);
+        const v = u.searchParams.get('v');
+        if (v) return `https://img.youtube.com/vi/${v}/hqdefault.jpg`;
+      }
+      if (url.includes('youtu.be/')) {
+        const v = url.split('youtu.be/')[1].split(/[?&]/)[0];
+        if (v) return `https://img.youtube.com/vi/${v}/hqdefault.jpg`;
+      }
+      if (url.includes('youtube.com/embed/')) {
+        const v = url.split('youtube.com/embed/')[1].split(/[?&]/)[0];
+        if (v) return `https://img.youtube.com/vi/${v}/hqdefault.jpg`;
+      }
+    } catch {}
+    return '/images/video-placeholder.jpg';
+  })();
+  return (
+    <Link to={`/dashboard/videos/${video._id}`} className={styles.recommendedCard}>
+      <img src={thumb} alt={`${video.artiste || 'Artist'} - ${video.titre || 'Title'}`} />
+      <div className={styles.recommendedMeta}>
+        <div className={styles.recTitle}>{video.artiste || 'Artist'}</div>
+        <div className={styles.recSubtitle}>{video.titre || 'Title'}{video.annee ? ` (${video.annee})` : ''}</div>
+      </div>
+    </Link>
+  );
+};
+/* ========= /RecommendedVideo ========= */
+
 const VideoDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
 
   // Main states
   const [video, setVideo] = useState(null);
@@ -117,6 +149,7 @@ const VideoDetail = () => {
     fetchAllMemories();
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -124,7 +157,7 @@ const VideoDetail = () => {
       fetchVideoById(id);
       fetchVideoMemories(id);
       window.scrollTo(0, 0);
-      localStorage.setItem('currentVideoId', id);
+      try { localStorage.setItem('currentVideoId', id); } catch {}
     }
   }, [id]);
 
@@ -152,11 +185,13 @@ const VideoDetail = () => {
           if (cached) memoriesData = JSON.parse(cached);
         } catch {}
       }
-      setAllMemories(Array.isArray(memoriesData) ? memoriesData : []);
+      const safe = Array.isArray(memoriesData) ? memoriesData : [];
+      setAllMemories(safe);
       try {
-        localStorage.setItem('allMemories', JSON.stringify(Array.isArray(memoriesData) ? memoriesData : []));
+        localStorage.setItem('allMemories', JSON.stringify(safe));
         localStorage.setItem('memoriesFetchTime', Date.now().toString());
       } catch {}
+      return safe; // <-- allow callers to use fresh value
     } finally {
       setMemoriesLoading(false);
     }
@@ -255,8 +290,8 @@ const VideoDetail = () => {
       if (retryCountRef.current < maxRetries) {
         retryCountRef.current++;
         try {
-          await fetchAllMemories();
-          const newFiltered = filterMemoriesForCurrentVideo(allMemories, videoId);
+          const fresh = await fetchAllMemories();
+          const newFiltered = filterMemoriesForCurrentVideo(fresh, videoId);
           setMemories(formatMemories(newFiltered, videoId));
         } catch {
           setMemories([]);
@@ -272,8 +307,6 @@ const VideoDetail = () => {
       }
     }
   };
-
-  const refreshMemories = () => { if (id) fetchVideoMemories(id); };
 
   const formatMemories = (memoriesData, currentVideoId = id) => {
     if (!Array.isArray(memoriesData) || memoriesData.length === 0) return [];
@@ -431,7 +464,7 @@ const VideoDetail = () => {
     }
   };
 
-  // open the confirmation modal with EN strings
+  // Confirmation modal helpers
   const openConfirm = (title, message, onConfirm) => {
     setConfirm({
       open: true,
@@ -498,6 +531,7 @@ const VideoDetail = () => {
         setUserLiked(response.data.liked);
         setLikeCount(response.data.likes);
       } else {
+        // rollback
         setUserLiked(!newLikedState);
         setLikeCount(likeCount);
       }
@@ -541,48 +575,6 @@ const VideoDetail = () => {
     setShowShareOptions(false);
   };
 
-  const handleAddMemory = async (e) => {
-    e.preventDefault();
-    if (!memoryText.trim()) return alert('Please enter a memory to share');
-    if (isAddingMemory) return;
-    try {
-      setIsAddingMemory(true);
-      const response = await api.post(`/api/public/videos/${id}/memories`, {
-        contenu: memoryText.trim(), video_id: id, videoId: id, video: id
-      });
-
-      const payload = response.data?.success ? response.data?.data : null;
-      if (!payload) {
-        const fb = await api.post(`/api/videos/${id}/memories`, {
-          contenu: memoryText.trim(), video_id: id, videoId: id, video: id
-        });
-        if (!fb.data?.success) throw new Error(fb.data?.message || 'Error adding memory');
-      }
-
-      const newMemoryData = {
-        ...(payload || response.data?.data),
-        video: { _id: id, titre: video?.titre, artiste: video?.artiste, annee: video?.annee },
-        videoId: id
-      };
-      const newMemory = formatMemories([newMemoryData])[0];
-      setMemories(prev => [newMemory, ...prev]);
-      const updatedAll = [newMemoryData, ...allMemories];
-      setAllMemories(updatedAll);
-      try {
-        localStorage.setItem('allMemories', JSON.stringify(updatedAll));
-        localStorage.setItem('memoriesUpdated', Date.now().toString());
-      } catch {}
-      setMemoryText('');
-      setShareMessage('Memory added successfully!');
-      setTimeout(() => setShareMessage(''), 3000);
-    } catch (err) {
-      if (err.response?.status === 401) alert('Please log in to share a memory');
-      else alert('Error adding memory. Please try again.');
-    } finally {
-      setIsAddingMemory(false);
-    }
-  };
-
   const getYouTubeThumbnail = (url) => {
     if (!url) return '/images/video-placeholder.jpg';
     if (url.startsWith('/') || url.startsWith('./')) return url;
@@ -598,6 +590,7 @@ const VideoDetail = () => {
       }
       if (videoId) {
         if (videoId.includes('&')) videoId = videoId.split('&')[0];
+        if (videoId.includes('?')) videoId = videoId.split('?')[0];
         return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
       }
     } catch {}
@@ -621,35 +614,67 @@ const VideoDetail = () => {
       return safe;
     }
     if (videoId && videoId.includes('&')) videoId = videoId.split('&')[0];
+    if (videoId && videoId.includes('?')) videoId = videoId.split('?')[0];
     return videoId ? `https://www.youtube.com/embed/${videoId}` : safe;
   };
 
-  const RecommendedVideo = ({ video: recommendedVideo }) => {
-    if (!recommendedVideo) return null;
-    const isCurrentVideo = video && recommendedVideo._id === video._id;
-    const handleClick = (e) => {
-      e.preventDefault();
-      navigate(`/dashboard/videos/${recommendedVideo._id}`);
+  /* ========= MISSING: handleAddMemory (fixed) ========= */
+  const handleAddMemory = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    const text = memoryText.trim();
+    if (!text || isAddingMemory) return;
+    setIsAddingMemory(true);
+
+    // optimistic add at top
+    const tempId = `temp-${Date.now()}`;
+    const optimistic = {
+      id: tempId,
+      username: 'You',
+      content: text,
+      likes: 0,
+      comments: 0,
+      videoId: id,
+      videoTitle: video?.titre || 'Untitled',
+      videoArtist: video?.artiste || 'Unknown',
+      videoYear: video?.annee || '----',
+      imageUrl: '/images/default-avatar.jpg',
+      userInteraction: { liked: false, disliked: false, isAuthor: true },
+      replies: [],
+      showReplies: false
     };
-    return (
-      <a
-        href={`/dashboard/videos/${recommendedVideo._id}`}
-        className={`${styles.recommendedVideo} ${isCurrentVideo ? styles.currentVideo : ''}`}
-        onClick={handleClick}
-      >
-        <img
-          src={getYouTubeThumbnail(recommendedVideo.youtubeUrl)}
-          alt={`${recommendedVideo.artiste || 'Artist'} - ${recommendedVideo.titre || 'Title'}`}
-          className={styles.recommendedImg}
-          onError={(e) => { e.target.src = '/images/video-placeholder.jpg'; }}
-        />
-        <div className={styles.recommendedInfo}>
-          <div className={styles.recommendedArtist}>{recommendedVideo.artiste || 'Artist'}</div>
-          <div className={styles.recommendedTitle}>: {recommendedVideo.titre || 'Title'} ({recommendedVideo.annee || '----'})</div>
-        </div>
-        {isCurrentVideo && <div className={styles.currentlyPlaying}>▶ Now Playing</div>}
-      </a>
-    );
+
+    setMemories((prev) => [optimistic, ...prev]);
+    setMemoryText('');
+
+    try {
+      // try private API first
+      let resp;
+      try {
+        resp = await api.post('/api/memories', { contenu: text, videoId: id });
+      } catch {
+        resp = await api.post('/api/public/memories', { contenu: text, videoId: id });
+      }
+
+      if (resp?.data?.success && resp.data.data) {
+        const saved = formatMemories([resp.data.data], id)[0];
+        setMemories((prev) => prev.map(m => (m.id === tempId ? saved : m)));
+        // also refresh global cache lightly
+        setAllMemories((prev) => [resp.data.data, ...prev]);
+        try { localStorage.setItem('allMemories', JSON.stringify([resp.data.data, ...allMemories])); } catch {}
+        // notify other tabs
+        try { localStorage.setItem('memoriesUpdated', String(Date.now())); } catch {}
+      } else {
+        // remove optimistic if failed
+        setMemories((prev) => prev.filter(m => m.id !== tempId));
+        alert('Failed to add memory.');
+      }
+    } catch (err) {
+      setMemories((prev) => prev.filter(m => m.id !== tempId));
+      if (err.response?.status === 401) alert('Please log in to share a memory');
+      else alert('Error adding memory. Please try again.');
+    } finally {
+      setIsAddingMemory(false);
+    }
   };
 
   if (loading) {
@@ -807,7 +832,7 @@ const VideoDetail = () => {
                 </div>
               ) : allVideos.length > 0 ? (
                 allVideos.map((videoItem) => (
-                  <RecommendedVideo key={videoItem._id || `video-${Math.random()}`} video={videoItem} />
+                  <RecommendedVideo key={videoItem._id || videoItem.id} video={videoItem} />
                 ))
               ) : (
                 <div className={styles.emptyRecommendations}>
@@ -823,9 +848,6 @@ const VideoDetail = () => {
           <div className={styles.memoriesHeader}>
             <h3>Memories {!showAllMemories && 'for this video'}</h3>
             <div className={styles.memoriesControls}>
-              <button className={styles.refreshButton} onClick={refreshMemories} title="Refresh memories">
-                <FontAwesomeIcon icon={faSync} spin={memoriesLoading} />
-              </button>
               <button
                 className={styles.filterToggleButton}
                 onClick={() => setShowAllMemories(!showAllMemories)}
@@ -845,12 +867,12 @@ const VideoDetail = () => {
           ) : memoriesToDisplay.length > 0 ? (
             memoriesToDisplay.map((memory) => (
               <MemoryCard
-                key={memory.id || `memory-${Math.random()}`}
+                key={memory.id}
                 memory={memory}
                 baseUrl={baseUrl}
                 onLike={handleLikeMemory}
                 onAddReply={handleAddReply}
-                onRequestDelete={handleDeleteMemory}   // popup handled here
+                onDeleteMemory={handleDeleteMemory}
                 onToggleReplies={handleToggleReplies}
                 currentVideoId={id}
                 replies={memory.replies || []}
@@ -866,9 +888,6 @@ const VideoDetail = () => {
                   View all memories
                 </button>
               )}
-              <button className={styles.refreshButton} onClick={refreshMemories} style={{ marginTop: '12px' }}>
-                <FontAwesomeIcon icon={faSync} /> Refresh
-              </button>
             </div>
           )}
         </aside>

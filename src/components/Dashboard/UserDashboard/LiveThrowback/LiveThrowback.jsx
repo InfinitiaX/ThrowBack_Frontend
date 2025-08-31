@@ -29,7 +29,7 @@ const StablePlayer = React.memo(
       loop={loop}
     />
   ),
-  (prev, next) => prev.src === next.src // ✅ prop clé unique
+  (prev, next) => prev.src === next.src
 );
 
 const LiveThrowback = () => {
@@ -65,7 +65,7 @@ const LiveThrowback = () => {
     return s ? s[1] : l ? l[1] : null;
   };
 
-  // 🔒 URL de lecture STABLE — ne change PAS pendant la lecture.
+  // URL de lecture STABLE
   const playerSrc = useMemo(() => {
     if (!currentStream || !isStreamValid(currentStream)) return '';
 
@@ -73,7 +73,6 @@ const LiveThrowback = () => {
     const loop     = currentStream.playbackConfig?.loop !== false;
     const shuffle  = currentStream.playbackConfig?.shuffle === true;
 
-    // Compilation
     if (
       currentStream.compilationType === 'VIDEO_COLLECTION' &&
       Array.isArray(currentStream.compilationVideos) &&
@@ -81,7 +80,6 @@ const LiveThrowback = () => {
     ) {
       const vids = currentStream.compilationVideos;
 
-      // Tous YouTube → playlist unique et STABLE (⚠️ aucune notion d'index)
       if (vids.every(v => v.sourceType === 'YOUTUBE')) {
         const ids = vids.map(v => v.sourceId).join(',');
         let url = `https://www.youtube.com/embed/?playlist=${ids}&autoplay=${autoplay ? 1 : 0}`;
@@ -91,7 +89,6 @@ const LiveThrowback = () => {
         return url;
       }
 
-      // Mix de sources → première vidéo comme point d’entrée (URL stable)
       const first = vids[0];
       if (first?.sourceType === 'YOUTUBE') {
         let url = `https://www.youtube.com/embed/${first.sourceId}?autoplay=${autoplay ? 1 : 0}`;
@@ -107,10 +104,8 @@ const LiveThrowback = () => {
       }
     }
 
-    // URL directe
     if (currentStream.playbackUrl) return currentStream.playbackUrl;
 
-    // YouTube simple
     if (currentStream.youtubeUrl) {
       const id = extractYoutubeId(currentStream.youtubeUrl);
       if (id) {
@@ -122,13 +117,11 @@ const LiveThrowback = () => {
       return currentStream.youtubeUrl;
     }
 
-    // Fallback
     if (currentStream.embedCode) return currentStream.embedCode;
     return '';
-  // ⚠️ Dépend UNIQUEMENT du stream choisi, pas des compteurs
   }, [currentStream]);
 
-  // Chargement + polling non agressif : NE PAS remplacer l'objet si le même live reste actif
+  // Chargement + polling
   useEffect(() => {
     let mounted = true;
 
@@ -144,12 +137,11 @@ const LiveThrowback = () => {
           setLiveStreams(valid);
 
           setCurrentStream((prev) => {
-            if (!prev) return valid[0] || null;               // 1er choix
+            if (!prev) return valid[0] || null;
             const still = valid.find(s => s._id === prev._id);
-            return still ? prev : (valid[0] || null);          
+            return still ? prev : (valid[0] || null);
           });
 
-          // ⚠️ Ne pas toucher aux compteurs si le stream courant ne change pas
           if (!currentStream && valid[0]) {
             setViewCount(valid[0].statistics?.totalUniqueViewers || 0);
             setLikeCount(valid[0].statistics?.likes || 0);
@@ -171,10 +163,9 @@ const LiveThrowback = () => {
     fetchLiveStreams();
     const intv = setInterval(fetchLiveStreams, 60000);
     return () => { mounted = false; clearInterval(intv); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]); // ❗️ pas de dépendance à currentStream ici
+  }, [user]);
 
-  // Incrément UX de vues sans reload, uniquement quand on CHANGE de stream
+  // Incrément UX de vues
   const lastCountedIdRef = useRef(null);
   useEffect(() => {
     const bumpViews = async () => {
@@ -196,7 +187,6 @@ const LiveThrowback = () => {
     bumpViews();
   }, [currentStream, user]);
 
-  // Vérif d’expiration — surtout PAS de reload
   useEffect(() => {
     if (!currentStream) return;
     const intv = setInterval(() => {
@@ -223,7 +213,6 @@ const LiveThrowback = () => {
       }
     } catch (e) {
       logger.error(e);
-      // rollback
       setLiked((x) => !x);
       setLikeCount((p) => (liked ? Math.max(0, p - 1) : p + 1));
     }
@@ -251,14 +240,11 @@ const LiveThrowback = () => {
     try {
       const res = await api.post(`/api/livechat/${currentStream._id}`, { content });
       if (!res.data?.success) throw new Error('Post failed');
-      // CommentSection mettra à jour via son polling
     } catch (e) {
       logger.error(e);
       setComment(content);
     }
   };
-
- 
 
   if (loading) return <LoadingSpinner />;
 
@@ -294,7 +280,6 @@ const LiveThrowback = () => {
             <div className={styles.videoPlayer}>
               {hasVideo ? (
                 <StablePlayer
-                  // 🔑 clé qui ne change que si on change de LIVE
                   key={currentStream._id}
                   forwardRef={playerRef}
                   src={playerSrc}
@@ -323,7 +308,6 @@ const LiveThrowback = () => {
             <h2 className={styles.streamTitle}>{currentStream.title}</h2>
             <p className={styles.hostInfo}>Hosted by: {currentStream.hostName || 'ThrowBack Host'}</p>
 
-
             <div className={styles.interactionBar}>
               <button
                 className={`${styles.interactionButton} ${liked ? styles.liked : ''}`}
@@ -342,7 +326,8 @@ const LiveThrowback = () => {
 
             {!chatDisabled && isStreamValid(currentStream) && (
               <form onSubmit={handleCommentSubmit} className={styles.commentForm}>
-                <mg
+                {/* ✅ correction de mg → img */}
+                <img
                   src={user?.photo_profil || '/images/default-user.jpg'}
                   alt={user?.prenom || 'User'}
                   className={styles.userAvatar}
@@ -363,6 +348,7 @@ const LiveThrowback = () => {
           </div>
         </div>
 
+        {/* ✅ Le chat vient automatiquement dessous grâce au CSS (mainContent en colonne) */}
         {currentStream.chatEnabled !== false && isStreamValid(currentStream)
           ? (
             <div className={styles.commentsSection}>

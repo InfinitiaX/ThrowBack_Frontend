@@ -12,8 +12,9 @@ const log = {
   e: (...a) => console.error('[CommentSection]', ...a),
 };
 
-const PAGE_SIZE = 10;
-const REPLIES_PAGE_SIZE = 10;
+/* ✅ 15 par page */
+const PAGE_SIZE = 15;
+const REPLIES_PAGE_SIZE = 15;
 
 /** Utils: Initiales + couleur déterministe **/
 const getInitials = (u) => {
@@ -22,13 +23,11 @@ const getInitials = (u) => {
   if (first || last) {
     return `${first?.[0] || ''}${last?.[0] || ''}`.toUpperCase() || 'U';
   }
-  // fallback email/nom d’affichage si dispo
   const fallback = (u?.email || u?.displayName || 'User').trim();
   return (fallback[0] || 'U').toUpperCase();
 };
 
 const colorFromString = (str = 'User') => {
-  // petit hash déterministe → couleur HSL
   let h = 0;
   for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 360;
   return `hsl(${h}, 70%, 45%)`;
@@ -37,8 +36,6 @@ const colorFromString = (str = 'User') => {
 const InitialsAvatar = ({ user, className }) => {
   const initials = getInitials(user);
   const bg = colorFromString(`${user?.prenom || ''}${user?.nom || ''}${user?.email || ''}`);
-  // On réutilise les classes existantes (commentAvatar / replyAvatar).
-  // On ajoute un style inline minimal pour assurer l’apparence circulaire.
   const baseStyle = {
     backgroundColor: bg,
     color: '#fff',
@@ -49,7 +46,6 @@ const InitialsAvatar = ({ user, className }) => {
     userSelect: 'none',
     textTransform: 'uppercase',
     fontWeight: 700,
-    // Taille par défaut si la classe n'en fournit pas
     width: '40px',
     height: '40px',
     fontSize: '14px',
@@ -64,28 +60,23 @@ const InitialsAvatar = ({ user, className }) => {
 const CommentSection = ({ streamId }) => {
   const { user } = useAuth();
 
-  // messages de premier niveau
   const [comments, setComments] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // état du chat
   const [isBanned, setIsBanned] = useState(false);
   const [chatDisabled, setChatDisabled] = useState(false);
 
-  // replies
-  // repliesMap: { [commentId]: { items: [], page: 1, hasMore: true, loading: false, open: false } }
+  // repliesMap: { [commentId]: { items, page, hasMore, loading, open } }
   const [repliesMap, setRepliesMap] = useState({});
 
-  // UI
-  const [replyingTo, setReplyingTo] = useState(null); // { id, name }
+  const [replyingTo, setReplyingTo] = useState(null);
   const containerRef = useRef(null);
   const pollRef = useRef(null);
   const loadingMoreRef = useRef(false);
 
-  // -------- helpers --------
   const nearBottom = () => {
     const el = containerRef.current;
     if (!el) return true;
@@ -105,7 +96,6 @@ const CommentSection = ({ streamId }) => {
     return d.toLocaleDateString();
   };
 
-  // -------- access / chat state --------
   useEffect(() => {
     const checkAccess = async () => {
       try {
@@ -131,14 +121,10 @@ const CommentSection = ({ streamId }) => {
     checkAccess();
   }, [streamId, user]);
 
-  // -------- fetch comments (page 1..n) --------
-  const fetchComments = async (pageToLoad = 1, { preserveScroll = false } = {}) => {
+  const fetchComments = async (pageToLoad = 1) => {
     if (!streamId || chatDisabled || isBanned) return;
     try {
       if (pageToLoad === 1) setLoading(true);
-      const el = containerRef.current;
-      const prevHeight = el?.scrollHeight || 0;
-      const prevTop = el?.scrollTop || 0;
 
       const res = await api.get(`/api/livechat/${streamId}`, {
         params: { page: pageToLoad, limit: PAGE_SIZE }
@@ -150,16 +136,7 @@ const CommentSection = ({ streamId }) => {
 
       const list = res.data.data;
       setHasMore(list.length === PAGE_SIZE);
-
       setComments((prev) => (pageToLoad === 1 ? list : [...prev, ...list]));
-
-      // stabiliser la position lors du chargement de pages suivantes
-      if (preserveScroll && el) {
-        setTimeout(() => {
-          const newHeight = el.scrollHeight;
-          el.scrollTop = newHeight - prevHeight + prevTop;
-        }, 0);
-      }
 
       setError(null);
     } catch (e) {
@@ -171,7 +148,7 @@ const CommentSection = ({ streamId }) => {
     }
   };
 
-  // init + polling “smart” (seulement si on est en bas)
+  // init + polling (seulement si on est proche du bas)
   useEffect(() => {
     if (!streamId || chatDisabled || isBanned) return;
 
@@ -183,26 +160,26 @@ const CommentSection = ({ streamId }) => {
 
     clearInterval(pollRef.current);
     pollRef.current = setInterval(() => {
-      if (nearBottom()) {
-        fetchComments(1);
-      }
+      if (nearBottom()) fetchComments(1);
     }, 15000);
 
     return () => clearInterval(pollRef.current);
   }, [streamId, chatDisabled, isBanned]);
 
-  // infinite scroll (haut)
+  /* ✅ Infinite scroll par le bas */
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
     const onScroll = () => {
       if (loadingMoreRef.current || !hasMore || loading) return;
-      if (el.scrollTop <= 10) {
+
+      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      if (distanceFromBottom <= 10) {
         loadingMoreRef.current = true;
         const next = page + 1;
         setPage(next);
-        fetchComments(next, { preserveScroll: true });
+        fetchComments(next);
       }
     };
 
@@ -210,7 +187,6 @@ const CommentSection = ({ streamId }) => {
     return () => el.removeEventListener('scroll', onScroll);
   }, [page, hasMore, loading]);
 
-  // -------- likes --------
   const toggleLike = async (id, isReply = false, parentId = null) => {
     try {
       if (!user || chatDisabled || isBanned) return;
@@ -235,12 +211,10 @@ const CommentSection = ({ streamId }) => {
 
       await api.post(`/api/livechat/${streamId}/messages/${id}/like`);
     } catch (e) {
-      // rollback simple (on relance un refresh à la prochaine boucle)
       log.e('toggleLike', e);
     }
   };
 
-  // -------- replies: open / fetch / submit --------
   const ensureRepliesBucket = (commentId) =>
     setRepliesMap((map) => map[commentId] ? map : { ...map, [commentId]: { items: [], page: 1, hasMore: true, loading: false, open: false } });
 
@@ -299,7 +273,6 @@ const CommentSection = ({ streamId }) => {
       const res = await api.post(`/api/livechat/${streamId}`, { content, parentId });
       if (!res.data?.success || !res.data.data) throw new Error('Reply failed');
 
-      // injecter la reply localement
       setRepliesMap((map) => {
         const bucket = map[parentId] || { items: [], page: 1, hasMore: true, loading: false, open: true };
         return {
@@ -308,7 +281,6 @@ const CommentSection = ({ streamId }) => {
         };
       });
 
-      // mettre à jour le compteur au niveau du parent
       setComments((list) =>
         list.map((c) => (c._id === parentId ? { ...c, replyCount: (c.replyCount || 0) + 1 } : c))
       );
@@ -326,7 +298,6 @@ const CommentSection = ({ streamId }) => {
 
   const commentList = useMemo(() => comments, [comments]);
 
-  // -------- render --------
   if (error) {
     return (
       <div className={styles.commentsError}>
@@ -349,7 +320,6 @@ const CommentSection = ({ streamId }) => {
 
             return (
               <div key={c._id} className={styles.comment}>
-                {/* Avatar → Initiales */}
                 <InitialsAvatar user={c.userId} className={styles.commentAvatar} />
 
                 <div className={styles.commentContent}>
@@ -370,10 +340,7 @@ const CommentSection = ({ streamId }) => {
                       <FontAwesomeIcon icon={faThumbsUp} /> <span>{c.likes}</span>
                     </button>
 
-                    <button
-                      className={styles.commentAction}
-                      onClick={() => beginReply(c)}
-                    >
+                    <button className={styles.commentAction} onClick={() => beginReply(c)}>
                       <FontAwesomeIcon icon={faReply} /> <span>Reply</span>
                     </button>
 
@@ -394,12 +361,10 @@ const CommentSection = ({ streamId }) => {
                     )}
                   </div>
 
-                  {/* zone de réponses */}
                   {bucket.open && (
                     <div className={styles.replies}>
                       {replies.map((r) => (
                         <div key={r._id} className={styles.reply}>
-                          {/* Avatar reply → Initiales */}
                           <InitialsAvatar user={r.userId} className={styles.replyAvatar} />
                           <div className={styles.replyContent}>
                             <div className={styles.replyHeader}>
@@ -421,7 +386,6 @@ const CommentSection = ({ streamId }) => {
                         </div>
                       ))}
 
-                      {/* formulaire de reply */}
                       {replyingTo?.id === c._id && (
                         <div className={styles.replyFormContainer}>
                           <form

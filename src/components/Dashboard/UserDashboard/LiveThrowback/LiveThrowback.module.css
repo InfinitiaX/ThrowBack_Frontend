@@ -14,13 +14,15 @@
   color: #333;
 }
 
+/* ✅ Layout en colonne pour placer le chat en dessous de la vidéo */
 .mainContent {
   display: flex;
   width: 100%;
   gap: 20px;
+  flex-direction: column;
 }
 
-/* Section vidéo à gauche */
+/* Section vidéo */
 .videoSection {
   flex: 2;
   display: flex;
@@ -67,18 +69,9 @@
 }
 
 @keyframes pulse {
-  0% {
-    transform: scale(0.95);
-    opacity: 0.7;
-  }
-  50% {
-    transform: scale(1.1);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(0.95);
-    opacity: 0.7;
-  }
+  0% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.7; }
 }
 
 .viewCount {
@@ -96,7 +89,7 @@
   gap: 4px;
 }
 
-/* Informations vidéo */
+/* Infos vidéo */
 .videoInfo {
   padding: 15px 0;
 }
@@ -170,8 +163,7 @@
   cursor: pointer;
 }
 
-/* ... (le reste de ton fichier inchangé au-dessus) ... */
-
+/* Rail compilations (si utilisé) */
 .compilationRail {
   display: grid;
   grid-auto-flow: column;
@@ -182,14 +174,8 @@
   margin: 8px 0 12px 0;
   scrollbar-width: thin;
 }
-
-.compilationRail::-webkit-scrollbar {
-  height: 8px;
-}
-.compilationRail::-webkit-scrollbar-thumb {
-  background: #ddd;
-  border-radius: 4px;
-}
+.compilationRail::-webkit-scrollbar { height: 8px; }
+.compilationRail::-webkit-scrollbar-thumb { background: #ddd; border-radius: 4px; }
 
 .compilationItem {
   background: #fff;
@@ -199,14 +185,12 @@
   display: flex;
   flex-direction: column;
 }
-
 .compilationItem img {
   width: 100%;
   aspect-ratio: 16/9;
   object-fit: cover;
   display: block;
 }
-
 .compilationItemTitle {
   font-size: 12px;
   padding: 6px 8px;
@@ -215,8 +199,7 @@
   text-overflow: ellipsis;
 }
 
-
-/* Message d'erreur pour la vidéo */
+/* Message d'erreur vidéo */
 .noVideoMessage {
   display: flex;
   flex-direction: column;
@@ -239,13 +222,15 @@
   cursor: pointer;
 }
 
-/* Section de chat à droite */
+/* ✅ Chat dessous, pleine largeur */
 .commentsSection {
   flex: 1;
-  max-width: 350px;
+  max-width: none;
+  width: 100%;
   background-color: white;
   border-radius: 8px;
   overflow: hidden;
+  margin-top: 20px;
 }
 
 .commentsTitle {
@@ -310,9 +295,7 @@
   margin-right: 10px;
 }
 
-.commentContent {
-  flex: 1;
-}
+.commentContent { flex: 1; }
 
 .commentHeader {
   display: flex;
@@ -320,25 +303,11 @@
   margin-bottom: 5px;
 }
 
-.commentAuthor {
-  font-weight: bold;
-  font-size: 14px;
-}
+.commentAuthor { font-weight: bold; font-size: 14px; }
+.commentTime { font-size: 12px; color: #777; }
+.commentText { font-size: 14px; margin-bottom: 5px; }
 
-.commentTime {
-  font-size: 12px;
-  color: #777;
-}
-
-.commentText {
-  font-size: 14px;
-  margin-bottom: 5px;
-}
-
-.commentActions {
-  display: flex;
-  gap: 15px;
-}
+.commentActions { display: flex; gap: 15px; }
 
 .commentAction {
   background: none;
@@ -351,11 +320,9 @@
   gap: 5px;
 }
 
-.commentAction.liked {
-  color: #e10000;
-}
+.commentAction.liked { color: #e10000; }
 
-/* Réponses aux commentaires */
+/* Réponses */
 .replies {
   margin-left: 20px;
   padding-left: 10px;
@@ -363,10 +330,7 @@
   margin-top: 8px;
 }
 
-.reply {
-  display: flex;
-  margin-bottom: 8px;
-}
+.reply { display: flex; margin-bottom: 8px; }
 
 .replyAvatar {
   width: 24px;
@@ -375,9 +339,7 @@
   margin-right: 8px;
 }
 
-.replyContent {
-  flex: 1;
-}
+.replyContent { flex: 1; }
 
 .replyHeader {
   display: flex;
@@ -385,30 +347,14 @@
   margin-bottom: 2px;
 }
 
-.replyAuthor {
-  font-weight: bold;
-  font-size: 12px;
-}
-
-.replyTime {
-  font-size: 10px;
-  color: #777;
-}
-
-.replyText {
-  font-size: 12px;
-}
+.replyAuthor { font-weight: bold; font-size: 12px; }
+.replyTime { font-size: 10px; color: #777; }
+.replyText { font-size: 12px; }
 
 /* Formulaire de réponse */
-.replyFormContainer {
-  margin-top: 8px;
-}
+.replyFormContainer { margin-top: 8px; }
 
-.replyInputForm {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+.replyInputForm { display: flex; flex-direction: column; gap: 8px; }
 
 .replyInput {
   padding: 8px;
@@ -456,38 +402,10 @@
   color: #999;
 }
 
-/* Responsive design */
-@media (max-width: 900px) {
-  .mainContent {
-    flex-direction: column;
-  }
-  
-  .commentsSection {
-    max-width: none;
-    margin-top: 20px;
-  }
-}
-
+/* Responsive (garde la colonne) */
 @media (max-width: 600px) {
-  .commentForm {
-    flex-wrap: wrap;
-  }
-  
-  .commentInput {
-    order: 2;
-    width: 100%;
-    margin-top: 8px;
-  }
-  
-  .userAvatar {
-    order: 1;
-  }
-  
-  .commentSubmit {
-    order: 3;
-    width: 100%;
-    margin-top: 8px;
-  }
+  .commentForm { flex-wrap: wrap; }
+  .commentInput { order: 2; width: 100%; margin-top: 8px; }
+  .userAvatar { order: 1; }
+  .commentSubmit { order: 3; width: 100%; margin-top: 8px; }
 }
-
-

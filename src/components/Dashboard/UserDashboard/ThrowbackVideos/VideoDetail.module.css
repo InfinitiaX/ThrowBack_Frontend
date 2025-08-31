@@ -979,9 +979,9 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px; /* espace entre username et le texte */
+  gap: 4px; 
 }
 
 .memoryUsername {
-  margin-right: 4px; /* assure un petit espace */
+  margin-right: 4px; 
 }

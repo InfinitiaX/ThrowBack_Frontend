@@ -16,7 +16,7 @@ const logger = {
   error: (...a) => console.error('[LiveThrowback]', ...a),
 };
 
-// ⛳️ Wrapper mémoïsé : ne rerend que si src change
+// Wrapper mémoïsé : ne rerender que si src change
 const StablePlayer = React.memo(
   ({ src, poster, autoPlay, muted, controls, loop, forwardRef }) => (
     <VideoPlayer
@@ -79,7 +79,6 @@ const LiveThrowback = () => {
       currentStream.compilationVideos.length > 0
     ) {
       const vids = currentStream.compilationVideos;
-
       if (vids.every(v => v.sourceType === 'YOUTUBE')) {
         const ids = vids.map(v => v.sourceId).join(',');
         let url = `https://www.youtube.com/embed/?playlist=${ids}&autoplay=${autoplay ? 1 : 0}`;
@@ -88,7 +87,6 @@ const LiveThrowback = () => {
         url += '&rel=0&modestbranding=1&enablejsapi=1&origin=' + window.location.origin;
         return url;
       }
-
       const first = vids[0];
       if (first?.sourceType === 'YOUTUBE') {
         let url = `https://www.youtube.com/embed/${first.sourceId}?autoplay=${autoplay ? 1 : 0}`;
@@ -165,17 +163,12 @@ const LiveThrowback = () => {
     return () => { mounted = false; clearInterval(intv); };
   }, [user]);
 
-  // Incrément UX de vues
+  // Incrément local des vues quand on change de stream
   const lastCountedIdRef = useRef(null);
   useEffect(() => {
     const bumpViews = async () => {
       try {
-        if (
-          currentStream &&
-          isStreamValid(currentStream) &&
-          user &&
-          lastCountedIdRef.current !== currentStream._id
-        ) {
+        if (currentStream && isStreamValid(currentStream) && user && lastCountedIdRef.current !== currentStream._id) {
           await api.get(`/api/user/livestreams/${currentStream._id}`);
           setViewCount((p) => p + 1);
           lastCountedIdRef.current = currentStream._id;
@@ -187,6 +180,7 @@ const LiveThrowback = () => {
     bumpViews();
   }, [currentStream, user]);
 
+  // Vérif d’expiration
   useEffect(() => {
     if (!currentStream) return;
     const intv = setInterval(() => {
@@ -240,6 +234,7 @@ const LiveThrowback = () => {
     try {
       const res = await api.post(`/api/livechat/${currentStream._id}`, { content });
       if (!res.data?.success) throw new Error('Post failed');
+      // le polling de CommentSection récupère la suite
     } catch (e) {
       logger.error(e);
       setComment(content);
@@ -275,6 +270,7 @@ const LiveThrowback = () => {
       <h1 className={styles.pageTitle}>Livethrowback</h1>
 
       <div className={styles.mainContent}>
+        {/* Vidéo (gauche) */}
         <div className={styles.videoSection}>
           <div className={styles.videoWrapper}>
             <div className={styles.videoPlayer}>
@@ -323,10 +319,22 @@ const LiveThrowback = () => {
                 <span>Share</span>
               </button>
             </div>
+            {/* ⚠️ Formulaire retiré d'ici pour être placé en bas de la colonne chat */}
+          </div>
+        </div>
 
-            {!chatDisabled && isStreamValid(currentStream) && (
+        {/* Chat (droite) */}
+        {currentStream.chatEnabled !== false && isStreamValid(currentStream) ? (
+          <div className={styles.commentsSection}>
+            <h3 className={styles.commentsTitle}>Live Chat</h3>
+
+            {/* Liste des messages */}
+            <CommentSection streamId={currentStream._id} />
+
+            {/* ✅ Zone de saisie déplacée tout en bas de la colonne chat */}
+            <div className={styles.chatComposer}>
               <form onSubmit={handleCommentSubmit} className={styles.commentForm}>
-                {/* ✅ correction de mg → img */}
+                {/* correction <mg> → <img> */}
                 <img
                   src={user?.photo_profil || '/images/default-user.jpg'}
                   alt={user?.prenom || 'User'}
@@ -344,25 +352,15 @@ const LiveThrowback = () => {
                   Chat
                 </button>
               </form>
-            )}
+            </div>
           </div>
-        </div>
-
-        {/* ✅ Le chat vient automatiquement dessous grâce au CSS (mainContent en colonne) */}
-        {currentStream.chatEnabled !== false && isStreamValid(currentStream)
-          ? (
-            <div className={styles.commentsSection}>
-              <h3 className={styles.commentsTitle}>Live Chat</h3>
-              <CommentSection streamId={currentStream._id} />
-            </div>
-          )
-          : (
-            <div className={styles.commentsSection}>
-              <h3 className={styles.commentsTitle}>
-                {!isStreamValid(currentStream) ? 'Livestream ended' : 'Chat disabled'}
-              </h3>
-            </div>
-          )}
+        ) : (
+          <div className={styles.commentsSection}>
+            <h3 className={styles.commentsTitle}>
+              {!isStreamValid(currentStream) ? 'Livestream ended' : 'Chat disabled'}
+            </h3>
+          </div>
+        )}
       </div>
     </div>
   );

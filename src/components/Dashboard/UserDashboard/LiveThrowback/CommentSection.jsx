@@ -12,17 +12,14 @@ const log = {
   e: (...a) => console.error('[CommentSection]', ...a),
 };
 
-/* ✅ 15 par page */
-const PAGE_SIZE = 15;
-const REPLIES_PAGE_SIZE = 15;
+const PAGE_SIZE = 10;
+const REPLIES_PAGE_SIZE = 10;
 
-/** Utils: Initiales + couleur déterministe **/
+/** Initiales + couleur déterministe **/
 const getInitials = (u) => {
   const first = (u?.prenom || '').trim();
   const last = (u?.nom || '').trim();
-  if (first || last) {
-    return `${first?.[0] || ''}${last?.[0] || ''}`.toUpperCase() || 'U';
-  }
+  if (first || last) return `${first?.[0] || ''}${last?.[0] || ''}`.toUpperCase() || 'U';
   const fallback = (u?.email || u?.displayName || 'User').trim();
   return (fallback[0] || 'U').toUpperCase();
 };
@@ -96,6 +93,7 @@ const CommentSection = ({ streamId }) => {
     return d.toLocaleDateString();
   };
 
+  // --- accès / état du chat ---
   useEffect(() => {
     const checkAccess = async () => {
       try {
@@ -121,22 +119,31 @@ const CommentSection = ({ streamId }) => {
     checkAccess();
   }, [streamId, user]);
 
-  const fetchComments = async (pageToLoad = 1) => {
+  // --- fetch comments ---
+  const fetchComments = async (pageToLoad = 1, { preserveScroll = false } = {}) => {
     if (!streamId || chatDisabled || isBanned) return;
     try {
       if (pageToLoad === 1) setLoading(true);
+      const el = containerRef.current;
+      const prevHeight = el?.scrollHeight || 0;
+      const prevTop = el?.scrollTop || 0;
 
       const res = await api.get(`/api/livechat/${streamId}`, {
         params: { page: pageToLoad, limit: PAGE_SIZE }
       });
 
-      if (!res.data?.success || !Array.isArray(res.data.data)) {
-        throw new Error('Invalid response');
-      }
+      if (!res.data?.success || !Array.isArray(res.data.data)) throw new Error('Invalid response');
 
       const list = res.data.data;
       setHasMore(list.length === PAGE_SIZE);
       setComments((prev) => (pageToLoad === 1 ? list : [...prev, ...list]));
+
+      if (preserveScroll && el) {
+        setTimeout(() => {
+          const newHeight = el.scrollHeight;
+          el.scrollTop = newHeight - prevHeight + prevTop;
+        }, 0);
+      }
 
       setError(null);
     } catch (e) {
@@ -148,7 +155,7 @@ const CommentSection = ({ streamId }) => {
     }
   };
 
-  // init + polling (seulement si on est proche du bas)
+  // init + polling (seulement si on est vers le bas)
   useEffect(() => {
     if (!streamId || chatDisabled || isBanned) return;
 
@@ -166,20 +173,18 @@ const CommentSection = ({ streamId }) => {
     return () => clearInterval(pollRef.current);
   }, [streamId, chatDisabled, isBanned]);
 
-  /* ✅ Infinite scroll par le bas */
+  // infinite scroll (chargement des pages suivantes en remontant en haut)
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
     const onScroll = () => {
       if (loadingMoreRef.current || !hasMore || loading) return;
-
-      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-      if (distanceFromBottom <= 10) {
+      if (el.scrollTop <= 10) {
         loadingMoreRef.current = true;
         const next = page + 1;
         setPage(next);
-        fetchComments(next);
+        fetchComments(next, { preserveScroll: true });
       }
     };
 
@@ -187,6 +192,7 @@ const CommentSection = ({ streamId }) => {
     return () => el.removeEventListener('scroll', onScroll);
   }, [page, hasMore, loading]);
 
+  // --- likes ---
   const toggleLike = async (id, isReply = false, parentId = null) => {
     try {
       if (!user || chatDisabled || isBanned) return;
@@ -215,6 +221,7 @@ const CommentSection = ({ streamId }) => {
     }
   };
 
+  // --- replies ---
   const ensureRepliesBucket = (commentId) =>
     setRepliesMap((map) => map[commentId] ? map : { ...map, [commentId]: { items: [], page: 1, hasMore: true, loading: false, open: false } });
 
@@ -238,9 +245,7 @@ const CommentSection = ({ streamId }) => {
         params: { page: nextPage, limit: REPLIES_PAGE_SIZE }
       });
 
-      if (!res.data?.success || !Array.isArray(res.data.data)) {
-        throw new Error('Invalid replies response');
-      }
+      if (!res.data?.success || !Array.isArray(res.data.data)) throw new Error('Invalid replies response');
 
       const items = res.data.data;
       const newItems = nextPage === 1 ? items : [...bucket.items, ...items];
@@ -265,6 +270,15 @@ const CommentSection = ({ streamId }) => {
     }
   };
 
+  // ✅ REFRESH local d’un fil pour “réafficher” les replies
+  const refreshReplies = async (commentId) => {
+    setRepliesMap((map) => ({
+      ...map,
+      [commentId]: { items: [], page: 1, hasMore: true, loading: false, open: true }
+    }));
+    await loadMoreReplies(commentId, 1);
+  };
+
   const submitReply = async (parentId, raw) => {
     try {
       if (!user || !raw.trim() || chatDisabled || isBanned) return;
@@ -275,10 +289,7 @@ const CommentSection = ({ streamId }) => {
 
       setRepliesMap((map) => {
         const bucket = map[parentId] || { items: [], page: 1, hasMore: true, loading: false, open: true };
-        return {
-          ...map,
-          [parentId]: { ...bucket, items: [...bucket.items, res.data.data], open: true }
-        };
+        return { ...map, [parentId]: { ...bucket, items: [...bucket.items, res.data.data], open: true } };
       });
 
       setComments((list) =>
@@ -353,11 +364,17 @@ const CommentSection = ({ streamId }) => {
                         View replies
                       </button>
                     ) : (
-                      bucket.hasMore && (
-                        <button className={styles.commentAction} onClick={() => loadMoreReplies(c._id)}>
-                          Load more
+                      <>
+                        {bucket.hasMore && (
+                          <button className={styles.commentAction} onClick={() => loadMoreReplies(c._id)}>
+                            Load more
+                          </button>
+                        )}
+                        {/* ✅ Bouton Refresh pour relire toutes les replies */}
+                        <button className={styles.commentAction} onClick={() => refreshReplies(c._id)}>
+                          Refresh
                         </button>
-                      )
+                      </>
                     )}
                   </div>
 
@@ -405,11 +422,7 @@ const CommentSection = ({ streamId }) => {
                               autoFocus
                             />
                             <div className={styles.replyFormActions}>
-                              <button
-                                type="button"
-                                className={styles.cancelReplyBtn}
-                                onClick={() => setReplyingTo(null)}
-                              >
+                              <button type="button" className={styles.cancelReplyBtn} onClick={() => setReplyingTo(null)}>
                                 Cancel
                               </button>
                               <button type="submit" className={styles.submitReplyBtn}>

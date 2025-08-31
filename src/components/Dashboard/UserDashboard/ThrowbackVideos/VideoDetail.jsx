@@ -539,6 +539,58 @@ const VideoDetail = () => {
     setShowShareOptions(false);
   };
 
+  /* ---------- Add Memory (now defined and reused) ---------- */
+  const handleAddMemory = async (e) => {
+    e.preventDefault();
+    if (!memoryText.trim() || isAddingMemory) return;
+    try {
+      setIsAddingMemory(true);
+      let serverMemory = null;
+
+      // Try public route
+      try {
+        const res = await api.post(`/api/public/videos/${id}/memories`, {
+          contenu: memoryText.trim(), video_id: id, videoId: id, video: id
+        });
+        if (res.data?.success) serverMemory = res.data.data;
+      } catch {}
+
+      // Fallback private route
+      if (!serverMemory) {
+        const fb = await api.post(`/api/videos/${id}/memories`, {
+          contenu: memoryText.trim(), video_id: id, videoId: id, video: id
+        });
+        if (fb.data?.success) serverMemory = fb.data.data;
+      }
+
+      if (!serverMemory) throw new Error('Error adding memory');
+
+      const newMemoryData = {
+        ...serverMemory,
+        video: { _id: id, titre: video?.titre, artiste: video?.artiste, annee: video?.annee },
+        videoId: id
+      };
+      const newMemory = formatMemories([newMemoryData])[0];
+
+      setMemories(prev => [newMemory, ...prev]);
+      const updatedAll = [newMemoryData, ...allMemories];
+      setAllMemories(updatedAll);
+      try {
+        localStorage.setItem('allMemories', JSON.stringify(updatedAll));
+        localStorage.setItem('memoriesUpdated', Date.now().toString());
+      } catch {}
+
+      setMemoryText('');
+      setShareMessage('Memory added successfully!');
+      setTimeout(() => setShareMessage(''), 3000);
+    } catch (err) {
+      if (err.response?.status === 401) alert('Please log in to share a memory');
+      else alert('Error adding memory. Please try again.');
+    } finally {
+      setIsAddingMemory(false);
+    }
+  };
+
   /* ---------- YouTube helpers ---------- */
   const getYouTubeThumbnail = (url) => {
     if (!url) return '/images/video-placeholder.jpg';
@@ -748,57 +800,7 @@ const VideoDetail = () => {
             />
             <button
               className={`${styles.commentButton} ${isAddingMemory ? styles.loading : ''}`}
-              onClick={async (e) => {
-                e.preventDefault();
-                if (!memoryText.trim() || isAddingMemory) return;
-                try {
-                  setIsAddingMemory(true);
-                  let serverMemory = null;
-
-                  // Try public route
-                  try {
-                    const res = await api.post(`/api/public/videos/${id}/memories`, {
-                      contenu: memoryText.trim(), video_id: id, videoId: id, video: id
-                    });
-                    if (res.data?.success) serverMemory = res.data.data;
-                  } catch {}
-
-                  // Fallback private route
-                  if (!serverMemory) {
-                    const fb = await api.post(`/api/videos/${id}/memories`, {
-                      contenu: memoryText.trim(), video_id: id, videoId: id, video: id
-                    });
-                    if (fb.data?.success) serverMemory = fb.data.data;
-                  }
-
-                  if (!serverMemory) {
-                    throw new Error('Error adding memory');
-                  }
-
-                  const newMemoryData = {
-                    ...serverMemory,
-                    video: { _id: id, titre: video?.titre, artiste: video?.artiste, annee: video?.annee },
-                    videoId: id
-                  };
-                  const newMemory = formatMemories([newMemoryData])[0];
-                  setMemories(prev => [newMemory, ...prev]);
-
-                  const updatedAll = [newMemoryData, ...allMemories];
-                  setAllMemories(updatedAll);
-                  try {
-                    localStorage.setItem('allMemories', JSON.stringify(updatedAll));
-                    localStorage.setItem('memoriesUpdated', Date.now().toString());
-                  } catch {}
-                  setMemoryText('');
-                  setShareMessage('Memory added successfully!');
-                  setTimeout(() => setShareMessage(''), 3000);
-                } catch (err) {
-                  if (err.response?.status === 401) alert('Please log in to share a memory');
-                  else alert('Error adding memory. Please try again.');
-                } finally {
-                  setIsAddingMemory(false);
-                }
-              }}
+              onClick={handleAddMemory}
               disabled={isAddingMemory}
             >
               <FontAwesomeIcon icon={isAddingMemory ? faSpinner : faComment} spin={isAddingMemory} />
@@ -832,6 +834,7 @@ const VideoDetail = () => {
           <div className={styles.memoriesHeader}>
             <h3>Memories {!showAllMemories && 'for this video'}</h3>
             <div className={styles.memoriesControls}>
+              {/* Refresh removed */}
               <button
                 className={styles.filterToggleButton}
                 onClick={() => setShowAllMemories(!showAllMemories)}
@@ -857,6 +860,7 @@ const VideoDetail = () => {
                 onLike={handleLikeMemory}
                 onAddReply={handleAddReply}
                 onDeleteMemory={handleDeleteMemory}
+                onRequestDelete={handleDeleteMemory}
                 onToggleReplies={handleToggleReplies}
                 currentVideoId={id}
                 replies={memory.replies || []}
@@ -872,6 +876,7 @@ const VideoDetail = () => {
                   View all memories
                 </button>
               )}
+              {/* Refresh removed */}
             </div>
           )}
         </aside>

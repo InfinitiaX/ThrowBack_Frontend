@@ -81,12 +81,16 @@ const MemoryCard = ({
             className={styles.memoryUserImage}
             onError={(e) => { e.target.src = '/images/default-avatar.jpg'; }}
           />
-          <div className={styles.memoryHeaderMeta}>
-            <span className={styles.memoryUsername}>
-              {memory.username || (memory.auteur && `${memory.auteur.prenom || ''} ${memory.auteur.nom || ''}`.trim()) || 'User'}
-            </span>
-            <span className={styles.memoryType}>{getMemoryTypeText()}</span>
-          </div>
+        {/* Header Mempry */}
+        <div className={styles.memoryHeaderMeta}>
+        <span className={styles.memoryUsername}>
+          {memory.username || (memory.auteur && `${memory.auteur.prenom || ''} ${memory.auteur.nom || ''}`.trim()) || 'User'}
+        </span>
+        <span className={styles.memoryType}>
+          {getMemoryTypeText()}
+        </span>
+      </div>
+
         </div>
 
         {/* Delete button if author */}

@@ -974,3 +974,14 @@
   color: #F59E0B;
   font-size: 12px;
 }
+
+.memoryHeaderMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px; /* espace entre username et le texte */
+}
+
+.memoryUsername {
+  margin-right: 4px; /* assure un petit espace */
+}

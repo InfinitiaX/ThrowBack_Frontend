@@ -1,17 +1,21 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './ThrowbackVideos.module.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
+import { 
+  faHeart, 
+  faComment,
   faSpinner,
-  faExclamationTriangle
+  faExclamationTriangle,
+  faEye
 } from '@fortawesome/free-solid-svg-icons';
-
+import likeIcon from '../../../../assets/icons/like.png';
+import commentIcon from '../../../../assets/icons/comment.png';
 import MemoryCard from './MemoryCard';
 import VideoCard from './VideoCard';
 import VideoFilters from './VideoFilters';
 
-// Données de secours (inchangées)
+// Definition of mock data for fallback
 const mockMemories = [
   {
     id: 'mock1',
@@ -74,67 +78,87 @@ const mockVideos = [
 
 const ThrowbackVideos = () => {
   const [videos, setVideos] = useState([]);
-  const [activeFilters, setActiveFilters] = useState({
-    genre: 'all',
-    decade: 'all',
-    sortBy: 'Newest'
-  });
-
-  // rendu paginé façon YouTube (12 par 12)
-  const [visibleCount, setVisibleCount] = useState(12);
-  const sentinelRef = useRef(null);
-
-  // côté droite
+  const [filteredVideos, setFilteredVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [memories, setMemories] = useState([]);
   const [memoriesLoading, setMemoriesLoading] = useState(true);
   const [memoriesError, setMemoriesError] = useState(null);
+  const [activeFilters, setActiveFilters] = useState({
+    genre: 'all',        // All genres by default
+    decade: 'all',       // All decades by default
+    sortBy: 'Newest'
+  });
+  
+  // Build base URL based on environment
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
-  // état chargement/erreur des vidéos
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const baseUrl =
-    process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
-
-  // ---- fetch ----
   useEffect(() => {
+    // Retrieve only "music" type videos
     fetchMusicVideos();
+    
+    // Retrieve recent memories
     fetchRecentMemories();
   }, []);
+  
+  useEffect(() => {
+    // Apply filters to videos
+    applyFilters();
+  }, [activeFilters, videos]);
 
   const fetchMusicVideos = async () => {
     try {
       setLoading(true);
+      console.log('Loading music videos...');
+      
       try {
-        const r = await fetch(`${baseUrl}/api/public/videos?type=music`);
-        if (r.ok) {
-          const j = await r.json();
-          const arr = j.data || j.videos || [];
-          if (arr.length) {
-            setVideos(arr);
+        // Explicitly specify "music" type
+        const response = await fetch(`${baseUrl}/api/public/videos?type=music`);
+        
+        if (response.ok) {
+          const result = await response.json();
+          const videosData = result.data || result.videos || [];
+          
+          console.log('Music videos retrieved:', videosData);
+          
+          if (videosData.length > 0) {
+            setVideos(videosData);
+            setFilteredVideos(videosData);
             setError(null);
             return;
           }
         }
-        throw new Error('public route failed');
-      } catch {
-        const fb = await fetch(`${baseUrl}/api/videos?type=music`);
-        if (fb.ok) {
-          const j = await fb.json();
-          const arr = j.data || j.videos || [];
-          if (arr.length) {
-            setVideos(arr);
+        
+        throw new Error('Failed with public route');
+      } catch (primaryError) {
+        console.warn('Public route failed, trying standard route:', primaryError);
+        
+        // Fallback: try old route
+        const fallbackResponse = await fetch(`${baseUrl}/api/videos?type=music`);
+        
+        if (fallbackResponse.ok) {
+          const result = await fallbackResponse.json();
+          const videosData = result.data || result.videos || [];
+          
+          if (videosData.length > 0) {
+            setVideos(videosData);
+            setFilteredVideos(videosData);
             setError(null);
             return;
           }
         }
-        // fallback mock
+        
+        // If both routes fail, use mock data
+        console.warn('No route works, using mock data');
         setVideos(mockVideos);
+        setFilteredVideos(mockVideos);
         setError('Temporary data displayed - Unable to connect to server');
       }
-    } catch (e) {
+    } catch (err) {
+      console.error('Exception while loading videos:', err);
       setVideos(mockVideos);
-      setError(`Temporary data displayed - ${e.message}`);
+      setFilteredVideos(mockVideos);
+      setError(`Temporary data displayed - ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -143,105 +167,107 @@ const ThrowbackVideos = () => {
   const fetchRecentMemories = async () => {
     try {
       setMemoriesLoading(true);
+      console.log('Loading recent memories...');
+      
       try {
-        const r = await fetch(`${baseUrl}/api/public/memories/recent`);
-        if (r.ok) {
-          const j = await r.json();
-          if (j.success && j.data) {
-            setMemories(formatMemories(j.data));
+        // Try with the new API route
+        const response = await fetch(`${baseUrl}/api/public/memories/recent`);
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            console.log('Memories retrieved successfully:', result.data);
+            const formattedMemories = formatMemories(result.data);
+            setMemories(formattedMemories);
             setMemoriesError(null);
             return;
           }
         }
-        throw new Error('main route failed');
-      } catch {
-        const fb = await fetch(`${baseUrl}/api/memories/recent`);
-        if (fb.ok) {
-          const j = await fb.json();
-          if (j.success && j.data) {
-            setMemories(formatMemories(j.data));
+        
+        throw new Error('Failed with main route');
+      } catch (primaryError) {
+        console.warn('Main route failed, trying backup route:', primaryError);
+        
+        // Fallback: try old route
+        const fallbackResponse = await fetch(`${baseUrl}/api/memories/recent`);
+        
+        if (fallbackResponse.ok) {
+          const result = await fallbackResponse.json();
+          if (result.success && result.data) {
+            console.log('Memories retrieved with backup route:', result.data);
+            const formattedMemories = formatMemories(result.data);
+            setMemories(formattedMemories);
             setMemoriesError(null);
             return;
           }
         }
+        
+        // If both routes fail, use mock data
+        console.warn('No route works, using mock data');
         setMemories(mockMemories);
-        setMemoriesError('Unable to load memories, displaying static data');
+        setMemoriesError("Unable to load memories, displaying static data");
       }
-    } catch {
+    } catch (err) {
+      console.error('Error loading memories:', err);
       setMemories(mockMemories);
-      setMemoriesError('Error loading memories, displaying static data');
+      setMemoriesError("Error loading memories, displaying static data");
     } finally {
       setMemoriesLoading(false);
     }
   };
-
-  const formatMemories = (arr) => {
-    if (!Array.isArray(arr) || !arr.length) return mockMemories;
-    return arr.map((m) => ({
-      id: m._id || m.id || `memory-${Math.random()}`,
-      username: m.auteur
-        ? `${m.auteur.prenom || ''} ${m.auteur.nom || ''}`.trim() || 'User'
-        : 'User',
-      type: m.type || 'posted',
-      videoTitle: m.video?.titre || m.videoTitle || 'Untitled video',
-      videoArtist: m.video?.artiste || m.videoArtist || 'Unknown artist',
-      videoYear: m.video?.annee || m.videoYear || '----',
-      imageUrl: getImageUrl(m.auteur?.photo_profil || m.imageUrl),
-      content: m.contenu || m.content || 'No content',
-      likes: m.likes || 0,
-      comments: m.nb_commentaires || m.comments || 0
+  
+  // Format memory data for display
+  const formatMemories = (memoriesData) => {
+    if (!Array.isArray(memoriesData) || memoriesData.length === 0) {
+      return mockMemories;
+    }
+    
+    return memoriesData.map(memory => ({
+      id: memory._id || memory.id || `memory-${Math.random()}`,
+      username: memory.auteur ? 
+        `${memory.auteur.prenom || ''} ${memory.auteur.nom || ''}`.trim() || 'User' : 
+        'User',
+      type: memory.type || 'posted',
+      videoTitle: memory.video?.titre || memory.videoTitle || 'Untitled video',
+      videoArtist: memory.video?.artiste || memory.videoArtist || 'Unknown artist',
+      videoYear: memory.video?.annee || memory.videoYear || '----',
+      imageUrl: getImageUrl(memory.auteur?.photo_profil || memory.imageUrl),
+      content: memory.contenu || memory.content || 'No content',
+      likes: memory.likes || 0,
+      comments: memory.nb_commentaires || memory.comments || 0
     }));
   };
-
-  const getImageUrl = (path) => {
-    if (!path) return '/images/default-avatar.jpg';
-    if (path.startsWith('http')) return path;
-    const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-    const cleanPath = path.startsWith('/') ? path : `/${path}`;
-    return `${cleanBase}${cleanPath}`;
-  };
-
-  // ---- Filtres robustes ----
-  const filteredVideos = useMemo(() => {
-    if (!videos.length) return [];
-
+  
+  // Apply filters to videos
+  const applyFilters = () => {
+    if (!videos.length) return;
+    
     let result = [...videos];
-
-    // décennie
+    
+    // Filter by decade
     if (activeFilters.decade !== 'all') {
-      const map = {
-        '60s': 1960,
-        '70s': 1970,
-        '80s': 1980,
-        '90s': 1990,
-        '2000s': 2000,
-        '2010s': 2010,
-        '2020s': 2020
-      };
-      const decadeStart = map[activeFilters.decade] ?? 0;
+      const decade = activeFilters.decade.replace('s', ''); // Convert "80s" to "80"
+      const decadeStart = parseInt(decade);
       const decadeEnd = decadeStart + 9;
-      result = result.filter((v) => {
-        const y = parseInt(v.annee);
-        return !isNaN(y) && y >= decadeStart && y <= decadeEnd;
+      
+      result = result.filter(video => {
+        const year = parseInt(video.annee);
+        return !isNaN(year) && year >= decadeStart && year <= decadeEnd;
       });
     }
-
-    // genre tolérant (casse/espaces, tableau ou string)
+    
+    // Filter by genre
     if (activeFilters.genre !== 'all') {
-      const wanted = activeFilters.genre.toLowerCase().trim();
-      result = result.filter((v) => {
-        const one = (v.genre || '').toLowerCase().trim();
-        const many = (v.genres || []).map((g) => (g || '').toLowerCase().trim());
-        return one === wanted || many.includes(wanted);
+      result = result.filter(video => {
+        return video.genre === activeFilters.genre || 
+               video.genres?.includes(activeFilters.genre);
       });
     }
-
-    // tri
-    switch (activeFilters.sortBy) {
+    
+    // Sort
+    switch(activeFilters.sortBy) {
       case 'Newest':
-        result.sort(
-          (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
-        );
+        result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
         break;
       case 'Most popular':
         result.sort((a, b) => (b.vues || 0) - (a.vues || 0));
@@ -252,97 +278,107 @@ const ThrowbackVideos = () => {
       default:
         break;
     }
-
-    return result;
-  }, [videos, activeFilters]);
-
-  // reset pagination quand les filtres changent
-  useEffect(() => {
-    setVisibleCount(12);
-  }, [filteredVideos]);
-
-  // IntersectionObserver pour charger +12 quand on arrive en bas
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (entry.isIntersecting) {
-          setVisibleCount((c) => Math.min(c + 12, filteredVideos.length));
-        }
-      },
-      { rootMargin: '600px 0px' }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [filteredVideos.length]);
+    
+    setFilteredVideos(result);
+  };
+  
+  // Function to build complete URLs for images
+  const getImageUrl = (path) => {
+    if (!path) return '/images/default-avatar.jpg';
+    
+    // If it's already an absolute URL
+    if (path.startsWith('http')) return path;
+    
+    // Otherwise, build the complete URL
+    return `${baseUrl}${path}`;
+  };
+  
+  // Filter change handler
+  const handleFilterChange = (newFilters) => {
+    console.log('New filters applied:', newFilters);
+    setActiveFilters(newFilters);
+  };
 
   return (
     <div className={styles.throwbackVideosBg}>
       <div className={styles.mainContentWrap}>
-        {/* Colonne principale */}
         <main className={styles.mainContent}>
-          <h1 className={styles.title}>Today's Pick</h1>
-
-          <VideoFilters
+          <h2 className={styles.sectionTitle}>Today's Pick</h2>
+          
+          {/* VideoFilters component with dropdowns specific to music */}
+          <VideoFilters 
+            onFilterChange={handleFilterChange}
             activeFilters={activeFilters}
-            onFilterChange={setActiveFilters}
             videoCount={filteredVideos.length}
           />
-
+          
           {loading ? (
             <div className={styles.loadingContainer}>
               <FontAwesomeIcon icon={faSpinner} spin className={styles.spinnerIcon} />
-              <p>Loading videos…</p>
+              <p>Loading videos...</p>
             </div>
           ) : error ? (
             <div className={styles.errorContainer}>
-              <div className={styles.errorIcon}>
-                <FontAwesomeIcon icon={faExclamationTriangle} />
-              </div>
+              <FontAwesomeIcon icon={faExclamationTriangle} className={styles.errorIcon} />
               <p>{error}</p>
             </div>
           ) : (
-            <>
-              <div className={styles.videosGrid}>
-                {filteredVideos.length ? (
-                  filteredVideos.slice(0, visibleCount).map((video) => (
-                    <VideoCard key={video._id} video={video} baseUrl={baseUrl} />
-                  ))
-                ) : (
-                  <div className={styles.noVideosMessage}>
-                    <p>No videos match your search criteria.</p>
-                  </div>
-                )}
-              </div>
-
-              {/* sentinelle pour le scroll infini */}
-              {visibleCount < filteredVideos.length && (
-                <div ref={sentinelRef} style={{ height: 1 }} />
+            <div className={styles.videosGrid}>
+              {filteredVideos && filteredVideos.length > 0 ? (
+                filteredVideos.map((video) => (
+                  <VideoCard 
+                    key={video._id || `video-${Math.random()}`} 
+                    video={video} 
+                    baseUrl={baseUrl}
+                  />
+                ))
+              ) : (
+                <div className={styles.noVideosMessage}>
+                  <p>No videos match your search criteria.</p>
+                </div>
               )}
-            </>
+            </div>
           )}
         </main>
-
-        {/* Colonne commentaires (même hauteur/scroll alignés) */}
+        
         <aside className={styles.rightCards}>
-          {memoriesLoading ? (
-            <div className={styles.loadingContainer}>
-              <FontAwesomeIcon icon={faSpinner} spin className={styles.spinnerIcon} />
-              <p>Loading recent memories…</p>
+          <div className={styles.verticalTicker}>
+            <div className={styles.tickerContent}>
+              {memoriesLoading ? (
+                <div className={styles.loadingContainer}>
+                  <FontAwesomeIcon icon={faSpinner} spin className={styles.spinnerIcon} />
+                  <p>Loading memories...</p>
+                </div>
+              ) : memoriesError ? (
+                <div className={styles.errorContainer}>
+                  <FontAwesomeIcon icon={faExclamationTriangle} className={styles.errorIcon} />
+                  <p>{memoriesError}</p>
+                </div>
+              ) : (
+                <>
+                  {memories.map((memory) => (
+                    <MemoryCard 
+                      key={memory.id || `memory-${Math.random()}`} 
+                      memory={memory}
+                      likeIcon={likeIcon}
+                      commentIcon={commentIcon}
+                      baseUrl={baseUrl}
+                    />
+                  ))}
+                  {/* Duplication for infinite effect */}
+                  {memories.slice(0, 2).map((memory) => (
+                    <MemoryCard 
+                      key={`duplicate-${memory.id || Math.random()}`} 
+                      memory={memory}
+                      likeIcon={likeIcon}
+                      commentIcon={commentIcon}
+                      baseUrl={baseUrl}
+                    />
+                  ))}
+                </>
+              )}
             </div>
-          ) : (
-            <div className={styles.verticalTicker}>
-              <div className={styles.tickerContent}>
-                {(memories || []).map((m) => (
-                  <div key={m.id} className={styles.memoryCard}>
-                    <MemoryCard memory={m} baseUrl={baseUrl} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          </div>
         </aside>
       </div>
     </div>

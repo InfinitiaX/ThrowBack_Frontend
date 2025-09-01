@@ -2,19 +2,25 @@ import React from 'react';
 import styles from './VideoFilters.module.css';
 
 const VideoFilters = ({ onFilterChange, activeFilters, videoCount = 0 }) => {
+  // Available music genres specific to music
   const genres = [
-    'All genres', 'Pop', 'Rock', 'Hip-Hop', 'Rap', 'R&B', 'Soul', 'Jazz', 'Blues', 'Electronic',
-    'Dance', 'House', 'Techno', 'Country', 'Folk', 'Classical', 'Opera', 'Reggae', 'Latin',
-    'World', 'Afro', 'Alternative', 'Indie', 'Metal', 'Punk', 'Gospel', 'Funk', 'Disco',
+    'All genres', 'Pop', 'Rock', 'Hip-Hop', 'Rap', 'R&B', 'Soul', 'Jazz', 'Blues', 'Electronic', 
+    'Dance', 'House', 'Techno', 'Country', 'Folk', 'Classical', 'Opera', 'Reggae', 'Latin', 
+    'World', 'Afro', 'Alternative', 'Indie', 'Metal', 'Punk', 'Gospel', 'Funk', 'Disco', 
     'Ska', 'Salsa', 'Bachata', 'Merengue', 'Tango'
   ];
+  
+  // Available decades
   const decades = ['All decades', '60s', '70s', '80s', '90s', '2000s', '2010s', '2020s'];
+  
+  // Sort options for music videos
   const sortOptions = ['Newest', 'Most popular', 'Most liked'];
-
+  
+  // Change handler for selects
   const handleSelectChange = (e, filterType) => {
     const value = e.target.value;
-    const newFilters = { ...activeFilters }; // (fix de la propagation)
-
+    const newFilters = { ...activeFilters };
+    
     if (filterType === 'genre') {
       newFilters.genre = value === 'All genres' ? 'all' : value;
     } else if (filterType === 'decade') {
@@ -22,10 +28,11 @@ const VideoFilters = ({ onFilterChange, activeFilters, videoCount = 0 }) => {
     } else if (filterType === 'sortBy') {
       newFilters.sortBy = value;
     }
-
+    
     onFilterChange(newFilters);
   };
-
+  
+  // Function to get the current value of the select
   const getCurrentValue = (filterType) => {
     if (filterType === 'genre') {
       return activeFilters.genre === 'all' ? 'All genres' : activeFilters.genre;
@@ -36,7 +43,7 @@ const VideoFilters = ({ onFilterChange, activeFilters, videoCount = 0 }) => {
     }
     return '';
   };
-
+  
   return (
     <div className={styles.filtersContainer}>
       <div className={styles.filtersContent}>
@@ -50,12 +57,14 @@ const VideoFilters = ({ onFilterChange, activeFilters, videoCount = 0 }) => {
               onChange={(e) => handleSelectChange(e, 'genre')}
             >
               {genres.map((genre) => (
-                <option key={`genre-${genre}`} value={genre}>{genre}</option>
+                <option key={`genre-${genre}`} value={genre}>
+                  {genre}
+                </option>
               ))}
             </select>
           </div>
         </div>
-
+        
         <div className={styles.filterGroup}>
           <label htmlFor="decade-select" className={styles.filterLabel}>Decade:</label>
           <div className={styles.selectWrapper}>
@@ -65,13 +74,15 @@ const VideoFilters = ({ onFilterChange, activeFilters, videoCount = 0 }) => {
               value={getCurrentValue('decade')}
               onChange={(e) => handleSelectChange(e, 'decade')}
             >
-              {decades.map((d) => (
-                <option key={`decade-${d}`} value={d}>{d}</option>
+              {decades.map((decade) => (
+                <option key={`decade-${decade}`} value={decade}>
+                  {decade}
+                </option>
               ))}
             </select>
           </div>
         </div>
-
+        
         <div className={styles.filterGroup}>
           <label htmlFor="sort-select" className={styles.filterLabel}>Sort by:</label>
           <div className={styles.selectWrapper}>
@@ -81,13 +92,15 @@ const VideoFilters = ({ onFilterChange, activeFilters, videoCount = 0 }) => {
               value={getCurrentValue('sortBy')}
               onChange={(e) => handleSelectChange(e, 'sortBy')}
             >
-              {sortOptions.map((o) => (
-                <option key={`sort-${o}`} value={o}>{o}</option>
+              {sortOptions.map((option) => (
+                <option key={`sort-${option}`} value={option}>
+                  {option}
+                </option>
               ))}
             </select>
           </div>
         </div>
-
+        
         <div className={styles.videoCount}>
           <span>{videoCount} videos found</span>
         </div>

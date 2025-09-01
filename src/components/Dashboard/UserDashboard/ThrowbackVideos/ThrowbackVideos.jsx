@@ -235,7 +235,7 @@ const ThrowbackVideos = () => {
               </div>
             </div>
           )}
-          {memoriesError && <small style={{ color: '#b31217' }}>{memoriesError}</small>}
+          {/* {memoriesError && <small style={{ color: '#b31217' }}>{memoriesError}</small>} */}
         </aside>
       </div>
     </div>

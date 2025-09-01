@@ -361,7 +361,7 @@ const UserPlaylistDetail = () => {
             }}
           />
 
-          {/* <div className={styles.controls}>
+          <div className={styles.controls}>
             <button onClick={onPrev} className={styles.ctrlBtn}><FontAwesomeIcon icon={faStepBackward}/></button>
             <button onClick={onNext} className={styles.ctrlBtn}><FontAwesomeIcon icon={faStepForward}/></button>
             <button onClick={()=>setShuffle(s=>!s)} className={`${styles.ctrlBtn} ${shuffle?styles.active:''}`} title="Shuffle"><FontAwesomeIcon icon={faRandom}/></button>
@@ -369,7 +369,7 @@ const UserPlaylistDetail = () => {
             <button onClick={()=>setIsMuted(m=>!m)} className={styles.ctrlBtn} title="Mute (autoplay)">
               <FontAwesomeIcon icon={isMuted?faVolumeMute:faVolumeUp}/>
             </button>
-          </div> */}
+          </div>
 
           {now && (
             <div className={styles.nowPlaying}>

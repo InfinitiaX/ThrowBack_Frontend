@@ -227,15 +227,15 @@ const ThrowbackVideos = () => {
           ) : (
             <div className={styles.verticalTicker}>
               <div className={styles.tickerContent}>
-                {(memories || []).map((m) => (
-                  <div key={m.id} className={styles.memoryCard}>
-                    <MemoryCard memory={m} baseUrl={baseUrl} />
+                 {(memories || []).map((m) => (
+                  <div key={m.id} className={styles.memoryItem}>
+                  <MemoryCard memory={m} baseUrl={baseUrl} />
                   </div>
-                ))}
+                    ))}
               </div>
             </div>
           )}
-          {/* {memoriesError && <small style={{ color: '#b31217' }}>{memoriesError}</small>} */}
+          {memoriesError && <small style={{ color: '#b31217' }}>{memoriesError}</small>}
         </aside>
       </div>
     </div>

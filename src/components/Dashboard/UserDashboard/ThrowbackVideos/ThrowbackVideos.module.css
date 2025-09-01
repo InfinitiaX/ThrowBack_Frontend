@@ -157,6 +157,17 @@
   gap: 10px;
 }
 
+
+.memoryItem {
+  /* layout only */
+  padding: 0;
+  margin: 0;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+
 .memoryHeader {
   font-size: 1rem;
   color: #222;

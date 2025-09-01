@@ -13,6 +13,7 @@
   max-width: 1800px;
   margin: 0 auto;
   min-height: 80vh;
+  align-items: flex-start; /* Ajout pour aligner le contenu principal et la barre latérale */
 }
 
 .mainContent {
@@ -107,12 +108,30 @@
 
 .rightCards {
   width: 320px;
-  padding: 32px 18px 0 0;
+  padding: 48px 18px 0 0; /* Aligné avec le mainContent */
   display: flex;
   flex-direction: column;
   gap: 24px;
   max-height: 80vh;
   overflow-y: auto;
+  position: sticky; /* Pour que la barre reste visible lors du défilement */
+  top: 20px; /* Distance du haut de la page */
+  scrollbar-width: thin;
+  scrollbar-color: #b31217 #f0f0f0;
+}
+
+.rightCards::-webkit-scrollbar {
+  width: 6px;
+}
+
+.rightCards::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 10px;
+}
+
+.rightCards::-webkit-scrollbar-thumb {
+  background-color: #b31217;
+  border-radius: 10px;
 }
 
 .verticalTicker {
@@ -207,6 +226,17 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.07);
 }
 
+/* Nouveau style pour le loader de défilement infini */
+.loadingMore {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 20px;
+  height: 80px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 @keyframes ticker {
   0% {
     transform: translateY(0);
@@ -230,6 +260,7 @@
     padding: 24px 32px;
     gap: 20px;
     max-height: none;
+    position: static; /* Désactiver sticky en mode responsive */
   }
   
   .verticalTicker {
@@ -265,5 +296,3 @@
     grid-template-columns: 1fr;
   }
 }
-
-

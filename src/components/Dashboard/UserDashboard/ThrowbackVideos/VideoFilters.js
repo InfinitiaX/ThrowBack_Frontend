@@ -9,31 +9,30 @@ const VideoFilters = ({ onFilterChange, activeFilters, videoCount = 0 }) => {
     'Ska', 'Salsa', 'Bachata', 'Merengue', 'Tango'
   ];
   const decades = ['All decades', '60s', '70s', '80s', '90s', '2000s', '2010s', '2020s'];
-  const sortOptions = ['Newest', 'Most popular', 'Most liked'];
 
+  // Tri réduit : "All" (ordre récent) et "Most popular"
+  const sortOptions = ['All', 'Most popular'];
+
+  // Normalisation des valeurs envoyées au parent (et au backend)
   const handleSelectChange = (e, filterType) => {
     const value = e.target.value;
-    const newFilters = { ...activeFilters }; // <— FIX propagation
+    const next = { ...activeFilters };
 
     if (filterType === 'genre') {
-      newFilters.genre = value === 'All genres' ? 'all' : value;
+      next.genre = value === 'All genres' ? 'all' : value;
     } else if (filterType === 'decade') {
-      newFilters.decade = value === 'All decades' ? 'all' : value;
+      next.decade = value === 'All decades' ? 'all' : value;
     } else if (filterType === 'sortBy') {
-      newFilters.sortBy = value;
+      // "All" = ordre récent par défaut
+      next.sortBy = value;
     }
-
-    onFilterChange(newFilters);
+    onFilterChange(next);
   };
 
-  const getCurrentValue = (filterType) => {
-    if (filterType === 'genre') {
-      return activeFilters.genre === 'all' ? 'All genres' : activeFilters.genre;
-    } else if (filterType === 'decade') {
-      return activeFilters.decade === 'all' ? 'All decades' : activeFilters.decade;
-    } else if (filterType === 'sortBy') {
-      return activeFilters.sortBy;
-    }
+  const currentValue = (filterType) => {
+    if (filterType === 'genre') return activeFilters.genre === 'all' ? 'All genres' : activeFilters.genre;
+    if (filterType === 'decade') return activeFilters.decade === 'all' ? 'All decades' : activeFilters.decade;
+    if (filterType === 'sortBy') return activeFilters.sortBy || 'All';
     return '';
   };
 
@@ -46,12 +45,10 @@ const VideoFilters = ({ onFilterChange, activeFilters, videoCount = 0 }) => {
             <select
               id="genre-select"
               className={styles.filterSelect}
-              value={getCurrentValue('genre')}
+              value={currentValue('genre')}
               onChange={(e) => handleSelectChange(e, 'genre')}
             >
-              {genres.map((g) => (
-                <option key={`genre-${g}`} value={g}>{g}</option>
-              ))}
+              {genres.map((g) => <option key={`genre-${g}`} value={g}>{g}</option>)}
             </select>
           </div>
         </div>
@@ -62,12 +59,10 @@ const VideoFilters = ({ onFilterChange, activeFilters, videoCount = 0 }) => {
             <select
               id="decade-select"
               className={styles.filterSelect}
-              value={getCurrentValue('decade')}
+              value={currentValue('decade')}
               onChange={(e) => handleSelectChange(e, 'decade')}
             >
-              {decades.map((d) => (
-                <option key={`decade-${d}`} value={d}>{d}</option>
-              ))}
+              {decades.map((d) => <option key={`decade-${d}`} value={d}>{d}</option>)}
             </select>
           </div>
         </div>
@@ -78,12 +73,10 @@ const VideoFilters = ({ onFilterChange, activeFilters, videoCount = 0 }) => {
             <select
               id="sort-select"
               className={styles.filterSelect}
-              value={getCurrentValue('sortBy')}
+              value={currentValue('sortBy')}
               onChange={(e) => handleSelectChange(e, 'sortBy')}
             >
-              {sortOptions.map((o) => (
-                <option key={`sort-${o}`} value={o}>{o}</option>
-              ))}
+              {sortOptions.map((o) => <option key={`sort-${o}`} value={o}>{o}</option>)}
             </select>
           </div>
         </div>

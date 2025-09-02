@@ -53,9 +53,9 @@ const ThrowbackVideos = () => {
 
   // filtres du module
   const [activeFilters, setActiveFilters] = useState({
-    genre: 'all',
-    decade: 'all',
-    sortBy: 'Newest'
+   genre: 'all',
+   decade: 'all',
+   sortBy: 'All' // "All" = récent
   });
 
   // base URL backend
@@ -83,10 +83,10 @@ const ThrowbackVideos = () => {
       setError(null);
 
       // mapping tri front -> backend
+      // Seules valeurs UI: "All" (recent) et "Most popular"
       const sortMap = {
-        'Newest': 'recent',
-        'Most popular': 'popular',
-        'Most liked': 'mostLiked'
+        'All': 'recent',
+        'Most popular': 'popular'
       };
 
       const params = new URLSearchParams({

@@ -343,7 +343,7 @@ const LiveThrowback = () => {
                 />
                 <input
                   type="text"
-                  placeholder="Share a comment..."
+                  placeholder="Share a chat..."
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   className={styles.commentInput}

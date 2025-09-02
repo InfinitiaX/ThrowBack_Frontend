@@ -27,6 +27,30 @@
 	object-fit: cover;
   }
   
+
+  /* Positionne le bouton œil sur le champ password */
+.password_wrapper {
+  position: relative;
+}
+
+.eye_btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 0;
+}
+
+.eye_btn:focus {
+  outline: 2px solid #e5e7eb; 
+  border-radius: 6px;
+}
+
+
   .logo_container {
 	margin-bottom: 50px;
 	display: flex;

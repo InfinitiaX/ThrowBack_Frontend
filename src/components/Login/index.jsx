@@ -9,8 +9,17 @@ import Captcha from '../Common/Captcha';
 const LS_KEYS = {
   remember: 'tb_remember',
   email: 'tb_email',
+  password: 'tb_password', // NEW: mot de passe (obfusqué)
   token: 'tb_auth_token',
   user: 'tb_auth_user',
+};
+
+// Helpers d'obfuscation légère (⚠️ pas une vraie crypto)
+const encode = (str) => {
+  try { return btoa(unescape(encodeURIComponent(str))); } catch { return ''; }
+};
+const decode = (str) => {
+  try { return decodeURIComponent(escape(atob(str))); } catch { return ''; }
 };
 
 const Login = () => {
@@ -19,6 +28,7 @@ const Login = () => {
     password: '',
     remember: false
   });
+  const [showPassword, setShowPassword] = useState(false); // NEW: œil
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -32,13 +42,20 @@ const Login = () => {
   const location = useLocation();
   const { login, user, isAuthenticated } = useAuth();
 
-  // 1) Charger le remember/email au tout premier rendu
+  // Charger remember/email/password au premier rendu
   useEffect(() => {
     const savedRemember = localStorage.getItem(LS_KEYS.remember) === '1';
     const savedEmail = localStorage.getItem(LS_KEYS.email) || '';
+    const savedPwdEnc = localStorage.getItem(LS_KEYS.password) || '';
+    const savedPassword = savedPwdEnc ? decode(savedPwdEnc) : '';
+
     if (savedRemember) {
-      setFormData(prev => ({ ...prev, email: savedEmail, remember: true }));
-      // Met à jour les tentatives liées à cet email si existantes
+      setFormData(prev => ({
+        ...prev,
+        email: savedEmail,
+        password: savedPassword,
+        remember: true
+      }));
       const savedAttempts = localStorage.getItem(`login_attempts_${savedEmail}`);
       if (savedAttempts) {
         const attempts = parseInt(savedAttempts, 10);
@@ -49,14 +66,12 @@ const Login = () => {
   }, []);
 
   useEffect(() => {
-    // Redirect si déjà connecté
     if (isAuthenticated && user) {
       const isAdmin = user.role === 'admin' || user.role === 'superadmin';
       navigate(isAdmin ? '/admin' : '/dashboard');
       return;
     }
 
-    // Messages via URL
     const params = new URLSearchParams(location.search);
     const success = params.get('verified');
     const errorParam = params.get('error');
@@ -78,7 +93,6 @@ const Login = () => {
       }
     }
 
-    // Récupérer le compteur pour l'email courant
     const savedAttempts = localStorage.getItem(`login_attempts_${formData.email}`);
     if (savedAttempts) {
       const attempts = parseInt(savedAttempts, 10);
@@ -87,14 +101,13 @@ const Login = () => {
     }
   }, [location, isAuthenticated, user, navigate, formData.email]);
 
-  // Gérer les changements du CAPTCHA
   const handleCaptchaChange = (id, answer) => {
     setCaptchaId(id);
     setCaptchaAnswer(answer);
     if (error.includes('CAPTCHA')) setError('');
   };
 
-  // 2) Gérer les changements de champs + storage remember/email
+  // Gérer les changements + persistance email/password si remember actif
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
@@ -106,16 +119,16 @@ const Login = () => {
     if (name === 'remember') {
       if (checked) {
         localStorage.setItem(LS_KEYS.remember, '1');
-        // Sauvegarder l’email courant si présent
         if (formData.email) localStorage.setItem(LS_KEYS.email, formData.email);
+        if (formData.password) localStorage.setItem(LS_KEYS.password, encode(formData.password));
       } else {
         localStorage.removeItem(LS_KEYS.remember);
         localStorage.removeItem(LS_KEYS.email);
+        localStorage.removeItem(LS_KEYS.password);
       }
     }
 
     if (name === 'email') {
-      // Mettre à jour les tentatives & captcha pour ce nouvel email
       const savedAttempts = localStorage.getItem(`login_attempts_${value}`);
       if (savedAttempts) {
         const attempts = parseInt(savedAttempts, 10);
@@ -125,10 +138,14 @@ const Login = () => {
         setAttemptCount(0);
         setShowCaptcha(false);
       }
-      // Si remember actif, on met aussi à jour l'email mémorisé
-      const remembered = localStorage.getItem(LS_KEYS.remember) === '1';
-      if (remembered) {
+      if (localStorage.getItem(LS_KEYS.remember) === '1') {
         localStorage.setItem(LS_KEYS.email, value);
+      }
+    }
+
+    if (name === 'password') {
+      if (localStorage.getItem(LS_KEYS.remember) === '1') {
+        localStorage.setItem(LS_KEYS.password, encode(value));
       }
     }
   };
@@ -154,12 +171,10 @@ const Login = () => {
     try {
       const response = await api.post('/api/auth/login', loginData);
       if (response.data.success) {
-        // reset tentatives
         localStorage.removeItem(`login_attempts_${formData.email}`);
         setAttemptCount(0);
         setShowCaptcha(false);
         
-        // Récup token/user selon payload
         let token, userObj;
         if (response.data.token && response.data.data) {
           token = response.data.token;
@@ -170,26 +185,24 @@ const Login = () => {
         }
 
         if (token && userObj) {
-          // 3) Persister selon remember
           if (formData.remember) {
             localStorage.setItem(LS_KEYS.token, token);
             localStorage.setItem(LS_KEYS.user, JSON.stringify(userObj));
             localStorage.setItem(LS_KEYS.remember, '1');
             if (formData.email) localStorage.setItem(LS_KEYS.email, formData.email);
+            if (formData.password) localStorage.setItem(LS_KEYS.password, encode(formData.password));
           } else {
             sessionStorage.setItem(LS_KEYS.token, token);
             sessionStorage.setItem(LS_KEYS.user, JSON.stringify(userObj));
-            // Ne pas garder le flag remember/email
             localStorage.removeItem(LS_KEYS.remember);
-            // On laisse tb_email si tu veux pré-remplir, sinon décommente la ligne suivante:
-            // localStorage.removeItem(LS_KEYS.email);
+            // Laisse ou supprime l’email/mot de passe mémorisés selon ta politique:
+            localStorage.removeItem(LS_KEYS.email);
+            localStorage.removeItem(LS_KEYS.password);
           }
 
-          // Optionnel : si ton AuthContext accepte une option remember
           try {
             login(token, userObj, { remember: formData.remember });
           } catch {
-            // fallback si signature différente
             login(token, userObj);
           }
 
@@ -238,7 +251,7 @@ const Login = () => {
   };
   
   return (
-   <div className={styles.auth_container}>
+    <div className={styles.auth_container}>
       <div className={styles.auth_left}>
         <div className={styles.logo_container}>
           <img src="/images/Logo.png" alt="ThrowBack Logo" className={styles.logo} />
@@ -247,22 +260,10 @@ const Login = () => {
         <h1 className={styles.auth_title}>Welcome back</h1>
         <p className={styles.auth_subtitle}>Sign in and let the music take you back in time!</p>
         
-        <form onSubmit={handleSubmit} className={styles.auth_form}>
-          {/* Success message should appear prominently at the top */}
-          {successMessage && (
-            <div className={styles.success_message}>
-              {successMessage}
-            </div>
-          )}
-          
-          {/* Error message */}
-          {error && (
-            <div className={styles.error_message}>
-              {error}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className={styles.auth_form} autoComplete="on">
+          {successMessage && <div className={styles.success_message}>{successMessage}</div>}
+          {error && <div className={styles.error_message}>{error}</div>}
 
-          {/* Show attempt counter */}
           {attemptCount > 0 && attemptCount < 3 && (
             <div className={styles.warning_message}>
               Failed attempts: {attemptCount}/3
@@ -282,23 +283,43 @@ const Login = () => {
               value={formData.email}
               onChange={handleChange}
               className={styles.form_input}
+              autoComplete="email"
               required
             />
           </div>
           
-          <div className={styles.form_group}>
+          {/* Password + œil */}
+          <div className={`${styles.form_group} ${styles.password_wrapper || ''}`}>
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               name="password"
               placeholder="Your password"
               value={formData.password}
               onChange={handleChange}
               className={styles.form_input}
+              autoComplete="current-password"
               required
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(p => !p)}
+              className={styles.eye_btn || ''}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              title={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {/* petit SVG œil/œil barré */}
+              {showPassword ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2 5.27 3.28 4l16.97 16.97-1.27 1.27-2.26-2.26A11.36 11.36 0 0 1 12 20C6 20 2 12 2 12a20.7 20.7 0 0 1 5.06-6.58L2 5.27zm7.73 7.73a2.27 2.27 0 0 0 3.27 3.27l-3.27-3.27zM12 6c6 0 10 8 10 8a20.7 20.7 0 0 1-3.3 4.46l-1.43-1.43A11.36 11.36 0 0 0 22 14s-4-8-10-8a11.36 11.36 0 0 0-4.46 1.73L6.1 6.29A13.48 13.48 0 0 1 12 6zm0 3a5 5 0 0 1 5 5c0 .7-.14 1.37-.38 1.98l-1.57-1.57c.06-.14.1-.29.1-.45a3.15 3.15 0 0 0-3.15-3.15c-.16 0-.31.04-.45.1L9.02 9.38A4.9 4.9 0 0 1 12 9z"/>
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 5c7 0 11 7 11 7s-4 7-11 7S1 12 1 12 5 5 12 5zm0 2C7.5 7 4.1 10.6 3.2 12c.9 1.4 4.3 5 8.8 5s7.9-3.6 8.8-5c-.9-1.4-4.3-5-8.8-5zm0 2.5A2.5 2.5 0 1 1 9.5 12 2.5 2.5 0 0 1 12 9.5z"/>
+                </svg>
+              )}
+            </button>
           </div>
 
-          {/* CAPTCHA conditionnel */}
           {showCaptcha && (
             <div className={styles.form_group}>
               <Captcha 
@@ -318,13 +339,11 @@ const Login = () => {
               />
               Remember me
             </label>
-            
             <div className={styles.forgot_password}>
               <Link to="/forgot-password">Forgot password?</Link>
             </div>
           </div>
 
-          {/* Reset attempts button */}
           {attemptCount > 0 && (
             <div className={styles.reset_attempts}>
               <button
@@ -345,10 +364,7 @@ const Login = () => {
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
           
-          <div className={styles.divider}>
-            <span>OR</span>
-          </div>
-          
+          <div className={styles.divider}><span>OR</span></div>
           <Link to="/register" className={`${styles.btn} ${styles.btn_outline} ${styles.btn_block}`}>
             Create account
           </Link>

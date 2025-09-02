@@ -11,20 +11,16 @@ import {
   faTrash
 } from '@fortawesome/free-solid-svg-icons';
 
-/**
- * MemoryCard
- * - Affiche un commentaire (memory) + ses replies
- * - Callbacks fournis par le parent (VideoDetail) pour toutes les actions
- */
 const MemoryCard = ({
   memory,
   baseUrl = '',
-  currentVideoId,
   onLike,
   onAddReply,
-  onLikeReply,
-  onDeleteReply,
-  onRequestDelete, // delete memory
+  onRequestDelete,   // parent opens the popup and performs delete
+  currentVideoId,
+  replies = [],
+  showReplies = false,
+  onToggleReplies
 }) => {
   const [replyText, setReplyText] = useState('');
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -55,19 +51,22 @@ const MemoryCard = ({
     return mem === cur;
   };
 
-  const handleLike = () => { onLike && memory.id && onLike(memory.id); };
+  const handleLike = () => { if (onLike && memory.id) onLike(memory.id); };
 
-  const handleSubmitReply = async (e) => {
+  const handleSubmitReply = (e) => {
     e.preventDefault();
-    const text = replyText.trim();
-    if (!text || isSubmitting) return;
+    if (!replyText.trim() || isSubmitting) return;
     setIsSubmitting(true);
-    try {
-      await onAddReply?.(memory.id, text);
-      setReplyText('');
-      setShowReplyForm(false);
-    } finally { setIsSubmitting(false); }
+    if (onAddReply) {
+      onAddReply(memory.id, replyText.trim())
+        .then(() => { setReplyText(''); setShowReplyForm(false); })
+        .finally(() => setIsSubmitting(false));
+    } else {
+      setIsSubmitting(false);
+    }
   };
+
+  const askDelete = () => { if (onRequestDelete) onRequestDelete(memory.id); };
 
   const cardStyle = isMatchingCurrentVideo() ? {} : { borderLeft: '3px solid #e74c3c' };
 
@@ -82,21 +81,24 @@ const MemoryCard = ({
             className={styles.memoryUserImage}
             onError={(e) => { e.target.src = '/images/default-avatar.jpg'; }}
           />
-          <div className={styles.memoryHeaderMeta}>
-            <span className={styles.memoryUsername}>
-              {memory.username ||
-                (memory.auteur && `${memory.auteur.prenom || ''} ${memory.auteur.nom || ''}`.trim()) ||
-                'User'}
-            </span>
-            <span className={styles.memoryType}>{getMemoryTypeText()}</span>
-          </div>
+        {/* Header Mempry */}
+        <div className={styles.memoryHeaderMeta}>
+        <span className={styles.memoryUsername}>
+          {memory.username || (memory.auteur && `${memory.auteur.prenom || ''} ${memory.auteur.nom || ''}`.trim()) || 'User'}
+        </span>
+        <span className={styles.memoryType}>
+          {getMemoryTypeText()}
+        </span>
+      </div>
+
         </div>
 
+        {/* Delete button if author */}
         {memory.userInteraction?.isAuthor && (
           <button
             className={styles.deleteButton}
-            onClick={() => onRequestDelete?.(memory.id)}
-            title="Delete this comment"
+            onClick={askDelete}
+            title="Delete this memory"
           >
             <FontAwesomeIcon icon={faTrash} />
           </button>
@@ -119,21 +121,30 @@ const MemoryCard = ({
         {memory.content && <div className={styles.memoryText}>{memory.content}</div>}
       </div>
 
-      {/* Footer actions */}
+      {/* Footer / Actions */}
       <div className={styles.memoryFooter}>
-        <div className={`${styles.memoryLikes} ${memory.userInteraction?.liked ? styles.liked : ''}`} onClick={handleLike}>
-          <FontAwesomeIcon icon={faHeart} />
+        <div
+          className={`${styles.memoryLikes} ${memory.userInteraction?.liked ? styles.liked : ''}`}
+          onClick={handleLike}
+          title={memory.userInteraction?.liked ? 'Unlike' : 'Like'}
+        >
+          <FontAwesomeIcon icon={faHeart} className={styles.memoryIcon} />
           <span>{memory.likes || 0}</span>
         </div>
-
-        <div className={styles.memoryComments} onClick={() => { if (!memory.showReplies && (memory.replies||[]).length === 0) { /* rien à charger ici (déjà fourni par parent) */ }}}>
-          <FontAwesomeIcon icon={faComment} />
-          <span>{Array.isArray(memory.replies) ? memory.replies.length : 0}</span>
+        <div
+          className={styles.memoryComments}
+          onClick={() => onToggleReplies && onToggleReplies(memory.id)}
+          title="Show replies"
+        >
+          <FontAwesomeIcon icon={faComment} className={styles.memoryIcon} />
+          <span>{memory.nb_commentaires || memory.comments || (replies?.length || 0)}</span>
         </div>
-
-        <div className={styles.memoryReply} onClick={() => setShowReplyForm((s) => !s)}>
-          <FontAwesomeIcon icon={faReply} />
-          <span>Reply</span>
+        <div
+          className={styles.memoryReply}
+          onClick={() => setShowReplyForm(!showReplyForm)}
+          title={showReplyForm ? 'Cancel' : 'Reply'}
+        >
+          <FontAwesomeIcon icon={faReply} className={styles.memoryIcon} />
         </div>
       </div>
 
@@ -142,49 +153,66 @@ const MemoryCard = ({
         <form className={styles.replyForm} onSubmit={handleSubmitReply}>
           <input
             type="text"
-            className={styles.replyInput}
-            placeholder="Reply..."
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
+            placeholder="Write a reply..."
+            className={styles.replyInput}
+            disabled={isSubmitting}
           />
-          <button className={styles.replySendBtn} disabled={isSubmitting} title="Send">
+          <button
+            type="submit"
+            className={styles.replyButton}
+            disabled={isSubmitting || !replyText.trim()}
+            title="Send"
+          >
             {isSubmitting ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPaperPlane} />}
           </button>
         </form>
       )}
 
       {/* Replies */}
-      {Array.isArray(memory.replies) && memory.replies.length > 0 && (
-        <div className={styles.repliesContainer}>
-          {memory.replies.map((r) => (
-            <div key={r.id} className={styles.replyItem}>
-              <div className={styles.replyHeader}>
-                <span className={styles.replyUser}>{r.username || 'User'}</span>
-                {r.userInteraction?.isAuthor && (
-                  <button
-                    className={styles.replyDeleteBtn}
-                    title="Delete reply"
-                    onClick={() => onDeleteReply?.(memory.id, r.id)}
-                  >
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
-                )}
+      {showReplies && replies.length > 0 && (
+        <div className={styles.repliesSection}>
+          {replies.map(reply => {
+            const replyId = reply.id || reply._id;
+            const deleteReply = () => onRequestDelete && onRequestDelete(replyId);
+            const likeReply = () => onLike && onLike(replyId);
+            return (
+              <div key={replyId} className={styles.replyCard}>
+                <img
+                  src={getImageUrl(reply.auteur?.photo_profil)}
+                  alt="User"
+                  className={styles.replyUserImage}
+                  onError={(e) => { e.target.src = '/images/default-avatar.jpg'; }}
+                />
+                <div className={styles.replyContent}>
+                  <div className={styles.replyUsername}>
+                    {reply.auteur ? `${reply.auteur.prenom || ''} ${reply.auteur.nom || ''}`.trim() : 'User'}
+                  </div>
+                  <div className={styles.replyText}>{reply.contenu || reply.content}</div>
+                  <div className={styles.replyFooter}>
+                    <div
+                      className={`${styles.replyLikes} ${reply.userInteraction?.liked ? styles.liked : ''}`}
+                      onClick={likeReply}
+                      title={reply.userInteraction?.liked ? 'Unlike' : 'Like'}
+                    >
+                      <FontAwesomeIcon icon={faHeart} className={styles.replyIcon} />
+                      <span>{reply.likes || 0}</span>
+                    </div>
+                    {reply.userInteraction?.isAuthor && (
+                      <div
+                        className={styles.replyDelete}
+                        onClick={deleteReply}
+                        title="Delete this reply"
+                      >
+                        <FontAwesomeIcon icon={faTrash} className={styles.replyIcon} />
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-
-              <div className={styles.replyText}>{r.content}</div>
-
-              <div className={styles.replyFooter}>
-                <button
-                  type="button"
-                  className={`${styles.replyLikeBtn} ${r.userInteraction?.liked ? styles.liked : ''}`}
-                  onClick={() => onLikeReply?.(memory.id, r.id)}
-                >
-                  <FontAwesomeIcon icon={faHeart} />
-                  <span>{r.likes || 0}</span>
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

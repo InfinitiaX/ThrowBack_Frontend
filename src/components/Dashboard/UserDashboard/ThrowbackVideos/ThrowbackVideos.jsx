@@ -217,7 +217,7 @@ const ThrowbackVideos = () => {
           )}
         </main>
 
-        {/* Colonne droite : memories */}
+        {/* Colonne droite : memories (certainement à enlever dans le futur*/}
         <aside className={styles.rightCards}>
           {memoriesLoading ? (
             <div className={styles.loadingContainer}>

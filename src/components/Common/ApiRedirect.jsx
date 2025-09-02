@@ -21,7 +21,7 @@ const ApiRedirect = ({ endpoint }) => {
         console.log(`🔄 Redirection API: ${apiUrl}`);
         
         // Appeler l'API backend
-        const backendUrl = process.env.REACT_APP_API_URL || 'https://api.testdevinfinitiax.fr';
+        const backendUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
         const fullUrl = `${backendUrl}${apiUrl}`;
         
         console.log(`📡 Appel API: ${fullUrl}`);

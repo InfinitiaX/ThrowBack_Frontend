@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api, { videoAPI } from '../../../../utils/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -18,7 +18,7 @@ import styles from './VideoDetail.module.css';
 import PlaylistModal from './PlaylistModal';
 import MemoryCard from './MemoryCard';
 
-/* ---------- Confirm dialog (léger) ---------- */
+/* --------- Mini confirm --------- */
 const ConfirmDialog = ({ open, title='Delete', message='Are you sure?', onConfirm, onCancel }) => {
   const cardRef = useRef(null);
   useEffect(() => {
@@ -45,7 +45,7 @@ const ConfirmDialog = ({ open, title='Delete', message='Are you sure?', onConfir
   );
 };
 
-/* ---------- Bottom-sheet “Comments” (mobile) ---------- */
+/* --------- Bottom-sheet mobile pour les comments --------- */
 const CommentsSheet = ({ open, onClose, children }) => {
   if (!open) return null;
   return (
@@ -65,65 +65,95 @@ const CommentsSheet = ({ open, onClose, children }) => {
 const VideoDetail = () => {
   const { id } = useParams();
 
-  // Video
+  /* Video + recommandations */
   const [video, setVideo] = useState(null);
   const [allVideos, setAllVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [videosLoading, setVideosLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Interactions
+  /* Interactions vidéo */
   const [userLiked, setUserLiked] = useState(false);
   const [viewCount, setViewCount] = useState(0);
   const [likeCount, setLikeCount] = useState(0);
   const [isLiking, setIsLiking] = useState(false);
 
-  // Comments/memories
-  const [memories, setMemories] = useState([]);            // [{... , replies:[...] }]
+  /* Comments (memories) */
+  const [memories, setMemories] = useState([]); // { id, content, replies: [...] }
   const [memoriesLoading, setMemoriesLoading] = useState(false);
   const [memoryText, setMemoryText] = useState('');
-  const [showCommentsSheet, setShowCommentsSheet] = useState(false);
 
-  // UI
+  /* UI divers */
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+  const [showCommentsSheet, setShowCommentsSheet] = useState(false);
   const [showShareOptions, setShowShareOptions] = useState(false);
   const [confirm, setConfirm] = useState({ open:false, onConfirm:null });
 
+  /* Anti course conditions */
+  const requestRef = useRef({ video:0, memories:0 });
+
   const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
-  /* ---------------- Init ---------------- */
+  /* ------------ INIT ------------- */
   useEffect(() => { fetchAllVideos(); }, []);
   useEffect(() => {
     if (!id) return;
     fetchVideoById(id);
-    fetchVideoMemories(id);
-    window.scrollTo(0, 0);
+    /* on force un fetch "strict" des comments pour CETTE vidéo */
+    fetchVideoMemoriesStrict(id);
+    window.scrollTo(0,0);
     localStorage.setItem('currentVideoId', id);
   }, [id]);
 
-  /* ---------------- Data ---------------- */
+  /* ------------ Fetch vidéos ------------- */
   const fetchAllVideos = async () => {
     try {
       setVideosLoading(true);
-      const data = await videoAPI.getAllVideos?.({ type:'music', limit:'50' });
-      setAllVideos(Array.isArray(data) ? data : []);
+      const list = await videoAPI.getAllVideos({ type:'music', limit:'50' });
+      setAllVideos(Array.isArray(list)? list : []);
     } finally { setVideosLoading(false); }
   };
 
   const fetchVideoById = async (videoId) => {
+    const token = ++requestRef.current.video;
     try {
       setLoading(true); setError(null);
-      const data = await videoAPI.getVideoById?.(videoId);
+      const data = await videoAPI.getVideoById(videoId);
+      if (token !== requestRef.current.video) return;
       if (!data) { setError('Unable to load video'); return; }
       setVideo(data);
       setUserLiked(Boolean(data.userInteraction?.liked));
       setViewCount(data.vues || 0);
       setLikeCount(data.likes || 0);
-    } catch { setError('Error loading video'); }
-    finally { setLoading(false); }
+    } catch {
+      if (token !== requestRef.current.video) return;
+      setError('Error loading video');
+    } finally {
+      if (token === requestRef.current.video) setLoading(false);
+    }
   };
 
-  const normalizeMemory = (m) => ({
+  /* ------------ Fetch comments/replies (STRICT par vidéo) ------------- */
+  const normalizeId = (x) => (x? x.toString() : '');
+  const belongsToVideo = (m, videoId) => {
+    const vid =
+      (m.video && typeof m.video === 'object' ? m.video._id : null) ||
+      (typeof m.video === 'string' ? m.video : null) ||
+      m.videoId || m.video_id;
+    return normalizeId(vid) === normalizeId(videoId);
+  };
+
+  const normalizeReply = (r) => ({
+    id: r._id || r.id,
+    content: r.contenu || r.content || '',
+    likes: r.likes || 0,
+    userInteraction: r.userInteraction || { liked:false, disliked:false, isAuthor:false },
+    auteur: r.auteur,
+    username: (r.auteur && `${r.auteur.prenom || ''} ${r.auteur.nom || ''}`.trim()) || r.username || 'User',
+    createdAt: r.createdAt
+  });
+
+  const normalizeMemory = (m, currentVideo) => ({
     id: m._id || m.id,
     username:
       (m.auteur && `${m.auteur.prenom || ''} ${m.auteur.nom || ''}`.trim()) ||
@@ -132,50 +162,50 @@ const VideoDetail = () => {
     imageUrl: m.auteur?.photo_profil || m.imageUrl || '/images/default-avatar.jpg',
     content: m.contenu || m.content || '',
     likes: m.likes || 0,
-    comments: m.nb_commentaires ?? m.comments ?? ((Array.isArray(m.replies) ? m.replies.length : 0) + 1),
     userInteraction: m.userInteraction || { liked:false, disliked:false, isAuthor:false },
-    videoArtist: m.video?.artiste || m.videoArtist || video?.artiste || 'Artist',
-    videoTitle:  m.video?.titre   || m.videoTitle  || video?.titre   || 'Title',
-    videoYear:   m.video?.annee   || m.videoYear   || video?.annee   || '—',
-    video: m.video,
-    replies: Array.isArray(m.replies) ? m.replies.map(r => ({
-      id: r._id || r.id,
-      content: r.contenu || r.content || '',
-      auteur: r.auteur,
-      username:
-        (r.auteur && `${r.auteur.prenom || ''} ${r.auteur.nom || ''}`.trim()) ||
-        r.username || 'User',
-      likes: r.likes || 0,
-      userInteraction: r.userInteraction || { liked:false, disliked:false, isAuthor:false },
-      createdAt: r.createdAt
-    })) : [],
-    showReplies: false
+    videoArtist: m.video?.artiste || m.videoArtist || currentVideo?.artiste || 'Artist',
+    videoTitle:  m.video?.titre   || m.videoTitle  || currentVideo?.titre   || 'Title',
+    videoYear:   m.video?.annee   || m.videoYear   || currentVideo?.annee   || '—',
+    replies: Array.isArray(m.replies) ? m.replies.map(normalizeReply) : []
   });
 
-  const fetchVideoMemories = async (videoId) => {
+  /** ALWAYS hits the strict endpoint first, then merges safely with cache (no overwrite) */
+  const fetchVideoMemoriesStrict = async (videoId) => {
+    const token = ++requestRef.current.memories;
     try {
       setMemoriesLoading(true);
-      let list = await videoAPI.getVideoMemories?.(videoId);
-      // fallback strict (si l’API utilitaire n’existe pas)
-      if (!Array.isArray(list)) {
-        const r = await api.get(`/api/public/memories/video/${videoId}`);
-        list = Array.isArray(r?.data?.data) ? r.data.data : [];
-      }
-      setMemories(list.map(normalizeMemory));
+
+      // 1) strict route (prioritaire) — utils/api expose déjà cette route publique
+      let list = await videoAPI.getVideoMemories(videoId); // /api/public/videos/:id/memories  :contentReference[oaicite:1]{index=1}
+      list = Array.isArray(list) ? list.filter(m => belongsToVideo(m, videoId)) : [];
+
+      // 2) merge éventuel avec cache local (sans écraser ce qui vient d’être posté en optimiste)
+      try {
+        const cached = localStorage.getItem('allMemories');
+        if (cached) {
+          const parsed = JSON.parse(cached).filter(m => belongsToVideo(m, videoId));
+          // dédupe par id
+          const ids = new Set(list.map(m => (m._id || m.id)));
+          const merged = [...list, ...parsed.filter(m => !ids.has(m._id || m.id))];
+          list = merged;
+        }
+      } catch {}
+
+      if (token !== requestRef.current.memories) return;
+      setMemories(list.map(m => normalizeMemory(m, video)));
     } catch {
-      setMemories([]);
+      // fallback très simple: aucun écrasement
+      if (token !== requestRef.current.memories) return;
+      setMemories((cur) => cur); // conserve l’existant si l’appel échoue
     } finally {
-      setMemoriesLoading(false);
+      if (token === requestRef.current.memories) setMemoriesLoading(false);
     }
   };
 
-  /* ---------------- Helpers counts ---------------- */
-  const computeCommentsCount = (arr) => {
-    // #comments affiché près de l’icône : nb de “comments racines”
-    return arr.length;
-  };
+  /* ------------ Décompte affiché (YouTube-like = nb de root comments) ------------- */
+  const commentsCount = memories.length;
 
-  /* ---------------- Actions: video ---------------- */
+  /* ------------ Actions vidéo ------------- */
   const handleLikeVideo = async () => {
     if (!video?._id || isLiking) return;
     setIsLiking(true);
@@ -185,75 +215,142 @@ const VideoDetail = () => {
     setIsLiking(false);
   };
 
-  /* ---------------- Actions: memories ---------------- */
+  /* ------------ Actions comments ------------- */
   const handleSendComment = async () => {
     const text = memoryText.trim();
     if (!text || !id) return;
+
+    // 1) Optimistic add (ne disparaît plus)
+    const tmpId = `tmp-${Date.now()}`;
+    setMemories((arr) => [{
+      id: tmpId,
+      username: 'You',
+      type: 'posted',
+      imageUrl: '/images/default-avatar.jpg',
+      content: text,
+      likes: 0,
+      userInteraction: { liked:false, disliked:false, isAuthor:true },
+      videoArtist: video?.artiste,
+      videoTitle: video?.titre,
+      videoYear: video?.annee,
+      replies: []
+    }, ...arr]);
     setMemoryText('');
-    // Optimistic
-    const temp = {
-      id: `tmp-${Date.now()}`, username:'You', type:'posted',
-      imageUrl:'/images/default-avatar.jpg', content:text, likes:0,
-      comments:1, userInteraction:{ liked:false, disliked:false, isAuthor:true },
-      videoArtist: video?.artiste, videoTitle: video?.titre, videoYear: video?.annee, replies:[]
-    };
-    setMemories((m)=>[temp, ...m]);
+
+    // 2) POST robuste (plusieurs fallbacks)
     try {
-      // Auth route -> fallback public
-      try { await api.post('/api/memories', { contenu:text, video:id }); }
-      catch { await api.post('/api/public/memories', { contenu:text, video:id }); }
-      await fetchVideoMemories(id);
+      // a) route publique liée à la vidéo (si présente côté backend)
+      try {
+        const r = await api.post(`/api/public/videos/${id}/memories`, { contenu:text });
+        const created = r?.data?.data || r?.data;
+        if (created && (created._id || created.id)) {
+          setMemories((arr)=>arr.map(m => m.id===tmpId ? normalizeMemory(created, video) : m));
+          // alimente le cache
+          try {
+            const cache = JSON.parse(localStorage.getItem('allMemories') || '[]');
+            localStorage.setItem('allMemories', JSON.stringify([created, ...cache]));
+          } catch {}
+          return;
+        }
+      } catch {}
+
+      // b) route auth
+      try {
+        const r = await api.post('/api/memories', { contenu:text, video:id });
+        const created = r?.data?.data || r?.data;
+        if (created && (created._id || created.id)) {
+          setMemories((arr)=>arr.map(m => m.id===tmpId ? normalizeMemory(created, video) : m));
+          try {
+            const cache = JSON.parse(localStorage.getItem('allMemories') || '[]');
+            localStorage.setItem('allMemories', JSON.stringify([created, ...cache]));
+          } catch {}
+          return;
+        }
+      } catch {}
+
+      // c) route publique simple
+      const r = await api.post('/api/public/memories', { contenu:text, video:id });
+      const created = r?.data?.data || r?.data;
+      if (created && (created._id || created.id)) {
+        setMemories((arr)=>arr.map(m => m.id===tmpId ? normalizeMemory(created, video) : m));
+        try {
+          const cache = JSON.parse(localStorage.getItem('allMemories') || '[]');
+          localStorage.setItem('allMemories', JSON.stringify([created, ...cache]));
+        } catch {}
+      } else {
+        // refetch strict si pas de payload exploitable
+        fetchVideoMemoriesStrict(id);
+      }
     } catch {
-      // rollback simple si besoin
+      // rollback soft: on laisse l’optimiste (ou on peut la retirer si tu préfères)
     }
   };
 
   const handleLikeMemory = async (memoryId) => {
     setMemories((arr)=>arr.map(m => m.id===memoryId
-      ? { ...m,
-          userInteraction:{ ...(m.userInteraction||{}), liked: !m.userInteraction?.liked },
-          likes: m.userInteraction?.liked ? Math.max(0,(m.likes||0)-1) : (m.likes||0)+1
-        }
+      ? { ...m, userInteraction:{ ...(m.userInteraction||{}), liked: !m.userInteraction?.liked }, likes: m.userInteraction?.liked ? Math.max(0,(m.likes||0)-1) : (m.likes||0)+1 }
       : m
     ));
     try {
+      // utilitaire si dispo, sinon endpoint direct
       if (videoAPI.likeMemory) await videoAPI.likeMemory(memoryId);
       else await api.post(`/api/memories/${memoryId}/like`);
     } catch {}
   };
 
   const handleAddReply = async (memoryId, text) => {
-    const reply = {
-      id: `tmp-r-${Date.now()}`, content:text, likes:0,
-      userInteraction:{ liked:false, disliked:false, isAuthor:true },
-      username:'You'
+    const replyTmp = {
+      id: `tmp-r-${Date.now()}`,
+      content: text,
+      likes: 0,
+      userInteraction: { liked:false, disliked:false, isAuthor:true },
+      username: 'You'
     };
-    // optimistic
-    setMemories((arr)=>arr.map(m => m.id===memoryId
-      ? { ...m, replies:[reply, ...(m.replies||[])], comments:(m.comments||1)+1, showReplies:true }
-      : m
-    ));
+    setMemories((arr)=>arr.map(m => m.id===memoryId ? { ...m, replies:[replyTmp, ...m.replies] } : m));
     try {
-      if (videoAPI.addReply) await videoAPI.addReply(memoryId, text);
-      else await api.post(`/api/memories/${memoryId}/replies`, { contenu:text });
-      await fetchVideoMemories(id);
-    } catch {}
+      // auth puis public
+      try {
+        const r = await api.post(`/api/memories/${memoryId}/replies`, { contenu:text });
+        const created = r?.data?.data || r?.data;
+        if (created && (created._id || created.id)) {
+          setMemories((arr)=>arr.map(m => {
+            if (m.id !== memoryId) return m;
+            const fixed = m.replies.map(rep => rep.id===replyTmp.id ? normalizeReply(created) : rep);
+            return { ...m, replies: fixed };
+          }));
+          return;
+        }
+      } catch {}
+      const r = await api.post(`/api/public/memories/${memoryId}/replies`, { contenu:text });
+      const created = r?.data?.data || r?.data;
+      if (created && (created._id || created.id)) {
+        setMemories((arr)=>arr.map(m => {
+          if (m.id !== memoryId) return m;
+          const fixed = m.replies.map(rep => rep.id===replyTmp.id ? normalizeReply(created) : rep);
+          return { ...m, replies: fixed };
+        }));
+      } else {
+        fetchVideoMemoriesStrict(id);
+      }
+    } catch {
+      // noop: on laisse l’optimiste
+    }
   };
 
   const handleLikeReply = async (memoryId, replyId) => {
     setMemories((arr)=>arr.map(m => {
       if (m.id !== memoryId) return m;
-      const replies = (m.replies||[]).map(r => r.id===replyId
-        ? { ...r, userInteraction:{ ...(r.userInteraction||{}), liked: !r.userInteraction?.liked },
-            likes: r.userInteraction?.liked ? Math.max(0,(r.likes||0)-1) : (r.likes||0)+1 }
+      const replies = m.replies.map(r => r.id===replyId
+        ? { ...r, userInteraction:{ ...(r.userInteraction||{}), liked: !r.userInteraction?.liked }, likes: r.userInteraction?.liked ? Math.max(0,(r.likes||0)-1) : (r.likes||0)+1 }
         : r
       );
       return { ...m, replies };
     }));
     try {
-      if (videoAPI.likeReply) await videoAPI.likeReply(memoryId, replyId);
-      else await api.post(`/api/memories/${memoryId}/replies/${replyId}/like`);
-    } catch {}
+      await api.post(`/api/memories/${memoryId}/replies/${replyId}/like`);
+    } catch {
+      try { await api.post(`/api/public/memories/${memoryId}/replies/${replyId}/like`); } catch {}
+    }
   };
 
   const handleDeleteMemory = (memoryId) => {
@@ -261,12 +358,13 @@ const VideoDetail = () => {
       open:true,
       onConfirm: async () => {
         setConfirm({ open:false, onConfirm:null });
-        // optimistic
-        setMemories((arr)=>arr.filter(m => m.id !== memoryId));
+        setMemories((arr)=>arr.filter(m=>m.id!==memoryId));
         try {
-          if (videoAPI.deleteMemory) await videoAPI.deleteMemory(memoryId);
-          else await api.delete(`/api/memories/${memoryId}`);
-        } catch { await fetchVideoMemories(id); }
+          await api.delete(`/api/memories/${memoryId}`);
+        } catch {
+          try { await api.delete(`/api/public/memories/${memoryId}`); }
+          catch { fetchVideoMemoriesStrict(id); }
+        }
       }
     });
   };
@@ -276,25 +374,30 @@ const VideoDetail = () => {
       open:true,
       onConfirm: async () => {
         setConfirm({ open:false, onConfirm:null });
-        // optimistic
         setMemories((arr)=>arr.map(m => {
           if (m.id !== memoryId) return m;
-          const replies = (m.replies||[]).filter(r => r.id !== replyId);
-          return { ...m, replies, comments: Math.max(1, (m.comments||1)-1) };
+          return { ...m, replies: m.replies.filter(r => r.id !== replyId) };
         }));
         try {
-          if (videoAPI.deleteReply) await videoAPI.deleteReply(memoryId, replyId);
-          else await api.delete(`/api/memories/${memoryId}/replies/${replyId}`);
-        } catch { await fetchVideoMemories(id); }
+          await api.delete(`/api/memories/${memoryId}/replies/${replyId}`);
+        } catch {
+          try { await api.delete(`/api/public/memories/${memoryId}/replies/${replyId}`); }
+          catch { fetchVideoMemoriesStrict(id); }
+        }
       }
     });
   };
 
-  /* ---------------- Render helpers ---------------- */
+  /* ------------ Share helpers ------------- */
   const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const copyLink = async () => {
+    try { await navigator.clipboard.writeText(currentUrl); setShowShareOptions(false); } catch {}
+  };
+
+  /* ------------ Renders ------------- */
   const renderMemoriesList = () => (
     <>
-      {/* zone de saisie */}
+      {/* Zone de saisie */}
       <div className={styles.memoryInputContainer}>
         <input
           className={styles.memoryInput}
@@ -329,7 +432,6 @@ const VideoDetail = () => {
     </>
   );
 
-  /* ---------------- UI ---------------- */
   if (loading) {
     return (
       <div className={styles.throwbackVideosBg}>
@@ -381,8 +483,7 @@ const VideoDetail = () => {
               </div>
               <div className={styles.statItem}><FontAwesomeIcon icon={faEye}/><span>{viewCount}</span></div>
               <div className={styles.statItem} onClick={()=>setShowCommentsSheet(true)}>
-                <FontAwesomeIcon icon={faComment}/>
-                <span>{computeCommentsCount(memories)}</span>
+                <FontAwesomeIcon icon={faComment}/><span>{commentsCount}</span>
               </div>
               <div className={styles.statItem} onClick={()=>setShowShareOptions(s=>!s)} style={{position:'relative'}}>
                 <FontAwesomeIcon icon={faShare}/><span>Share</span>
@@ -391,9 +492,7 @@ const VideoDetail = () => {
                     <a className={styles.shareBtn} href={`https://wa.me/?text=${encodeURIComponent(currentUrl)}`} target="_blank" rel="noreferrer"><FontAwesomeIcon icon={faWhatsapp}/> WhatsApp</a>
                     <a className={styles.shareBtn} href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(currentUrl)}`} target="_blank" rel="noreferrer"><FontAwesomeIcon icon={faTwitter}/> X/Twitter</a>
                     <a className={styles.shareBtn} href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`} target="_blank" rel="noreferrer"><FontAwesomeIcon icon={faFacebook}/> Facebook</a>
-                    <button className={styles.shareBtn} onClick={async()=>{ try{ await navigator.clipboard.writeText(currentUrl);}catch{} }}>{/* no alert on mobile */}
-                      <FontAwesomeIcon icon={faCopy}/> Copy link
-                    </button>
+                    <button className={styles.shareBtn} onClick={copyLink}><FontAwesomeIcon icon={faCopy}/> Copy link</button>
                   </div>
                 )}
               </div>
@@ -403,7 +502,7 @@ const VideoDetail = () => {
             </div>
           </div>
 
-          {/* Recommended */}
+          {/* Recommandations */}
           <section className={styles.recommendedVideosSection}>
             <h3 className={styles.recommendedSectionTitle}>Recommended</h3>
             <div className={styles.recommendedVideosGrid}>
@@ -430,10 +529,8 @@ const VideoDetail = () => {
           </section>
         </main>
 
-        {/* Sidebar desktop : commentaires (masquée sur mobile) */}
-        <aside className={styles.rightCards}>
-          {renderMemoriesList()}
-        </aside>
+        {/* Sidebar desktop : comments */}
+        <aside className={styles.rightCards}>{renderMemoriesList()}</aside>
       </div>
 
       {/* Modales */}

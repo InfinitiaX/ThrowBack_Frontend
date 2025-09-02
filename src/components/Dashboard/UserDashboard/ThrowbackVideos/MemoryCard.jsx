@@ -11,11 +11,6 @@ import {
   faTrash
 } from '@fortawesome/free-solid-svg-icons';
 
-/**
- * MemoryCard
- * - Affiche un commentaire (memory) + ses replies
- * - Callbacks fournis par le parent (VideoDetail) pour toutes les actions
- */
 const MemoryCard = ({
   memory,
   baseUrl = '',
@@ -24,7 +19,7 @@ const MemoryCard = ({
   onAddReply,
   onLikeReply,
   onDeleteReply,
-  onRequestDelete, // delete memory
+  onRequestDelete
 }) => {
   const [replyText, setReplyText] = useState('');
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -126,7 +121,7 @@ const MemoryCard = ({
           <span>{memory.likes || 0}</span>
         </div>
 
-        <div className={styles.memoryComments} onClick={() => { if (!memory.showReplies && (memory.replies||[]).length === 0) { /* rien à charger ici (déjà fourni par parent) */ }}}>
+        <div className={styles.memoryComments}>
           <FontAwesomeIcon icon={faComment} />
           <span>{Array.isArray(memory.replies) ? memory.replies.length : 0}</span>
         </div>

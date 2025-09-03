@@ -20,7 +20,6 @@ import {
 import styles from './VideoDetail.module.css';
 import PlaylistModal from './PlaylistModal';
 import MemoryCard from './MemoryCard';
-import Toaster from '../../../common/Toaster'; // Supposons que ce composant existe ou nous le définirons
 
 /* ========= Styled Confirm Dialog ========= */
 const ConfirmDialog = ({
@@ -469,11 +468,7 @@ const VideoDetail = () => {
       
       // Si tout échoue
       console.error('All reply attempts failed');
-      if (error.response?.status === 401) {
-        showNotification('Please log in to add a reply', 'error');
-      } else {
-        showNotification('Error adding reply. Please try again.', 'error');
-      }
+      showNotification('Error adding reply. Please try again.', 'error');
       return false;
     } catch (error) {
       console.error('Unexpected error adding reply:', error);
@@ -590,51 +585,55 @@ const VideoDetail = () => {
     );
   };
 
-  // Fonction améliorée pour la suppression des réponses
+  // Fonction corrigée pour la suppression des réponses
   const handleDeleteReply = async (replyId) => {
     console.log(`Requesting deletion of reply: ${replyId}`);
     
-    // Trouver d'abord le commentaire parent
+    // Variables pour stocker les références
     let parentMemoryId = null;
     let replyIndex = -1;
+    let parentMemory = null;
     
+    // Recherche plus approfondie du commentaire parent
     for (let i = 0; i < memories.length; i++) {
       const memory = memories[i];
-      const rIndex = (memory.replies || []).findIndex(r => 
-        (r.id || r._id) === replyId
-      );
+      if (!memory.replies) continue; // Ignorer si pas de réponses
       
-      if (rIndex !== -1) {
-        parentMemoryId = memory.id;
-        replyIndex = rIndex;
-        break;
+      for (let j = 0; j < memory.replies.length; j++) {
+        const reply = memory.replies[j];
+        const currentReplyId = reply.id || reply._id;
+        
+        if (currentReplyId === replyId) {
+          parentMemoryId = memory.id;
+          parentMemory = memory;
+          replyIndex = j;
+          console.log(`Found parent memory ${parentMemoryId} for reply ${replyId} at index ${replyIndex}`);
+          break;
+        }
       }
+      
+      if (parentMemoryId) break;
     }
     
     if (!parentMemoryId) {
       console.error(`Could not find parent memory for reply: ${replyId}`);
-      showNotification('Cannot locate the parent comment', 'error');
+      // Afficher un message pour l'utilisateur au lieu de planter
+      showNotification('Unable to locate the parent comment. Please refresh the page.', 'error');
       return;
     }
-    
-    console.log(`Found parent memory ${parentMemoryId} for reply ${replyId} at index ${replyIndex}`);
     
     openConfirm(
       'Delete Reply',
       'Are you sure you want to delete this reply? This action cannot be undone.',
       async () => {
         try {
-          console.log(`Confirmed deletion of reply: ${replyId}`);
-          
-          // Mise à jour optimiste de l'UI
+          // Mise à jour optimiste de l'UI avec une meilleure gestion
           const updatedMemories = memories.map(memory => {
             if (memory.id === parentMemoryId) {
-              const updatedReplies = [...memory.replies];
-              updatedReplies.splice(replyIndex, 1);
-              return { 
-                ...memory, 
-                replies: updatedReplies,
-                nb_commentaires: Math.max(0, (memory.nb_commentaires || memory.replies.length) - 1)
+              return {
+                ...memory,
+                replies: memory.replies.filter(r => (r.id !== replyId && r._id !== replyId)),
+                nb_commentaires: Math.max(0, (memory.nb_commentaires || 0) - 1)
               };
             }
             return memory;
@@ -642,36 +641,26 @@ const VideoDetail = () => {
           
           setMemories(updatedMemories);
           
-          // Essai de suppression via l'API standard
+          // Tentatives de suppression via API
           try {
-            console.log(`Attempting to delete reply via standard API: /api/memories/${parentMemoryId}/replies/${replyId}`);
-            const response = await api.delete(`/api/memories/${parentMemoryId}/replies/${replyId}`);
-            console.log('Standard API delete reply response:', response.data);
+            await api.delete(`/api/memories/${parentMemoryId}/replies/${replyId}`);
             showNotification('Reply deleted successfully');
-            return;
-          } catch (standardError) {
-            console.warn('Standard API delete reply failed:', standardError.message);
+          } catch (e1) {
+            console.warn('Standard API delete failed:', e1.message);
+            
+            try {
+              await api.delete(`/api/public/memories/${parentMemoryId}/replies/${replyId}`);
+              showNotification('Reply deleted successfully');
+            } catch (e2) {
+              console.error('All API delete attempts failed:', e2.message);
+              
+              // On garde la mise à jour optimiste même en cas d'erreur API
+              showNotification('Reply was removed locally but the server update failed', 'warning');
+            }
           }
-          
-          // Essai via l'API publique en cas d'échec
-          try {
-            console.log(`Attempting to delete reply via public API: /api/public/memories/${parentMemoryId}/replies/${replyId}`);
-            const fallbackResponse = await api.delete(`/api/public/memories/${parentMemoryId}/replies/${replyId}`);
-            console.log('Public API delete reply response:', fallbackResponse.data);
-            showNotification('Reply deleted successfully');
-            return;
-          } catch (publicError) {
-            console.error('Public API delete reply also failed:', publicError.message);
-          }
-          
-          // Restauration en cas d'échec complet
-          console.error('All deletion attempts failed, restoring state');
-          showNotification('Failed to delete reply. Please try again.', 'error');
-          fetchVideoMemories(id);
         } catch (error) {
-          console.error('Unexpected error deleting reply:', error);
-          showNotification('An unexpected error occurred', 'error');
-          fetchVideoMemories(id);
+          console.error('Unexpected error during reply deletion:', error);
+          showNotification('An error occurred', 'error');
         }
       }
     );
@@ -900,34 +889,6 @@ const VideoDetail = () => {
     navigate(-1);
   };
 
-  /* ---------- Small child component ---------- */
-const RecommendedVideo = ({ video: recommendedVideo }) => {
-  if (!recommendedVideo) return null;
-  const isCurrentVideo = video && recommendedVideo._id === video._id;
-  const handleClick = (e) => {
-    e.preventDefault();
-    navigate(`/dashboard/videos/${recommendedVideo._id}`);
-  };
-  return (
-    
-      href={`/dashboard/videos/${recommendedVideo._id}`}
-      className={`${styles.recommendedVideo} ${isCurrentVideo ? styles.currentVideo : ''}`}
-      onClick={handleClick}
-    >
-      <img
-        src={getYouTubeThumbnail(recommendedVideo.youtubeUrl)}
-        alt={`${recommendedVideo.artiste || 'Artist'} - ${recommendedVideo.titre || 'Title'}`}
-        className={styles.recommendedImg}
-        onError={(e) => { e.target.src = '/images/video-placeholder.jpg'; }}
-      />
-      <div className={styles.recommendedInfo}>
-        <div className={styles.recommendedArtist}>{recommendedVideo.artiste || 'Artist'}</div>
-        <div className={styles.recommendedTitle}>: {recommendedVideo.titre || 'Title'} ({recommendedVideo.annee || '----'})</div>
-      </div>
-      {isCurrentVideo && <div className={styles.currentlyPlaying}>▶ Now Playing</div>}
-    </a>
-  );
-};
 
   /* ---------- Render ---------- */
   if (loading) {
@@ -1026,7 +987,7 @@ const RecommendedVideo = ({ video: recommendedVideo }) => {
                   src={getYouTubeThumbnail(video.youtubeUrl)}
                   alt={`${video.artiste} - ${video.titre}`}
                   className={styles.thumbnailImg}
-                  onError={(e) => { e.target.src = '/images/video-placeholder.jpg'; }}
+                  onError={(e) => { e.target.src = '/images/video-placeholder.jpg'; e.target.onerror = null; }}
                 />
                 <div className={styles.playButton}>▶</div>
               </div>
@@ -1102,25 +1063,7 @@ const RecommendedVideo = ({ video: recommendedVideo }) => {
           </div>
 
           {/* Recommendations */}
-          <div className={styles.recommendedVideosSection}>
-            <h3 className={styles.recommendedSectionTitle}>All Music Videos</h3>
-            <div className={styles.recommendedVideosGrid}>
-              {videosLoading ? (
-                <div className={styles.recommendedLoading}>
-                  <FontAwesomeIcon icon={faSpinner} spin />
-                  <span>Loading videos...</span>
-                </div>
-              ) : allVideos.length > 0 ? (
-                allVideos.map((videoItem) => (
-                  <RecommendedVideo key={videoItem._id || `video-${Math.random()}`} video={videoItem} />
-                ))
-              ) : (
-                <div className={styles.emptyRecommendations}>
-                  <p>We're adding new videos soon!</p>
-                </div>
-              )}
-            </div>
-          </div>
+
         </main>
 
         {/* Sidebar Memories */}
@@ -1165,7 +1108,7 @@ const RecommendedVideo = ({ video: recommendedVideo }) => {
                   onLike={handleLikeMemory}
                   onAddReply={handleAddReply}
                   onDeleteMemory={handleDeleteMemory}
-                  onRequestDelete={handleDeleteReply} // Utilise handleDeleteReply pour les réponses
+                  onRequestDelete={handleDeleteReply}
                   onToggleReplies={handleToggleReplies}
                   currentVideoId={id}
                   replies={memory.replies || []}

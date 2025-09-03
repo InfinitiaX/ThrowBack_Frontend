@@ -386,29 +386,7 @@
   font-size: 0.9rem; 
 }
 
-/* SECTION COMMENTAIRES DESKTOP EN BAS */
-.desktopCommentsSection {
-  margin-top: 32px;
-  padding: 24px;
-  background: #fff;
-  border-radius: 12px;
-  border: 1px solid #eee;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
 
-.desktopCommentsSection .memoriesHeader {
-  position: static;
-  background: transparent;
-  border-bottom: 2px solid #b31217;
-  margin-bottom: 20px;
-}
-
-.desktopCommentsSection .memoryInputContainer {
-  position: static;
-  background: transparent;
-  margin-bottom: 20px;
-  padding-bottom: 0;
-}
 
 /* Recommended videos */
 .recommendedVideosSection { 
@@ -898,9 +876,7 @@
     display: none !important; 
   }
 
-  .desktopCommentsSection {
-    display: none !important;
-  }
+ 
 
   /* Bottom sheet overlay + panel */
   .sheetOverlay {

@@ -1,11 +1,10 @@
-/* Styles de base existants - conservés */
+/* Layout global */
 .throwbackVideosBg {
   min-height: 100vh;
   background: #f7f7fa;
   display: flex;
   flex-direction: column;
 }
-
 .mainContentWrap {
   display: flex;
   flex-direction: row;
@@ -14,192 +13,120 @@
   margin: 0 auto;
   min-height: 80vh;
 }
-
 .mainContent {
   flex: 1;
-  padding: 24px 32px 32px 32px;
+  padding: 24px 32px 32px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  justify-content: flex-start;
 }
 
-/* Video player styling */
+/* Player */
 .videoPlayerContainer {
   width: 100%;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   position: relative;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 10px rgba(0,0,0,.15);
 }
-
 .videoWrapper {
   position: relative;
-  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  padding-top: 56.25%;
   width: 100%;
   background: #000;
 }
-
 .videoWrapper iframe {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
-  border-radius: 8px;
+  border: 0;
 }
 
-.videoThumbnail {
-  position: relative;
-  width: 100%;
-  padding-top: 56.25%; /* 16:9 Aspect Ratio */
-  background: #000;
-  cursor: pointer;
-}
-
-.thumbnailImg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.playButton {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 80px;
-  height: 80px;
-  background: rgba(179, 18, 23, 0.8);
-  border-radius: 50%;
-  color: white;
-  font-size: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: all 0.2s ease;
-}
-
-.videoThumbnail:hover .playButton {
-  background: rgba(211, 47, 47, 0.9);
-  transform: translate(-50%, -50%) scale(1.1);
-}
-
-/* Video info bar */
+/* Titre + actions */
 .videoInfoBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
-  position: relative;
+  margin-bottom: 8px;
+  gap: 12px;
 }
-
 .videoTitle {
-  font-size: 1.4rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
   color: #222;
   margin: 0;
   flex: 1;
 }
-
 .videoStats {
   display: flex;
-  gap: 16px;
+  gap: 10px;
   position: relative;
+  flex-wrap: wrap;
 }
-
 .statItem {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   color: #444;
-  font-size: 1rem;
+  font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.2s ease;
   padding: 6px 10px;
-  border-radius: 4px;
+  border-radius: 8px;
+  transition: .2s;
 }
-
 .statItem:hover {
   color: #b31217;
 }
-
 .statItem.liked {
   color: #b31217;
 }
 
-.statItem.loading {
-  opacity: 0.7;
-  pointer-events: none;
+/* Share popover */
+.shareOptions {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  box-shadow: 0 8px 18px rgba(0,0,0,.12);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 15;
+  min-width: 180px;
 }
-
-/* Memory input */
-.memoryInputContainer {
-  position: relative;
-  width: 100%;
-  margin-bottom: 24px;
+.shareBtn {
   display: flex;
   align-items: center;
-}
-
-.memoryInput {
-  width: 100%;
-  padding: 12px 50px 12px 16px;
-  border: 1px solid #ddd;
-  border-radius: 30px;
-  font-size: 0.95rem;
-  background: white;
-  transition: all 0.2s ease;
-}
-
-.memoryInput:focus {
-  outline: none;
-  border-color: #b31217;
-  box-shadow: 0 0 0 2px rgba(179, 18, 23, 0.1);
-}
-
-.commentButton {
-  position: absolute;
-  right: 8px;
-  background: none;
-  border: none;
-  color: #777;
-  font-size: 1.1rem;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #f1f1f1;
   cursor: pointer;
-  padding: 8px;
-  transition: color 0.2s ease;
+  text-decoration: none;
+  color: #222;
+}
+.shareBtn:hover {
+  background: #fafafa;
 }
 
-.commentButton:hover {
-  color: #b31217;
-}
-
-.commentButton.loading {
-  color: #b31217;
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-/* Recommended videos */
+/* Section Recommended */
 .recommendedVideosSection {
-  margin-top: 24px;
+  margin-top: 10px;
 }
-
 .recommendedSectionTitle {
-  font-size: 1.4rem;
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 700;
   color: #333;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
   position: relative;
   display: inline-block;
 }
-
 .recommendedSectionTitle:after {
   content: '';
   position: absolute;
@@ -207,538 +134,553 @@
   left: 0;
   width: 100%;
   height: 2px;
-  background-color: #b31217;
+  background: #b31217;
   border-radius: 2px;
 }
-
 .recommendedVideosGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  gap: 16px;
 }
 
 .recommendedVideo {
-  text-decoration: none;
-  display: block;
-  transition: all 0.2s ease;
   position: relative;
+  display: block;
   border-radius: 8px;
   overflow: hidden;
+  text-decoration: none;
+  transition: .2s;
 }
-
 .recommendedVideo:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.1);
 }
-
-.currentVideo {
-  border: 2px solid #b31217;
-  box-shadow: 0 0 0 2px rgba(179, 18, 23, 0.3);
-  pointer-events: none;
-  opacity: 0.8;
-}
-
-.currentlyPlaying {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background-color: rgba(179, 18, 23, 0.8);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
 .recommendedImg {
   width: 100%;
   aspect-ratio: 16/9;
   object-fit: cover;
   border-radius: 8px;
-  margin-bottom: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 6px;
 }
-
 .recommendedInfo {
   display: flex;
   flex-wrap: wrap;
   color: #222;
-  font-size: 0.9rem;
+  font-size: .92rem;
 }
-
 .recommendedArtist {
-  font-weight: 600;
+  font-weight: 700;
   margin-right: 4px;
 }
-
 .recommendedTitle {
   color: #444;
 }
-
+.currentVideo {
+  border: 2px solid #b31217;
+  box-shadow: 0 0 0 2px rgba(179,18,23,.25);
+}
+.currentlyPlaying {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(179,18,23,.85);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: .8rem;
+  font-weight: 600;
+}
 .recommendedLoading {
-  grid-column: 1 / -1;
+  grid-column: 1/-1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 30px;
+  gap: 10px;
   color: #777;
-  gap: 12px;
-  text-align: center;
+  padding: 20px;
 }
 
-.emptyRecommendations {
-  grid-column: 1 / -1;
-  padding: 30px;
-  text-align: center;
-  color: #666;
-  font-style: italic;
-  background: #f9f9f9;
-  border-radius: 8px;
-  border: 1px dashed #ddd;
-}
-
-/* Memories sidebar */
+/* Sidebar desktop (masquée en mobile) */
 .rightCards {
-  width: 320px;
-  padding: 24px 18px 0 0;
+  width: 340px;
+  padding: 20px 18px 0 0;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   max-height: 90vh;
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #b31217 #f0f0f0;
 }
 
-.rightCards::-webkit-scrollbar {
-  width: 6px;
+/* Zone de saisie + liste comments */
+.memoryInputContainer {
+  position: relative;
+  width: 100%;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+}
+.memoryInput {
+  width: 100%;
+  padding: 12px 44px 12px 14px;
+  border: 1px solid #ddd;
+  border-radius: 22px;
+  font-size: .95rem;
+  background: #fff;
+  transition: .2s;
+}
+.memoryInput:focus {
+  outline: none;
+  border-color: #b31217;
+  box-shadow: 0 0 0 2px rgba(179,18,23,.1);
+}
+.commentButton {
+  position: absolute;
+  right: 6px;
+  background: none;
+  border: none;
+  color: #777;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+}
+.commentButton:hover {
+  color: #b31217;
 }
 
-.rightCards::-webkit-scrollbar-track {
-  background: #f0f0f0;
-  border-radius: 10px;
-}
-
-.rightCards::-webkit-scrollbar-thumb {
-  background-color: #b31217;
-  border-radius: 10px;
-}
-
-/* Memory cards */
+/* MemoryCard styles partiels (utilisés par le composant) */
 .memoryCard {
   background: #fff;
   border: 1.5px solid #b31217;
   border-radius: 14px;
   box-shadow: 0 2px 12px #b3121722;
-  padding: 18px 16px 12px 16px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  position: relative;
 }
-
 .memoryHeader {
-  font-size: 1rem;
-  color: #222;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 6px;
+}
+.memoryHeaderLeft {
   display: flex;
   align-items: center;
+  gap: 10px;
 }
-
+.memoryHeaderMeta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
 .memoryUsername {
   color: #b31217;
-  font-weight: 600;
+  font-weight: 700;
 }
-
+.memoryType {
+  color: #555;
+  font-size: .9rem;
+}
 .memoryUserImage {
   width: 40px;
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
-  margin-right: 10px;
-  float: left;
 }
-
+.deleteButton {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #b31217;
+  font-size: 1rem;
+}
 .memoryBody {
   font-size: 1rem;
   color: #222;
-  margin-bottom: 8px;
-  white-space: pre-line;
-  min-height: 40px;
+  margin-bottom: 6px;
 }
-
 .memoryText {
-  margin-top: 15px;
-  clear: both;
+  margin-top: 10px;
   line-height: 1.5;
   color: #333;
 }
-
 .memoryFooter {
   display: flex;
-  gap: 18px;
+  gap: 14px;
   color: #b31217;
   font-size: 1rem;
   font-weight: 500;
-  margin-top: 6px;
+  margin-top: 4px;
 }
-
 .memoryLikes, .memoryComments, .memoryReply {
   display: flex;
   align-items: center;
   gap: 6px;
   cursor: pointer;
   color: #666;
-  transition: color 0.2s;
+  transition: .2s;
 }
-
 .memoryLikes:hover, .memoryComments:hover, .memoryReply:hover {
   color: #b31217;
 }
-
 .memoryLikes.liked {
   color: #b31217;
 }
 
-.memoryIcon {
-  color: #777;
-  font-size: 1rem;
-}
-
-/* Styles pour l'en-tête des souvenirs */
-.memoriesHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #b31217;
-}
-
-.memoriesHeader h3 {
-  margin: 0;
-  font-size: 1.2rem;
-  color: #333;
-}
-
-.memoriesControls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.refreshButton {
-  background: transparent;
-  border: none;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #666;
-  transition: all 0.2s ease;
-}
-
-.refreshButton:hover {
-  background: #eee;
-  color: #b31217;
-  transform: rotate(30deg);
-}
-
-.filterToggleButton {
-  background: transparent;
-  border: 1px solid #b31217;
-  border-radius: 4px;
-  padding: 4px 10px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  color: #b31217;
-  transition: all 0.2s ease;
-}
-
-.filterToggleButton:hover {
-  background: #b31217;
-  color: white;
-}
-
-/* Loading and error states */
-.loadingContainer, .memoriesLoading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 30px;
-  color: #777;
-  gap: 12px;
-  text-align: center;
-}
-
-.loadingContainer {
-  height: 60vh;
-  padding: 24px;
-}
-
-.spinnerIcon {
-  font-size: 3rem;
-  color: #b31217;
-  margin-bottom: 16px;
-}
-
-.errorContainer {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 32px;
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  text-align: center;
-}
-
-.errorIcon {
-  font-size: 3rem;
-  color: #b31217;
-  margin-bottom: 16px;
-}
-
-.backButton {
-  display: inline-block;
-  background: #b31217;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 600;
-  margin-top: 16px;
-}
-
-/* Message quand il n'y a pas de souvenirs */
-.emptyMemories {
-  background: #fff;
-  border-radius: 14px;
-  border: 1.5px solid #ddd;
-  padding: 24px 16px;
-  text-align: center;
-  color: #777;
-  font-style: italic;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.showAllButton {
-  margin-top: 16px;
-  padding: 8px 16px;
-  background: #b31217;
-  color: white;
-  border: none;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: 500;
-}
-
-.showAllButton:hover {
-  background: #8a0e12;
-  transform: translateY(-2px);
-}
-
-/* Styles pour l'avertissement de souvenir incorrect */
-.wrongVideoWarning {
-  background-color: #fff8e6;
-  color: #e74c3c;
-  font-size: 0.85rem;
-  padding: 6px 10px;
-  margin-top: 8px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border-left: 3px solid #e74c3c;
-}
-
-.warningIcon {
-  color: #e74c3c;
-}
-
-/* Ajoutez ces styles à votre fichier VideoDetail.module.css */
-.shareOptions {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  z-index: 10;
-  margin-top: 5px;
-  overflow: hidden;
-  width: 180px;
-  border: 1px solid #ddd;
-}
-
-.shareOption {
-  padding: 12px 15px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #444;
-}
-
-.shareOption:hover {
-  background-color: #f5f5f5;
-  color: #b31217;
-}
-
-.shareMessage {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background-color: rgba(67, 160, 71, 0.2);
-  color: #2e7d32;
-  padding: 8px 15px;
-  border-radius: 4px;
-  margin-top: 5px;
-  font-size: 14px;
-  animation: fadeOut 3s forwards;
-  z-index: 10;
-}
-
-@keyframes fadeOut {
-  0% { opacity: 1; }
-  70% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-/* Modal de playlist */
-.modalOverlay {
+/* Bottom-sheet mobile */
+.sheetOverlay {
   position: fixed;
-  top: 0;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 9999;
+}
+.sheet {
+  position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  height: 85vh;
+  background: #fff;
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
+  box-shadow: 0 -10px 30px rgba(0,0,0,.15);
   display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
+  flex-direction: column;
+  animation: sheetIn .2s ease;
 }
-
-.modalContent {
-  background-color: #fff;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  border: 2px solid #b31217;
+@keyframes sheetIn {
+  from {
+    transform: translateY(20px);
+    opacity: .7;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
-
-.modalHeader {
+.sheetHandle {
+  width: 48px;
+  height: 5px;
+  border-radius: 3px;
+  background: #ddd;
+  margin: 8px auto 4px;
+}
+.sheetHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
+  padding: 8px 12px;
   border-bottom: 1px solid #eee;
 }
-
-.modalHeader h3 {
+.sheetHeader h4 {
   margin: 0;
-  color: #222;
-  font-size: 1.3rem;
+  font-size: 1rem;
 }
-
-.closeButton {
+.sheetClose {
   background: none;
   border: none;
-  color: #777;
   font-size: 24px;
+  line-height: 1;
   cursor: pointer;
-  transition: color 0.2s;
+}
+.sheetBody {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 10px 12px 16px;
+  height: 100%;
 }
 
-.closeButton:hover {
-  color: #b31217;
-}
-
-/* Nouvelles fonctionnalités de réponse aux souvenirs */
-.replyForm {
-  display: flex;
-  margin-top: 12px;
-  padding: 8px;
-  background-color: #f8f8f8;
-  border-radius: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.replyInput {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 20px;
-  background-color: white;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.replyInput:focus {
-  outline: none;
-  border-color: #b31217;
-  box-shadow: 0 0 0 2px rgba(179, 18, 23, 0.1);
-}
-
-.replyButton {
-  background-color: #b31217;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  margin-left: 8px;
-  cursor: pointer;
+/* Modales génériques (confirm) */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s;
+}
+.modalCard {
+  background: #fff;
+  border-radius: 10px;
+  max-width: 520px;
+  width: 92%;
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+.modalHeader {
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modalHeader h4 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.modalClose {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+}
+.modalBody {
+  padding: 14px 16px;
+}
+.modalFooter {
+  padding: 10px 16px 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.modalCancel {
+  background: #f0f0f0;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.modalConfirm {
+  background: #b31217;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
 }
 
-.replyButton:hover {
-  background-color: #8a0e12;
+/* Responsive */
+@media (max-width: 1200px) {
+  .recommendedVideosGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-.replyButton:disabled {
-  background-color: #ddd;
-  cursor: not-allowed;
+/* Améliorations pour l'expérience mobile */
+@media (max-width: 992px) {
+  .mainContentWrap {
+    flex-direction: column;
+  }
+  
+  /* Réorganisation des éléments pour mobile */
+  .rightCards {
+    width: 100%;
+    max-width: 100%;
+    order: 1; /* Place les commentaires après le lecteur mais avant les recommandations */
+    padding: 0 16px 24px;
+    margin-top: -8px;
+    display: block;
+  }
+  
+  /* Section recommandée placée après les commentaires */
+  .recommendedVideosSection {
+    order: 2;
+    margin-top: 12px;
+  }
+  
+  /* Bouton pour afficher/masquer les commentaires (style YouTube) */
+  .commentsToggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: white;
+    border-radius: 8px;
+    margin: 12px 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    cursor: pointer;
+  }
+  
+  .commentsToggle span {
+    font-weight: 500;
+  }
+  
+  .commentsToggle .commentCount {
+    color: #666;
+  }
+  
+  /* Séparateur de sections */
+  .sectionDivider {
+    height: 8px;
+    background: #f2f2f2;
+    margin: 16px -16px;
+    width: calc(100% + 32px);
+  }
+  
+  /* Optimisations des cartes de commentaires */
+  .memoryCard {
+    margin-bottom: 12px;
+    padding: 14px;
+  }
+  
+  /* Navigation vers les commentaires */
+  .jumpToComments {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #b31217;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(179, 18, 23, 0.3);
+    z-index: 100;
+    animation: pulse 2s infinite;
+    cursor: pointer;
+    border: none;
+  }
+  
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(179, 18, 23, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(179, 18, 23, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(179, 18, 23, 0); }
+  }
+  
+  /* Grille recommandée plus compacte */
+  .recommendedVideosGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  
+  .recommendedInfo {
+    font-size: 0.8rem;
+  }
+  
+  .videoTitle {
+    font-size: 1.05rem;
+  }
+  
+  .statItem {
+    padding: 4px 8px;
+    font-size: 0.9rem;
+  }
 }
 
+/* Ajustements pour très petits écrans */
+@media (max-width: 576px) {
+  .recommendedVideosGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .mainContent {
+    padding: 12px;
+  }
+  
+  .videoStats {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  /* Amélioration du formulaire de commentaire sur mobile */
+  .memoryInputContainer {
+    padding: 10px 12px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .memoryInput {
+    height: 40px;
+    font-size: 14px;
+  }
+}
+
+/* Styles pour l'affichage des commentaires en bottom sheet (style YouTube) */
+.commentsSheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 85vh;
+  background: white;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
+  z-index: 1000;
+  transform: translateY(100%);
+  transition: transform 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+}
+
+.commentsSheetOpen {
+  transform: translateY(0);
+}
+
+.sheetBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.sheetBackdropVisible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sheetHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.sheetHandle {
+  width: 40px;
+  height: 5px;
+  background: #ddd;
+  border-radius: 3px;
+  margin: 10px auto 5px;
+}
+
+.sheetTitle {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.sheetCloseBtn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #666;
+  cursor: pointer;
+}
+
+.sheetContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 20px;
+}
+
+/* Amélioration des styles pour les réponses aux commentaires */
 .repliesSection {
-  margin-top: 12px;
+  margin-top: 10px;
   padding-top: 8px;
   border-top: 1px solid #eee;
 }
 
 .replyCard {
   display: flex;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   padding: 8px;
   background-color: #f9f9f9;
-  border-radius: 8px;
+  border-radius: 12px;
+  transition: background-color 0.2s;
 }
 
-.replyUserImage {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  object-fit: cover;
-  margin-right: 10px;
+.replyCard:active {
+  background-color: #f0f0f0;
 }
 
 .replyContent {
@@ -748,240 +690,51 @@
 .replyUsername {
   font-weight: 600;
   font-size: 13px;
-  color: #b31217;
+  color: #333;
 }
 
 .replyText {
   font-size: 14px;
+  line-height: 1.4;
   margin: 4px 0;
   color: #333;
 }
 
-.replyFooter {
+/* Formulaire de réponse amélioré pour mobile */
+.replyForm {
   display: flex;
-  font-size: 12px;
-  margin-top: 4px;
-}
-
-.replyLikes {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  color: #666;
-}
-
-.replyLikes.liked {
-  color: #b31217;
-}
-
-.replyIcon {
-  margin-right: 4px;
-}
-
-.replyDelete {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  color: #666;
-  margin-left: 10px;
-}
-
-.replyDelete:hover {
-  color: #b31217;
-}
-
-/* Bouton suppression mémoire */
-.deleteButton {
-  margin-left: auto;
-  background: none;
-  border: none;
-  color: #999;
-  cursor: pointer;
-  font-size: 12px;
+  margin-top: 8px;
+  background-color: #f5f5f5;
+  border-radius: 20px;
   padding: 4px;
-  border-radius: 4px;
 }
 
-.deleteButton:hover {
-  color: #b31217;
-  background: rgba(179, 18, 23, 0.1);
+.replyInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 20px;
 }
 
-/* Responsive Design */
-@media (max-width: 1200px) {
-  .mainContentWrap {
-    flex-direction: column;
-  }
-  
-  .rightCards {
-    width: 100%;
-    max-width: 100%;
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 24px 32px;
-    gap: 20px;
-    max-height: none;
-  }
-  
-  .memoryCard {
-    min-width: 300px;
-    max-width: 300px;
-  }
+.replyInput:focus {
+  outline: none;
 }
 
-@media (max-width: 768px) {
-  .recommendedVideosGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .videoInfoBar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-  
-  .videoStats {
-    align-self: flex-end;
-  }
-  
-  .mainContent {
-    padding: 16px;
-  }
-  
-  .memoriesHeader {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  
-  .filterToggleButton {
-    align-self: flex-end;
-  }
-}
-
-@media (max-width: 480px) {
-  .recommendedVideosGrid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ===== Confirm Dialog (Popup) ===== */
-.modalOverlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: rgba(17, 24, 39, 0.65); /* slate-900 @65% */
-  backdrop-filter: blur(2px);
+.replyButton {
+  background: #b31217;
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.modalCard {
-  width: min(92vw, 460px);
-  background: #111827;              /* slate-900 */
-  color: #F9FAFB;                    /* gray-50 */
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 16px;
-  box-shadow:
-    0 10px 15px -3px rgba(0,0,0,.3),
-    0 4px 6px -4px rgba(0,0,0,.3);
-  overflow: hidden;
-  animation: modalFadeIn .18s ease-out;
-}
-
-@keyframes modalFadeIn {
-  from { opacity: .3; transform: translateY(6px) scale(.98); }
-  to   { opacity: 1;  transform: translateY(0)   scale(1); }
-}
-
-.modalHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px 18px 8px 18px;
-}
-
-.modalHeader h4 {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.modalClose {
-  background: transparent;
-  border: 0;
-  color: #9CA3AF;                    /* gray-400 */
   cursor: pointer;
-  padding: 6px;
-  border-radius: 8px;
-  line-height: 0;
-}
-.modalClose:hover { color: #E5E7EB; }
-
-.modalBody {
-  padding: 0 18px 4px 18px;
-  color: #D1D5DB;                    /* gray-300 */
-  font-size: 14px;
-  line-height: 1.4;
 }
 
-.modalFooter {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 14px 18px 18px 18px;
-}
-
-.modalCancel,
-.modalConfirm {
-  appearance: none;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  font-size: 14px;
-  padding: 10px 14px;
-  cursor: pointer;
-  transition: transform .06s ease, opacity .12s ease, background-color .12s ease, border-color .12s ease;
-}
-
-.modalCancel {
-  background: #1F2937;               /* gray-800 */
-  color: #E5E7EB;                     /* gray-200 */
-  border-color: rgba(255,255,255,0.08);
-}
-.modalCancel:hover { background: #273245; }
-
-.modalConfirm {
-  background: #DC2626;               /* red-600 */
-  color: white;
-  border-color: rgba(0,0,0,0.1);
-}
-.modalConfirm:hover { background: #B91C1C; } /* red-700 */
-
-.modalCancel:active,
-.modalConfirm:active { transform: translateY(1px); }
-
-/* Small helpers for the rest of the UI (optional) */
-.wrongVideoWarning {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  background: rgba(245, 158, 11, .12); /* amber-500 @12% */
-  color: #F59E0B;
-  font-size: 12px;
-}
-
-.memoryHeaderMeta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px; 
-}
-
-.memoryUsername {
-  margin-right: 4px; 
+.replyButton:disabled {
+  background: #ccc;
 }

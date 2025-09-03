@@ -180,35 +180,43 @@
   white-space: nowrap;
 }
 
-/* SIDEBAR COMMENTAIRES DESKTOP */
+/* SIDEBAR COMMENTAIRES DESKTOP - FORCÉE À DROITE */
 .rightCards {
-  width: 350px;
-  padding: 24px 18px 0 0;
-  display: flex; 
+  width: 380px;
+  padding: 24px 20px 24px 24px;
+  display: flex !important; 
   flex-direction: column; 
-  gap: 20px;
-  max-height: 90vh; 
+  gap: 16px;
+  max-height: calc(100vh - 100px); 
   overflow-y: auto;
   scrollbar-width: thin; 
   scrollbar-color: #b31217 #f0f0f0;
   flex-shrink: 0;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #eee;
+  position: sticky;
+  top: 20px;
 }
 
-.rightCards::-webkit-scrollbar { width: 6px; }
-.rightCards::-webkit-scrollbar-track { background: #f0f0f0; border-radius: 10px; }
+.rightCards::-webkit-scrollbar { width: 8px; }
+.rightCards::-webkit-scrollbar-track { background: #f5f5f5; border-radius: 10px; }
 .rightCards::-webkit-scrollbar-thumb { background-color: #b31217; border-radius: 10px; }
+.rightCards::-webkit-scrollbar-thumb:hover { background-color: #8a0e12; }
 
-/* Memory input - DESKTOP VERSION */
+/* Memory input - SIDEBAR DESKTOP VERSION */
 .memoryInputContainer {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: #f7f7fa;
-  padding-bottom: 12px;
+  background: #fff;
+  padding: 16px 0 12px 0;
   margin-bottom: 12px;
   width: 100%;
   display: flex;
   align-items: center;
+  border-bottom: 1px solid #eee;
 }
 
 .memoryInput {
@@ -248,17 +256,17 @@
 .commentButton:hover { color: #b31217; background: rgba(179, 18, 23, 0.1); }
 .commentButton:disabled { color: #ccc; cursor: not-allowed; }
 
-/* Headers */
+/* Headers - SIDEBAR DESKTOP */
 .memoriesHeader {
   display: flex; 
   justify-content: space-between; 
   align-items: center;
   margin-bottom: 16px; 
-  padding-bottom: 8px; 
+  padding: 0 0 8px 0; 
   border-bottom: 2px solid #b31217;
-  background: #f7f7fa;
+  background: #fff;
   position: sticky;
-  top: 80px;
+  top: 70px;
   z-index: 9;
 }
 
@@ -385,8 +393,6 @@
   color: inherit; 
   font-size: 0.9rem; 
 }
-
-
 
 /* Recommended videos */
 .recommendedVideosSection { 
@@ -871,12 +877,10 @@
     flex-shrink: 0;
   }
 
-  /* Masquer sidebar et section desktop */
+  /* Masquer sidebar sur mobile */
   .rightCards { 
     display: none !important; 
   }
-
- 
 
   /* Bottom sheet overlay + panel */
   .sheetOverlay {

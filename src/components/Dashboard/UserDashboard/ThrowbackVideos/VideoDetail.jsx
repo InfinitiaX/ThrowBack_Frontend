@@ -2,35 +2,28 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api, { videoAPI } from '../../../../utils/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFacebook, faTwitter, faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import {
+  faSpinner,
+  faExclamationTriangle,
   faHeart,
   faComment,
   faEye,
   faShare,
-  faSpinner,
-  faExclamationTriangle,
   faCopy,
-  faTimes,
   faPlus
 } from '@fortawesome/free-solid-svg-icons';
+import { faFacebook, faTwitter, faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import styles from './VideoDetail.module.css';
 import PlaylistModal from './PlaylistModal';
 import MemoryCard from './MemoryCard';
 
-/* --------- Mini confirm --------- */
+/* ———————————————————————————————— */
+/* Helpers visuels optionnels (confirm + bottom-sheet) */
 const ConfirmDialog = ({ open, title='Delete', message='Are you sure?', onConfirm, onCancel }) => {
-  const cardRef = useRef(null);
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e) => { if (e.key === 'Escape') onCancel?.(); if (e.key === 'Enter') onConfirm?.(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open, onCancel, onConfirm]);
   if (!open) return null;
   return (
-    <div className={styles.modalOverlay} role="dialog" aria-modal="true" onMouseDown={(e)=>{ if (cardRef.current && !cardRef.current.contains(e.target)) onCancel?.(); }}>
-      <div className={styles.modalCard} ref={cardRef} onMouseDown={(e)=>e.stopPropagation()}>
+    <div className={styles.modalOverlay} role="dialog" aria-modal="true" onClick={onCancel}>
+      <div className={styles.modalCard} onClick={(e)=>e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h4>{title}</h4>
           <button className={styles.modalClose} onClick={onCancel} aria-label="Close">×</button>
@@ -45,105 +38,94 @@ const ConfirmDialog = ({ open, title='Delete', message='Are you sure?', onConfir
   );
 };
 
-/* --------- Bottom-sheet mobile pour les comments --------- */
 const CommentsSheet = ({ open, onClose, children }) => {
   if (!open) return null;
   return (
     <div className={styles.sheetOverlay} onClick={onClose}>
       <div className={styles.sheet} role="dialog" aria-modal="true" onClick={(e)=>e.stopPropagation()}>
-        <div className={styles.sheetHandle} />
+        <div className={styles.sheetHandle}/>
         <div className={styles.sheetHeader}>
           <h4>Comments</h4>
-          <button className={styles.sheetClose} onClick={onClose} aria-label="Close comments">×</button>
+          <button className={styles.sheetClose} onClick={onClose} aria-label="Close">×</button>
         </div>
         <div className={styles.sheetBody}>{children}</div>
       </div>
     </div>
   );
 };
+/* ———————————————————————————————— */
 
 const VideoDetail = () => {
   const { id } = useParams();
 
-  /* Video + recommandations */
+  // Vidéo
   const [video, setVideo] = useState(null);
-  const [allVideos, setAllVideos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [videosLoading, setVideosLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error,   setError]   = useState(null);
 
-  /* Interactions vidéo */
+  // Recommandées (optionnel)
+  const [allVideos, setAllVideos] = useState([]);
+  const [videosLoading, setVideosLoading] = useState(false);
+
+  // Stats vidéo
   const [userLiked, setUserLiked] = useState(false);
   const [viewCount, setViewCount] = useState(0);
   const [likeCount, setLikeCount] = useState(0);
-  const [isLiking, setIsLiking] = useState(false);
+  const [isLiking,  setIsLiking]  = useState(false);
 
-  /* Comments (memories) */
-  const [memories, setMemories] = useState([]); // { id, content, replies: [...] }
+  // Comments & replies
+  const [memories, setMemories] = useState([]);      // [{ id, content, replies:[{id,...}] }]
   const [memoriesLoading, setMemoriesLoading] = useState(false);
   const [memoryText, setMemoryText] = useState('');
 
-  /* UI divers */
+  // UI
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
   const [showCommentsSheet, setShowCommentsSheet] = useState(false);
-  const [showShareOptions, setShowShareOptions] = useState(false);
+  const [showShareOptions,  setShowShareOptions]  = useState(false);
   const [confirm, setConfirm] = useState({ open:false, onConfirm:null });
 
-  /* Anti course conditions */
-  const requestRef = useRef({ video:0, memories:0 });
+  // anti-race conditions
+  const reqRef = useRef({ video:0, memories:0 });
 
-  const baseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
-
-  /* ------------ INIT ------------- */
-  useEffect(() => { fetchAllVideos(); }, []);
-  useEffect(() => {
-    if (!id) return;
-    fetchVideoById(id);
-    /* on force un fetch "strict" des comments pour CETTE vidéo */
-    fetchVideoMemoriesStrict(id);
-    window.scrollTo(0,0);
-    localStorage.setItem('currentVideoId', id);
-  }, [id]);
-
-  /* ------------ Fetch vidéos ------------- */
-  const fetchAllVideos = async () => {
+  /* ——— init ——— */
+  useEffect(() => { (async () => {
     try {
       setVideosLoading(true);
       const list = await videoAPI.getAllVideos({ type:'music', limit:'50' });
-      setAllVideos(Array.isArray(list)? list : []);
+      setAllVideos(Array.isArray(list) ? list : []);
     } finally { setVideosLoading(false); }
-  };
+  })(); }, []);
 
+  useEffect(() => {
+    if (!id) return;
+    // reset pour nouvelle vidéo
+    setMemories([]); setMemoryText('');
+    fetchVideoById(id);
+    fetchVideoMemories(id);
+    window.scrollTo(0, 0);
+  }, [id]);
+
+  /* ——— fetch vidéo ——— */
   const fetchVideoById = async (videoId) => {
-    const token = ++requestRef.current.video;
+    const token = ++reqRef.current.video;
     try {
       setLoading(true); setError(null);
       const data = await videoAPI.getVideoById(videoId);
-      if (token !== requestRef.current.video) return;
-      if (!data) { setError('Unable to load video'); return; }
+      if (token !== reqRef.current.video) return; // ignore obsolète
       setVideo(data);
-      setUserLiked(Boolean(data.userInteraction?.liked));
-      setViewCount(data.vues || 0);
-      setLikeCount(data.likes || 0);
-    } catch {
-      if (token !== requestRef.current.video) return;
-      setError('Error loading video');
+      setUserLiked(Boolean(data?.userInteraction?.liked));
+      setViewCount(data?.vues || 0);
+      setLikeCount(data?.likes || 0);
+    } catch (e) {
+      if (token !== reqRef.current.video) return;
+      setError('Failed to load video');
     } finally {
-      if (token === requestRef.current.video) setLoading(false);
+      if (token === reqRef.current.video) setLoading(false);
     }
   };
 
-  /* ------------ Fetch comments/replies (STRICT par vidéo) ------------- */
-  const normalizeId = (x) => (x? x.toString() : '');
-  const belongsToVideo = (m, videoId) => {
-    const vid =
-      (m.video && typeof m.video === 'object' ? m.video._id : null) ||
-      (typeof m.video === 'string' ? m.video : null) ||
-      m.videoId || m.video_id;
-    return normalizeId(vid) === normalizeId(videoId);
-  };
-
-  const normalizeReply = (r) => ({
+  /* ——— normalisation mémoire & reply ——— */
+  const normReply = (r) => ({
     id: r._id || r.id,
     content: r.contenu || r.content || '',
     likes: r.likes || 0,
@@ -153,74 +135,52 @@ const VideoDetail = () => {
     createdAt: r.createdAt
   });
 
-  const normalizeMemory = (m, currentVideo) => ({
+  const normMemory = (m) => ({
     id: m._id || m.id,
-    username:
-      (m.auteur && `${m.auteur.prenom || ''} ${m.auteur.nom || ''}`.trim()) ||
-      m.username || 'User',
+    username: (m.auteur && `${m.auteur.prenom || ''} ${m.auteur.nom || ''}`.trim()) || m.username || 'User',
     type: m.type || 'posted',
     imageUrl: m.auteur?.photo_profil || m.imageUrl || '/images/default-avatar.jpg',
     content: m.contenu || m.content || '',
     likes: m.likes || 0,
     userInteraction: m.userInteraction || { liked:false, disliked:false, isAuthor:false },
-    videoArtist: m.video?.artiste || m.videoArtist || currentVideo?.artiste || 'Artist',
-    videoTitle:  m.video?.titre   || m.videoTitle  || currentVideo?.titre   || 'Title',
-    videoYear:   m.video?.annee   || m.videoYear   || currentVideo?.annee   || '—',
-    replies: Array.isArray(m.replies) ? m.replies.map(normalizeReply) : []
+    // meta vidéo (utile à l’affichage dans MemoryCard)
+    videoArtist: m.video?.artiste || video?.artiste || 'Artist',
+    videoTitle:  m.video?.titre   || video?.titre   || 'Title',
+    videoYear:   m.video?.annee   || video?.annee   || '—',
+    // replies
+    replies: Array.isArray(m.replies) ? m.replies.map(normReply) : []
   });
 
-  /** ALWAYS hits the strict endpoint first, then merges safely with cache (no overwrite) */
-  const fetchVideoMemoriesStrict = async (videoId) => {
-    const token = ++requestRef.current.memories;
+  const belongsTo = (m, videoId) => {
+    const vid =
+      (m.video && typeof m.video === 'object' ? m.video._id : null) ||
+      (typeof m.video === 'string' ? m.video : null) ||
+      m.videoId || m.video_id;
+    return vid && vid.toString() === videoId.toString();
+  };
+
+  /* ——— fetch comments (par vidéo) ——— */
+  const fetchVideoMemories = async (videoId) => {
+    const token = ++reqRef.current.memories;
     try {
       setMemoriesLoading(true);
-
-      // 1) strict route (prioritaire) — utils/api expose déjà cette route publique
-      let list = await videoAPI.getVideoMemories(videoId); // /api/public/videos/:id/memories  :contentReference[oaicite:1]{index=1}
-      list = Array.isArray(list) ? list.filter(m => belongsToVideo(m, videoId)) : [];
-
-      // 2) merge éventuel avec cache local (sans écraser ce qui vient d’être posté en optimiste)
-      try {
-        const cached = localStorage.getItem('allMemories');
-        if (cached) {
-          const parsed = JSON.parse(cached).filter(m => belongsToVideo(m, videoId));
-          // dédupe par id
-          const ids = new Set(list.map(m => (m._id || m.id)));
-          const merged = [...list, ...parsed.filter(m => !ids.has(m._id || m.id))];
-          list = merged;
-        }
-      } catch {}
-
-      if (token !== requestRef.current.memories) return;
-      setMemories(list.map(m => normalizeMemory(m, video)));
+      let list = await videoAPI.getVideoMemories(videoId); // route stricte côté API utilitaire
+      list = Array.isArray(list) ? list.filter(m => belongsTo(m, videoId)) : [];
+      if (token !== reqRef.current.memories) return;
+      setMemories(list.map(normMemory));
     } catch {
-      // fallback très simple: aucun écrasement
-      if (token !== requestRef.current.memories) return;
-      setMemories((cur) => cur); // conserve l’existant si l’appel échoue
+      if (token !== reqRef.current.memories) return;
+      setMemories([]);
     } finally {
-      if (token === requestRef.current.memories) setMemoriesLoading(false);
+      if (token === reqRef.current.memories) setMemoriesLoading(false);
     }
   };
 
-  /* ------------ Décompte affiché (YouTube-like = nb de root comments) ------------- */
-  const commentsCount = memories.length;
-
-  /* ------------ Actions vidéo ------------- */
-  const handleLikeVideo = async () => {
-    if (!video?._id || isLiking) return;
-    setIsLiking(true);
-    setUserLiked((v)=>!v);
-    setLikeCount((c)=> userLiked ? Math.max(0, c-1) : c+1);
-    try { await videoAPI.likeVideo?.(video._id); } catch {}
-    setIsLiking(false);
-  };
-
-  /* ------------ Actions comments ------------- */
+  /* ——— add comment (optimiste + remplacement par la réponse serveur) ——— */
   const handleSendComment = async () => {
-    const text = memoryText.trim();
-    if (!text || !id) return;
+    const text = (memoryText || '').trim();
+    if (!text) return;
 
-    // 1) Optimistic add (ne disparaît plus)
     const tmpId = `tmp-${Date.now()}`;
     setMemories((arr) => [{
       id: tmpId,
@@ -230,174 +190,117 @@ const VideoDetail = () => {
       content: text,
       likes: 0,
       userInteraction: { liked:false, disliked:false, isAuthor:true },
-      videoArtist: video?.artiste,
-      videoTitle: video?.titre,
-      videoYear: video?.annee,
+      videoArtist: video?.artiste, videoTitle: video?.titre, videoYear: video?.annee,
       replies: []
     }, ...arr]);
     setMemoryText('');
 
-    // 2) POST robuste (plusieurs fallbacks)
     try {
-      // a) route publique liée à la vidéo (si présente côté backend)
-      try {
-        const r = await api.post(`/api/public/videos/${id}/memories`, { contenu:text });
-        const created = r?.data?.data || r?.data;
-        if (created && (created._id || created.id)) {
-          setMemories((arr)=>arr.map(m => m.id===tmpId ? normalizeMemory(created, video) : m));
-          // alimente le cache
-          try {
-            const cache = JSON.parse(localStorage.getItem('allMemories') || '[]');
-            localStorage.setItem('allMemories', JSON.stringify([created, ...cache]));
-          } catch {}
-          return;
-        }
-      } catch {}
-
-      // b) route auth
-      try {
-        const r = await api.post('/api/memories', { contenu:text, video:id });
-        const created = r?.data?.data || r?.data;
-        if (created && (created._id || created.id)) {
-          setMemories((arr)=>arr.map(m => m.id===tmpId ? normalizeMemory(created, video) : m));
-          try {
-            const cache = JSON.parse(localStorage.getItem('allMemories') || '[]');
-            localStorage.setItem('allMemories', JSON.stringify([created, ...cache]));
-          } catch {}
-          return;
-        }
-      } catch {}
-
-      // c) route publique simple
-      const r = await api.post('/api/public/memories', { contenu:text, video:id });
-      const created = r?.data?.data || r?.data;
+      // utilise ton helper → /api/public/videos/:id/memories (fallback interne) :contentReference[oaicite:3]{index=3}
+      const res = await videoAPI.addMemory(id, text);
+      const created = res?.data || res; // compat
       if (created && (created._id || created.id)) {
-        setMemories((arr)=>arr.map(m => m.id===tmpId ? normalizeMemory(created, video) : m));
-        try {
-          const cache = JSON.parse(localStorage.getItem('allMemories') || '[]');
-          localStorage.setItem('allMemories', JSON.stringify([created, ...cache]));
-        } catch {}
+        setMemories((arr)=>arr.map(m => m.id === tmpId ? normMemory(created) : m));
       } else {
-        // refetch strict si pas de payload exploitable
-        fetchVideoMemoriesStrict(id);
+        // en dernier recours, refetch strict
+        fetchVideoMemories(id);
       }
     } catch {
-      // rollback soft: on laisse l’optimiste (ou on peut la retirer si tu préfères)
+      // on laisse l’optimiste (ou retire si tu préfères)
     }
   };
 
-  const handleLikeMemory = async (memoryId) => {
+  /* ——— like comment (et reply: même endpoint côté utilitaire) ——— */
+  const handleToggleLikeMemory = async (memoryId) => {
     setMemories((arr)=>arr.map(m => m.id===memoryId
-      ? { ...m, userInteraction:{ ...(m.userInteraction||{}), liked: !m.userInteraction?.liked }, likes: m.userInteraction?.liked ? Math.max(0,(m.likes||0)-1) : (m.likes||0)+1 }
+      ? { ...m, userInteraction:{ ...(m.userInteraction||{}), liked: !m.userInteraction?.liked },
+          likes: m.userInteraction?.liked ? Math.max(0,(m.likes||0)-1) : (m.likes||0)+1 }
       : m
     ));
-    try {
-      // utilitaire si dispo, sinon endpoint direct
-      if (videoAPI.likeMemory) await videoAPI.likeMemory(memoryId);
-      else await api.post(`/api/memories/${memoryId}/like`);
-    } catch {}
+    try { await videoAPI.likeMemory(memoryId); } catch {}
   };
 
-  const handleAddReply = async (memoryId, text) => {
-    const replyTmp = {
-      id: `tmp-r-${Date.now()}`,
-      content: text,
-      likes: 0,
-      userInteraction: { liked:false, disliked:false, isAuthor:true },
-      username: 'You'
-    };
+  /* ——— replies ——— */
+  const addReply = async (memoryId, text) => {
+    const replyTmp = { id:`tmp-r-${Date.now()}`, content:text, likes:0, userInteraction:{ liked:false, disliked:false, isAuthor:true }, username:'You' };
     setMemories((arr)=>arr.map(m => m.id===memoryId ? { ...m, replies:[replyTmp, ...m.replies] } : m));
+
     try {
-      // auth puis public
+      // on tente d’abord route interne, puis publique
       try {
         const r = await api.post(`/api/memories/${memoryId}/replies`, { contenu:text });
         const created = r?.data?.data || r?.data;
         if (created && (created._id || created.id)) {
           setMemories((arr)=>arr.map(m => {
             if (m.id !== memoryId) return m;
-            const fixed = m.replies.map(rep => rep.id===replyTmp.id ? normalizeReply(created) : rep);
-            return { ...m, replies: fixed };
+            return { ...m, replies: m.replies.map(rep => rep.id===replyTmp.id ? normReply(created) : rep) };
           }));
           return;
         }
       } catch {}
-      const r = await api.post(`/api/public/memories/${memoryId}/replies`, { contenu:text });
-      const created = r?.data?.data || r?.data;
-      if (created && (created._id || created.id)) {
+      const r2 = await api.post(`/api/public/memories/${memoryId}/replies`, { contenu:text });
+      const created2 = r2?.data?.data || r2?.data;
+      if (created2 && (created2._id || created2.id)) {
         setMemories((arr)=>arr.map(m => {
           if (m.id !== memoryId) return m;
-          const fixed = m.replies.map(rep => rep.id===replyTmp.id ? normalizeReply(created) : rep);
-          return { ...m, replies: fixed };
+          return { ...m, replies: m.replies.map(rep => rep.id===replyTmp.id ? normReply(created2) : rep) };
         }));
       } else {
-        fetchVideoMemoriesStrict(id);
+        fetchVideoMemories(id);
       }
-    } catch {
-      // noop: on laisse l’optimiste
-    }
+    } catch { /* on garde l’optimiste */ }
   };
 
-  const handleLikeReply = async (memoryId, replyId) => {
+  const toggleLikeReply = async (memoryId, replyId) => {
     setMemories((arr)=>arr.map(m => {
       if (m.id !== memoryId) return m;
       const replies = m.replies.map(r => r.id===replyId
-        ? { ...r, userInteraction:{ ...(r.userInteraction||{}), liked: !r.userInteraction?.liked }, likes: r.userInteraction?.liked ? Math.max(0,(r.likes||0)-1) : (r.likes||0)+1 }
+        ? { ...r, userInteraction:{ ...(r.userInteraction||{}), liked: !r.userInteraction?.liked },
+            likes: r.userInteraction?.liked ? Math.max(0,(r.likes||0)-1) : (r.likes||0)+1 }
         : r
       );
       return { ...m, replies };
     }));
     try {
-      await api.post(`/api/memories/${memoryId}/replies/${replyId}/like`);
-    } catch {
-      try { await api.post(`/api/public/memories/${memoryId}/replies/${replyId}/like`); } catch {}
-    }
+      // comme dans ton helper: même endpoint de like pour une reply (id de reply) :contentReference[oaicite:4]{index=4}
+      await videoAPI.likeMemory(replyId);
+    } catch {}
   };
 
-  const handleDeleteMemory = (memoryId) => {
+  const deleteReply = async (memoryId, replyId) => {
     setConfirm({
       open:true,
       onConfirm: async () => {
         setConfirm({ open:false, onConfirm:null });
-        setMemories((arr)=>arr.filter(m=>m.id!==memoryId));
-        try {
-          await api.delete(`/api/memories/${memoryId}`);
-        } catch {
-          try { await api.delete(`/api/public/memories/${memoryId}`); }
-          catch { fetchVideoMemoriesStrict(id); }
-        }
-      }
-    });
-  };
-
-  const handleDeleteReply = (memoryId, replyId) => {
-    setConfirm({
-      open:true,
-      onConfirm: async () => {
-        setConfirm({ open:false, onConfirm:null });
-        setMemories((arr)=>arr.map(m => {
-          if (m.id !== memoryId) return m;
-          return { ...m, replies: m.replies.filter(r => r.id !== replyId) };
-        }));
+        setMemories((arr)=>arr.map(m => m.id===memoryId ? { ...m, replies: m.replies.filter(r => r.id !== replyId) } : m));
         try {
           await api.delete(`/api/memories/${memoryId}/replies/${replyId}`);
         } catch {
           try { await api.delete(`/api/public/memories/${memoryId}/replies/${replyId}`); }
-          catch { fetchVideoMemoriesStrict(id); }
+          catch { fetchVideoMemories(id); }
         }
       }
     });
   };
 
-  /* ------------ Share helpers ------------- */
-  const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
-  const copyLink = async () => {
-    try { await navigator.clipboard.writeText(currentUrl); setShowShareOptions(false); } catch {}
+  /* ——— like vidéo ——— */
+  const handleLikeVideo = async () => {
+    if (!video?._id || isLiking) return;
+    setIsLiking(true);
+    setUserLiked(v => !v);
+    setLikeCount(c => userLiked ? Math.max(0,c-1) : c+1);
+    try { await videoAPI.likeVideo(video._id); } catch {}
+    setIsLiking(false);
   };
 
-  /* ------------ Renders ------------- */
-  const renderMemoriesList = () => (
+  /* ——— render helpers ——— */
+  const commentsCount = memories.length; // nb de commentaires racines (style YouTube)
+  const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const copyLink = async () => { try { await navigator.clipboard.writeText(currentUrl); setShowShareOptions(false);} catch {} };
+
+  const renderComments = () => (
     <>
-      {/* Zone de saisie */}
+      {/* zone de saisie */}
       <div className={styles.memoryInputContainer}>
         <input
           className={styles.memoryInput}
@@ -415,23 +318,22 @@ const VideoDetail = () => {
       {memoriesLoading ? (
         <div className={styles.recommendedLoading}><FontAwesomeIcon icon={faSpinner} spin/> Loading comments…</div>
       ) : (
-        (memories||[]).map(m => (
+        memories.map(m => (
           <MemoryCard
             key={m.id}
             memory={m}
-            baseUrl={baseUrl}
             currentVideoId={id}
-            onLike={handleLikeMemory}
-            onAddReply={handleAddReply}
-            onLikeReply={handleLikeReply}
-            onDeleteReply={handleDeleteReply}
-            onRequestDelete={handleDeleteMemory}
+            onLike={handleToggleLikeMemory}
+            onAddReply={addReply}
+            onLikeReply={toggleLikeReply}
+            onDeleteReply={deleteReply}
           />
         ))
       )}
     </>
   );
 
+  /* ——— UI ——— */
   if (loading) {
     return (
       <div className={styles.throwbackVideosBg}>
@@ -456,6 +358,7 @@ const VideoDetail = () => {
   return (
     <div className={styles.throwbackVideosBg}>
       <div className={styles.mainContentWrap}>
+        {/* Colonne principale */}
         <main className={styles.mainContent}>
           {/* Player */}
           <div className={styles.videoPlayerContainer}>
@@ -472,7 +375,7 @@ const VideoDetail = () => {
             </div>
           </div>
 
-          {/* Infos + actions */}
+          {/* Titre + actions */}
           <div className={styles.videoInfoBar}>
             <h2 className={styles.videoTitle}>
               <span style={{fontWeight:700}}>{video?.artiste || 'Artist'}</span> – {video?.titre || 'Title'} ({video?.annee || '----'})
@@ -481,7 +384,9 @@ const VideoDetail = () => {
               <div className={`${styles.statItem} ${userLiked ? styles.liked : ''}`} onClick={handleLikeVideo}>
                 <FontAwesomeIcon icon={faHeart}/><span>{likeCount}</span>
               </div>
-              <div className={styles.statItem}><FontAwesomeIcon icon={faEye}/><span>{viewCount}</span></div>
+              <div className={styles.statItem}>
+                <FontAwesomeIcon icon={faEye}/><span>{viewCount}</span>
+              </div>
               <div className={styles.statItem} onClick={()=>setShowCommentsSheet(true)}>
                 <FontAwesomeIcon icon={faComment}/><span>{commentsCount}</span>
               </div>
@@ -502,7 +407,7 @@ const VideoDetail = () => {
             </div>
           </div>
 
-          {/* Recommandations */}
+          {/* Recommandations (mini) */}
           <section className={styles.recommendedVideosSection}>
             <h3 className={styles.recommendedSectionTitle}>Recommended</h3>
             <div className={styles.recommendedVideosGrid}>
@@ -529,8 +434,10 @@ const VideoDetail = () => {
           </section>
         </main>
 
-        {/* Sidebar desktop : comments */}
-        <aside className={styles.rightCards}>{renderMemoriesList()}</aside>
+        {/* Sidebar (desktop) : comments */}
+        <aside className={styles.rightCards}>
+          {renderComments()}
+        </aside>
       </div>
 
       {/* Modales */}
@@ -542,7 +449,7 @@ const VideoDetail = () => {
         />
       )}
       <CommentsSheet open={showCommentsSheet} onClose={()=>setShowCommentsSheet(false)}>
-        {renderMemoriesList()}
+        {renderComments()}
       </CommentsSheet>
       <ConfirmDialog open={confirm.open} onCancel={()=>setConfirm({open:false,onConfirm:null})} onConfirm={()=>confirm.onConfirm?.()}/>
     </div>

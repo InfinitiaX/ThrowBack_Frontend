@@ -13,13 +13,11 @@ import {
 
 const MemoryCard = ({
   memory,
-  baseUrl = '',
   currentVideoId,
-  onLike,
-  onAddReply,
-  onLikeReply,
-  onDeleteReply,
-  onRequestDelete
+  onLike,        // (memoryId) => void
+  onAddReply,    // (memoryId, text) => Promise<void>
+  onLikeReply,   // (memoryId, replyId) => Promise<void>
+  onDeleteReply  // (memoryId, replyId) => Promise<void>
 }) => {
   const [replyText, setReplyText] = useState('');
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -27,32 +25,16 @@ const MemoryCard = ({
 
   if (!memory) return null;
 
-  const getImageUrl = (path) => {
-    if (!path) return '/images/default-avatar.jpg';
-    if (path.startsWith('http') || path.startsWith('/images/')) return path;
-    const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-    const cleanPath = path.startsWith('/') ? path : `/${path}`;
-    return `${cleanBaseUrl}${cleanPath}`;
-  };
-
-  const getMemoryTypeText = () => {
-    switch (memory.type) {
-      case 'shared': return 'just shared a throwback to the iconic music video:';
-      case 'posted':
-      default: return 'posted a memory on the music video:';
-    }
-  };
-
   const isMatchingCurrentVideo = () => {
     if (!currentVideoId) return true;
     const cur = currentVideoId.toString();
-    const mem = (memory.videoId || memory.originalVideoId || memory.currentVideoId || '').toString();
-    return mem === cur;
+    const mem = (memory.videoId || memory.originalVideoId || memory.currentVideoId || memory.video?._id || '').toString();
+    return mem === cur || !mem; // on reste permissif si le backend ne renvoie pas l’info
   };
 
-  const handleLike = () => { onLike && memory.id && onLike(memory.id); };
+  const handleLike = () => onLike?.(memory.id);
 
-  const handleSubmitReply = async (e) => {
+  const submitReply = async (e) => {
     e.preventDefault();
     const text = replyText.trim();
     if (!text || isSubmitting) return;
@@ -61,7 +43,9 @@ const MemoryCard = ({
       await onAddReply?.(memory.id, text);
       setReplyText('');
       setShowReplyForm(false);
-    } finally { setIsSubmitting(false); }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const cardStyle = isMatchingCurrentVideo() ? {} : { borderLeft: '3px solid #e74c3c' };
@@ -72,30 +56,20 @@ const MemoryCard = ({
       <div className={styles.memoryHeader}>
         <div className={styles.memoryHeaderLeft}>
           <img
-            src={getImageUrl(memory.imageUrl || memory.auteur?.photo_profil)}
+            src={memory.imageUrl || '/images/default-avatar.jpg'}
             alt={`User ${memory.username || ''}`}
             className={styles.memoryUserImage}
             onError={(e) => { e.target.src = '/images/default-avatar.jpg'; }}
           />
           <div className={styles.memoryHeaderMeta}>
-            <span className={styles.memoryUsername}>
-              {memory.username ||
-                (memory.auteur && `${memory.auteur.prenom || ''} ${memory.auteur.nom || ''}`.trim()) ||
-                'User'}
+            <span className={styles.memoryUsername}>{memory.username || 'User'}</span>
+            <span className={styles.memoryType}>
+              {memory.type === 'shared'
+                ? 'just shared a throwback to the iconic music video:'
+                : 'posted a memory on the music video:'}
             </span>
-            <span className={styles.memoryType}>{getMemoryTypeText()}</span>
           </div>
         </div>
-
-        {memory.userInteraction?.isAuthor && (
-          <button
-            className={styles.deleteButton}
-            onClick={() => onRequestDelete?.(memory.id)}
-            title="Delete this comment"
-          >
-            <FontAwesomeIcon icon={faTrash} />
-          </button>
-        )}
       </div>
 
       {/* Body */}
@@ -103,14 +77,12 @@ const MemoryCard = ({
         <div className={styles.memoryVideoLine}>
           <strong>{memory.videoArtist || 'Unknown artist'}</strong> - {memory.videoTitle || 'Untitled'} ({memory.videoYear || '----'})
         </div>
-
         {!isMatchingCurrentVideo() && (
           <div className={styles.wrongVideoWarning}>
             <FontAwesomeIcon icon={faExclamationTriangle} className={styles.warningIcon} />
             <span>This memory belongs to another video</span>
           </div>
         )}
-
         {memory.content && <div className={styles.memoryText}>{memory.content}</div>}
       </div>
 
@@ -132,13 +104,13 @@ const MemoryCard = ({
         </div>
       </div>
 
-      {/* Reply form */}
+      {/* Reply form (stylée) */}
       {showReplyForm && (
-        <form className={styles.replyForm} onSubmit={handleSubmitReply}>
+        <form className={styles.replyForm} onSubmit={submitReply}>
           <input
             type="text"
             className={styles.replyInput}
-            placeholder="Reply..."
+            placeholder="Reply…"
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
           />
@@ -148,7 +120,7 @@ const MemoryCard = ({
         </form>
       )}
 
-      {/* Replies */}
+      {/* Replies (avec style CSS existant) */}
       {Array.isArray(memory.replies) && memory.replies.length > 0 && (
         <div className={styles.repliesContainer}>
           {memory.replies.map((r) => (

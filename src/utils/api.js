@@ -1,4 +1,4 @@
-// utils/api.js 
+// components/utils/api.js 
 import axios from 'axios';
 import podcastAPI from './podcastAPI';
 import playlistAPI from './playlistAPI';

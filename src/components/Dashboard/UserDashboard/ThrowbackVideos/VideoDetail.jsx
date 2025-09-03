@@ -73,25 +73,25 @@ const ConfirmDialog = ({
     </div>
   );
 };
-/* ========= /Confirm Dialog ========= */
 
-/* ===== Bottom sheet mobile ===== */
-const CommentsSheet = ({ open, onClose, children }) => {
+/* ===== Universal Comments Modal (Bottom sheet style) ===== */
+const CommentsModal = ({ open, onClose, children }) => {
   if (!open) return null;
   return (
-    <div className={styles.sheetOverlay} onClick={onClose}>
-      <div className={styles.sheet} role="dialog" aria-modal="true" onClick={(e)=>e.stopPropagation()}>
-        <div className={styles.sheetHandle} />
-        <div className={styles.sheetHeader}>
+    <div className={styles.commentsOverlay} onClick={onClose}>
+      <div className={styles.commentsModal} role="dialog" aria-modal="true" onClick={(e)=>e.stopPropagation()}>
+        <div className={styles.commentsHandle} />
+        <div className={styles.commentsHeader}>
           <h4>Comments</h4>
-          <button className={styles.sheetClose} onClick={onClose} aria-label="Close comments">×</button>
+          <button className={styles.commentsClose} onClick={onClose} aria-label="Close comments">
+            <FontAwesomeIcon icon={faTimes} />
+          </button>
         </div>
-        <div className={styles.sheetBody}>{children}</div>
+        <div className={styles.commentsBody}>{children}</div>
       </div>
     </div>
   );
 };
-/* ===== /Bottom sheet mobile ===== */
 
 const VideoDetail = () => {
   const { id } = useParams();
@@ -105,7 +105,6 @@ const VideoDetail = () => {
   const [memories, setMemories] = useState([]);
   const [allMemories, setAllMemories] = useState([]);
   const [memoryText, setMemoryText] = useState('');
-  const [showAllMemories, setShowAllMemories] = useState(false);
 
   // Interaction states
   const [userLiked, setUserLiked] = useState(false);
@@ -121,7 +120,7 @@ const VideoDetail = () => {
   const [showShareOptions, setShowShareOptions] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
 
-  // NEW: bottom-sheet open/close for mobile
+  // Universal comments modal
   const [commentsOpen, setCommentsOpen] = useState(false);
 
   // Confirm modal
@@ -251,7 +250,7 @@ const VideoDetail = () => {
         }
       } catch {}
 
-      // 3) strict API (privé -> public fallback gardé pour ne pas casser la logique)
+      // 3) API call
       const apiMem = await videoAPI.getVideoMemories(videoId);
       if (myToken !== requestTokenRef.current.memories) return;
       if (Array.isArray(apiMem)) {
@@ -419,7 +418,7 @@ const VideoDetail = () => {
 
   const handleLikeMemory = async (memoryId) => {
     try {
-      // optimistic (handles both cards and replies)
+      // optimistic update
       setMemories(memories.map(m => (m.id === memoryId ? {
         ...m,
         likes: m.userInteraction?.liked ? Math.max(0, (m.likes || 0) - 1) : (m.likes || 0) + 1,
@@ -474,17 +473,15 @@ const VideoDetail = () => {
       'Are you sure you want to delete this item? This action cannot be undone.',
       async () => {
         try {
-          // optimistic remove (card or reply)
           setMemories(prev =>
             prev
               .map(m => {
-                if (m.id === memoryId) return null; // remove main card
+                if (m.id === memoryId) return null;
                 return { ...m, replies: (m.replies || []).filter(r => (r.id || r._id) !== memoryId) };
               })
               .filter(Boolean)
           );
 
-          // API delete (internal -> public)
           try {
             await api.delete(`/api/memories/${memoryId}`);
           } catch (apiErr) {
@@ -493,7 +490,6 @@ const VideoDetail = () => {
             } catch {
               if (apiErr.response?.status === 401) alert('You must be logged in to delete this item');
               else if (apiErr.response?.status === 403) alert("You don't have permission to delete this item");
-              // restore by re-fetch
               fetchVideoMemories(id);
             }
           }
@@ -570,7 +566,6 @@ const VideoDetail = () => {
       setIsAddingMemory(true);
       let serverMemory = null;
 
-      // Public d'abord (réduit 401/404 en console)
       try {
         const res = await api.post(`/api/public/videos/${id}/memories`, {
           contenu: memoryText.trim(), video_id: id, videoId: id, video: id
@@ -578,7 +573,6 @@ const VideoDetail = () => {
         if (res.data?.success) serverMemory = res.data.data;
       } catch {}
 
-      // Fallback privé
       if (!serverMemory) {
         const fb = await api.post(`/api/videos/${id}/memories`, {
           contenu: memoryText.trim(), video_id: id, videoId: id, video: id
@@ -656,7 +650,7 @@ const VideoDetail = () => {
     return videoId ? `https://www.youtube.com/embed/${videoId}` : safe;
   };
 
-  /* ---------- Small child: recommended video ---------- */
+  /* ---------- RecommendedVideo component ---------- */
   const RecommendedVideo = ({ video: recommendedVideo }) => {
     if (!recommendedVideo) return null;
     const isCurrentVideo = video && recommendedVideo._id === video._id;
@@ -757,7 +751,7 @@ const VideoDetail = () => {
                 <span>{likeCount}</span>
               </div>
 
-              {/* NEW: Comments pill opens the bottom-sheet (shows total) */}
+              {/* Comments button opens universal modal */}
               <div
                 className={styles.statItem}
                 onClick={() => setCommentsOpen(true)}
@@ -813,14 +807,10 @@ const VideoDetail = () => {
             </div>
           </section>
         </main>
-
-        {/* (Optionnel) Sidebar héritée */}
-        <aside className={styles.rightCards} aria-hidden />
       </div>
 
-      {/* ===== Bottom sheet mobile pour les commentaires ===== */}
-      <CommentsSheet open={commentsOpen} onClose={() => setCommentsOpen(false)}>
-        {/* Champ "Share a memory" réutilisant les handlers existants */}
+      {/* ===== Universal Comments Modal ===== */}
+      <CommentsModal open={commentsOpen} onClose={() => setCommentsOpen(false)}>
         <form className={styles.memoryInputContainer} onSubmit={handleAddMemory}>
           <input
             className={styles.memoryInput}
@@ -860,9 +850,9 @@ const VideoDetail = () => {
         ) : (
           <div className={styles.emptyMemories}>Be the first to share a memory.</div>
         )}
-      </CommentsSheet>
+      </CommentsModal>
 
-      {/* Modales */}
+      {/* Modals */}
       {showPlaylistModal && (
         <PlaylistModal
           open={showPlaylistModal}

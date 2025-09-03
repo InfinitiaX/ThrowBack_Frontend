@@ -51,7 +51,9 @@ const MemoryCard = ({
     return mem === cur;
   };
 
-  const handleLike = () => { if (onLike && memory.id) onLike(memory.id); };
+  const handleLike = () => { 
+    if (onLike && memory.id) onLike(memory.id); 
+  };
 
   const handleSubmitReply = (e) => {
     e.preventDefault();
@@ -66,7 +68,18 @@ const MemoryCard = ({
     }
   };
 
-  const askDelete = () => { if (onRequestDelete) onRequestDelete(memory.id); };
+  const askDelete = () => { 
+    console.log("Request to delete memory:", memory.id);
+    if (onRequestDelete) onRequestDelete(memory.id); 
+  };
+
+  // FONCTION CORRIGÉE: Fonction pour demander la suppression d'une réponse
+  const handleDeleteReply = (replyId) => {
+    console.log("Request to delete reply:", replyId);
+    if (onRequestDelete) {
+      onRequestDelete(replyId);
+    }
+  };
 
   const cardStyle = isMatchingCurrentVideo() ? {} : { borderLeft: '3px solid #e74c3c' };
 
@@ -81,15 +94,15 @@ const MemoryCard = ({
             className={styles.memoryUserImage}
             onError={(e) => { e.target.src = '/images/default-avatar.jpg'; }}
           />
-        {/* Header Mempry */}
+        {/* Header Memory */}
         <div className={styles.memoryHeaderMeta}>
-        <span className={styles.memoryUsername}>
-          {memory.username || (memory.auteur && `${memory.auteur.prenom || ''} ${memory.auteur.nom || ''}`.trim()) || 'User'}
-        </span>
-        <span className={styles.memoryType}>
-          {getMemoryTypeText()}
-        </span>
-      </div>
+          <span className={styles.memoryUsername}>
+            {memory.username || (memory.auteur && `${memory.auteur.prenom || ''} ${memory.auteur.nom || ''}`.trim()) || 'User'}
+          </span>
+          <span className={styles.memoryType}>
+            {getMemoryTypeText()}
+          </span>
+        </div>
 
         </div>
 
@@ -170,13 +183,11 @@ const MemoryCard = ({
         </form>
       )}
 
-      {/* Replies */}
+      {/* Replies - SECTION MODIFIÉE */}
       {showReplies && replies.length > 0 && (
         <div className={styles.repliesSection}>
           {replies.map(reply => {
             const replyId = reply.id || reply._id;
-            const deleteReply = () => onRequestDelete && onRequestDelete(replyId);
-            const likeReply = () => onLike && onLike(replyId);
             return (
               <div key={replyId} className={styles.replyCard}>
                 <img
@@ -193,7 +204,7 @@ const MemoryCard = ({
                   <div className={styles.replyFooter}>
                     <div
                       className={`${styles.replyLikes} ${reply.userInteraction?.liked ? styles.liked : ''}`}
-                      onClick={likeReply}
+                      onClick={() => onLike && onLike(replyId)}
                       title={reply.userInteraction?.liked ? 'Unlike' : 'Like'}
                     >
                       <FontAwesomeIcon icon={faHeart} className={styles.replyIcon} />
@@ -202,7 +213,7 @@ const MemoryCard = ({
                     {reply.userInteraction?.isAuthor && (
                       <div
                         className={styles.replyDelete}
-                        onClick={deleteReply}
+                        onClick={() => handleDeleteReply(replyId)}
                         title="Delete this reply"
                       >
                         <FontAwesomeIcon icon={faTrash} className={styles.replyIcon} />

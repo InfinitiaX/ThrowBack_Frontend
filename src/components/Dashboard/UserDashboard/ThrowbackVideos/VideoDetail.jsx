@@ -77,6 +77,7 @@ const VideoDetail = () => {
   const [memories, setMemories] = useState([]);      // [{ id, content, replies:[{id,...}] }]
   const [memoriesLoading, setMemoriesLoading] = useState(false);
   const [memoryText, setMemoryText] = useState('');
+  const [addingMemory, setAddingMemory] = useState(false);
 
   // UI
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
@@ -143,15 +144,19 @@ const VideoDetail = () => {
     content: m.contenu || m.content || '',
     likes: m.likes || 0,
     userInteraction: m.userInteraction || { liked:false, disliked:false, isAuthor:false },
-    // meta vidéo (utile à l’affichage dans MemoryCard)
+    // meta vidéo (utile à l'affichage dans MemoryCard)
     videoArtist: m.video?.artiste || video?.artiste || 'Artist',
     videoTitle:  m.video?.titre   || video?.titre   || 'Title',
     videoYear:   m.video?.annee   || video?.annee   || '—',
+    // référence vidéo
+    video: m.video || { _id: m.videoId || m.video_id || id },
+    videoId: m.videoId || m.video_id || (m.video && typeof m.video === 'object' ? m.video._id : m.video) || id,
     // replies
     replies: Array.isArray(m.replies) ? m.replies.map(normReply) : []
   });
 
   const belongsTo = (m, videoId) => {
+    if (!m) return false;
     const vid =
       (m.video && typeof m.video === 'object' ? m.video._id : null) ||
       (typeof m.video === 'string' ? m.video : null) ||
@@ -164,13 +169,23 @@ const VideoDetail = () => {
     const token = ++reqRef.current.memories;
     try {
       setMemoriesLoading(true);
-      let list = await videoAPI.getVideoMemories(videoId); // route stricte côté API utilitaire
+      let list = await videoAPI.getVideoMemories(videoId);
       list = Array.isArray(list) ? list.filter(m => belongsTo(m, videoId)) : [];
       if (token !== reqRef.current.memories) return;
-      setMemories(list.map(normMemory));
-    } catch {
+      // Assurez-vous que les IDs sont bien des strings pour la comparaison
+      setMemories(prev => {
+        const newNormalized = list.map(normMemory);
+        // Conserver les commentaires temporaires qui ne sont pas encore dans la liste retournée
+        const tempMemories = prev.filter(m => m.id && m.id.toString().startsWith('tmp-'));
+        // Chercher les doublons par ID pour éviter de dupliquer
+        const existingIds = new Set(newNormalized.map(m => m.id && m.id.toString()));
+        const uniqueTemp = tempMemories.filter(m => !existingIds.has(m.id && m.id.toString()));
+        return [...uniqueTemp, ...newNormalized];
+      });
+    } catch (error) {
+      console.error("Error fetching memories:", error);
       if (token !== reqRef.current.memories) return;
-      setMemories([]);
+      // Ne pas écraser les memories existantes en cas d'erreur
     } finally {
       if (token === reqRef.current.memories) setMemoriesLoading(false);
     }
@@ -179,10 +194,13 @@ const VideoDetail = () => {
   /* ——— add comment (optimiste + remplacement par la réponse serveur) ——— */
   const handleSendComment = async () => {
     const text = (memoryText || '').trim();
-    if (!text) return;
+    if (!text || addingMemory) return;
 
+    setAddingMemory(true);
     const tmpId = `tmp-${Date.now()}`;
-    setMemories((arr) => [{
+    
+    // Ajout optimiste
+    const newMemory = {
       id: tmpId,
       username: 'You',
       type: 'posted',
@@ -190,23 +208,44 @@ const VideoDetail = () => {
       content: text,
       likes: 0,
       userInteraction: { liked:false, disliked:false, isAuthor:true },
-      videoArtist: video?.artiste, videoTitle: video?.titre, videoYear: video?.annee,
+      videoArtist: video?.artiste, 
+      videoTitle: video?.titre, 
+      videoYear: video?.annee,
+      video: { _id: id },
+      videoId: id,
       replies: []
-    }, ...arr]);
+    };
+
+    // Ajouter en tête de liste et vider l'input
+    setMemories(prev => [newMemory, ...prev]);
     setMemoryText('');
 
     try {
-      // utilise ton helper → /api/public/videos/:id/memories (fallback interne) :contentReference[oaicite:3]{index=3}
+      // Envoyer au serveur
       const res = await videoAPI.addMemory(id, text);
-      const created = res?.data || res; // compat
+      const created = res?.data || res;
+
       if (created && (created._id || created.id)) {
-        setMemories((arr)=>arr.map(m => m.id === tmpId ? normMemory(created) : m));
+        // Remplacement du temporaire par le réel (avec normalisation)
+        setMemories(prev => prev.map(m => 
+          m.id === tmpId ? normMemory({
+            ...created,
+            video: created.video || { _id: id }, 
+            videoId: created.videoId || id
+          }) : m
+        ));
       } else {
-        // en dernier recours, refetch strict
-        fetchVideoMemories(id);
+        // Refetcher tous les commentaires si la réponse est inattendue
+        await fetchVideoMemories(id);
       }
-    } catch {
-      // on laisse l’optimiste (ou retire si tu préfères)
+    } catch (error) {
+      console.error("Error adding memory:", error);
+      // Conserver le commentaire optimiste mais marquer comme erreur
+      setMemories(prev => prev.map(m => 
+        m.id === tmpId ? {...m, error: true, content: m.content + " (Error saving - retry later)"} : m
+      ));
+    } finally {
+      setAddingMemory(false);
     }
   };
 
@@ -222,33 +261,57 @@ const VideoDetail = () => {
 
   /* ——— replies ——— */
   const addReply = async (memoryId, text) => {
-    const replyTmp = { id:`tmp-r-${Date.now()}`, content:text, likes:0, userInteraction:{ liked:false, disliked:false, isAuthor:true }, username:'You' };
+    const replyTmp = { 
+      id:`tmp-r-${Date.now()}`, 
+      content:text, 
+      likes:0, 
+      userInteraction:{ liked:false, disliked:false, isAuthor:true }, 
+      username:'You' 
+    };
+    
+    // Ajout optimiste de la réponse
     setMemories((arr)=>arr.map(m => m.id===memoryId ? { ...m, replies:[replyTmp, ...m.replies] } : m));
 
     try {
-      // on tente d’abord route interne, puis publique
+      // Tentative route interne
+      let created = null;
       try {
         const r = await api.post(`/api/memories/${memoryId}/replies`, { contenu:text });
-        const created = r?.data?.data || r?.data;
-        if (created && (created._id || created.id)) {
-          setMemories((arr)=>arr.map(m => {
-            if (m.id !== memoryId) return m;
-            return { ...m, replies: m.replies.map(rep => rep.id===replyTmp.id ? normReply(created) : rep) };
-          }));
-          return;
-        }
-      } catch {}
-      const r2 = await api.post(`/api/public/memories/${memoryId}/replies`, { contenu:text });
-      const created2 = r2?.data?.data || r2?.data;
-      if (created2 && (created2._id || created2.id)) {
+        created = r?.data?.data || r?.data;
+      } catch (err) {
+        // Si échec, tentative route publique
+        const r2 = await api.post(`/api/public/memories/${memoryId}/replies`, { contenu:text });
+        created = r2?.data?.data || r2?.data;
+      }
+
+      if (created && (created._id || created.id)) {
+        // Remplacement du temporaire par le réel
         setMemories((arr)=>arr.map(m => {
           if (m.id !== memoryId) return m;
-          return { ...m, replies: m.replies.map(rep => rep.id===replyTmp.id ? normReply(created2) : rep) };
+          return { 
+            ...m, 
+            replies: m.replies.map(rep => 
+              rep.id === replyTmp.id ? normReply(created) : rep
+            ) 
+          };
         }));
       } else {
-        fetchVideoMemories(id);
+        // Si format inattendu, refetch complet
+        await fetchVideoMemories(id);
       }
-    } catch { /* on garde l’optimiste */ }
+    } catch (error) { 
+      console.error("Error adding reply:", error);
+      // Marquer la réponse temporaire comme erreur
+      setMemories((arr)=>arr.map(m => {
+        if (m.id !== memoryId) return m;
+        return { 
+          ...m, 
+          replies: m.replies.map(rep => 
+            rep.id === replyTmp.id ? {...rep, error: true, content: rep.content + " (Error saving)"} : rep
+          ) 
+        };
+      }));
+    }
   };
 
   const toggleLikeReply = async (memoryId, replyId) => {
@@ -262,9 +325,10 @@ const VideoDetail = () => {
       return { ...m, replies };
     }));
     try {
-      // comme dans ton helper: même endpoint de like pour une reply (id de reply) :contentReference[oaicite:4]{index=4}
       await videoAPI.likeMemory(replyId);
-    } catch {}
+    } catch (error) {
+      console.error("Error liking reply:", error);
+    }
   };
 
   const deleteReply = async (memoryId, replyId) => {
@@ -272,12 +336,20 @@ const VideoDetail = () => {
       open:true,
       onConfirm: async () => {
         setConfirm({ open:false, onConfirm:null });
+        // Suppression optimiste
         setMemories((arr)=>arr.map(m => m.id===memoryId ? { ...m, replies: m.replies.filter(r => r.id !== replyId) } : m));
+        
         try {
-          await api.delete(`/api/memories/${memoryId}/replies/${replyId}`);
-        } catch {
-          try { await api.delete(`/api/public/memories/${memoryId}/replies/${replyId}`); }
-          catch { fetchVideoMemories(id); }
+          // Tentative route interne puis publique
+          try {
+            await api.delete(`/api/memories/${memoryId}/replies/${replyId}`);
+          } catch {
+            await api.delete(`/api/public/memories/${memoryId}/replies/${replyId}`);
+          }
+        } catch (error) {
+          console.error("Error deleting reply:", error);
+          // En cas d'échec, refetch complet
+          fetchVideoMemories(id);
         }
       }
     });
@@ -309,13 +381,21 @@ const VideoDetail = () => {
           value={memoryText}
           onChange={(e)=>setMemoryText(e.target.value)}
           onKeyDown={(e)=>{ if (e.key==='Enter') handleSendComment(); }}
+          disabled={addingMemory}
         />
-        <button className={styles.commentButton} onClick={handleSendComment} aria-label="Send">
-          <FontAwesomeIcon icon={faComment}/>
+        <button 
+          className={`${styles.commentButton} ${addingMemory ? styles.disabled : ''}`} 
+          onClick={handleSendComment} 
+          aria-label="Send"
+          disabled={addingMemory || !memoryText.trim()}
+        >
+          {addingMemory ? 
+            <FontAwesomeIcon icon={faSpinner} spin/> : 
+            <FontAwesomeIcon icon={faComment}/>}
         </button>
       </div>
 
-      {memoriesLoading ? (
+      {memoriesLoading && memories.length === 0 ? (
         <div className={styles.recommendedLoading}><FontAwesomeIcon icon={faSpinner} spin/> Loading comments…</div>
       ) : (
         memories.map(m => (

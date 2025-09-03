@@ -114,8 +114,13 @@
 
 @media (max-width: 768px) {
   .mainContent { padding: 24px 16px; }
-  .title { font-size: 1.6rem; margin-bottom: 16px; }
-  .videosGrid { grid-template-columns: 1fr; gap: 16px; }
+  .title { 
+    font-size: 1.6rem; 
+    margin-bottom: 16px; 
+  }
+  .videosGrid { 
+    grid-template-columns: 1fr; 
+    gap: 16px; }
 }
 
 /* désactive toute ancienne sidebar/memories si encore présente par héritage */

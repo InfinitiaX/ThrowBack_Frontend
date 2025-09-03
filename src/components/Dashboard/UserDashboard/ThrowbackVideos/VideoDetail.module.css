@@ -413,6 +413,156 @@
   cursor:pointer
 }
 
+/* Styles pour la partie "reply" améliorée */
+.repliesContainer {
+  margin-top: 16px;
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 2px solid rgba(179, 18, 23, 0.3);
+}
+
+.replyItem {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.replyHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.replyUser {
+  font-weight: 600;
+  color: #333;
+}
+
+.replyDeleteBtn {
+  background: none;
+  border: none;
+  color: #777;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 4px;
+  border-radius: 50%;
+  transition: color 0.2s, background 0.2s;
+}
+
+.replyDeleteBtn:hover {
+  color: #b31217;
+  background: rgba(179, 18, 23, 0.1);
+}
+
+.replyText {
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+  color: #333;
+  word-break: break-word;
+}
+
+.replyFooter {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.replyLikeBtn {
+  background: none;
+  border: none;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 3px 6px;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.replyLikeBtn:hover {
+  color: #b31217;
+  background: rgba(179, 18, 23, 0.05);
+}
+
+.replyLikeBtn.liked {
+  color: #b31217;
+}
+
+/* Form de reply */
+.replyForm {
+  display: flex;
+  margin: 10px 0;
+  padding: 0 0 0 24px;
+  gap: 8px;
+}
+
+.replyInput {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 16px;
+  background: #fff;
+  font-size: 0.9rem;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+
+.replyInput:focus {
+  outline: none;
+  border-color: #b31217;
+  box-shadow: 0 0 0 2px rgba(179, 18, 23, 0.1);
+}
+
+.replySendBtn {
+  background: #b31217;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.replySendBtn:hover {
+  background: #cc1515;
+  transform: scale(1.05);
+}
+
+.replySendBtn:disabled {
+  background: #999;
+  cursor: not-allowed;
+}
+
+/* État désactivé pour le bouton d'envoi de commentaire */
+.commentButton.disabled {
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+/* Warning de vidéo non correspondante */
+.wrongVideoWarning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(231, 76, 60, 0.1);
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  color: #c0392b;
+}
+
+.warningIcon {
+  color: #e74c3c;
+}
+
 /* Responsive */
 @media (max-width:1200px){
   .recommendedVideosGrid{

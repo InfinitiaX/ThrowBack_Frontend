@@ -29,7 +29,7 @@ const MemoryCard = ({
     if (!currentVideoId) return true;
     const cur = currentVideoId.toString();
     const mem = (memory.videoId || memory.originalVideoId || memory.currentVideoId || memory.video?._id || '').toString();
-    return mem === cur || !mem; // on reste permissif si le backend ne renvoie pas l’info
+    return mem === cur || !mem; // on reste permissif si le backend ne renvoie pas l'info
   };
 
   const handleLike = () => onLike?.(memory.id);
@@ -48,7 +48,12 @@ const MemoryCard = ({
     }
   };
 
-  const cardStyle = isMatchingCurrentVideo() ? {} : { borderLeft: '3px solid #e74c3c' };
+  // Style pour les commentaires marqués comme erreur
+  const errorStyle = memory.error ? { borderColor: '#e74c3c', backgroundColor: 'rgba(231, 76, 60, 0.05)' } : {};
+  const cardStyle = {
+    ...errorStyle,
+    ...(isMatchingCurrentVideo() ? {} : { borderLeft: '3px solid #e74c3c' })
+  };
 
   return (
     <div className={styles.memoryCard} style={cardStyle}>
@@ -120,38 +125,42 @@ const MemoryCard = ({
         </form>
       )}
 
-      {/* Replies (avec style CSS existant) */}
+      {/* Replies avec style amélioré */}
       {Array.isArray(memory.replies) && memory.replies.length > 0 && (
         <div className={styles.repliesContainer}>
-          {memory.replies.map((r) => (
-            <div key={r.id} className={styles.replyItem}>
-              <div className={styles.replyHeader}>
-                <span className={styles.replyUser}>{r.username || 'User'}</span>
-                {r.userInteraction?.isAuthor && (
+          {memory.replies.map((r) => {
+            const replyErrorStyle = r.error ? { borderLeft: '2px solid #e74c3c' } : {};
+            
+            return (
+              <div key={r.id} className={styles.replyItem} style={replyErrorStyle}>
+                <div className={styles.replyHeader}>
+                  <span className={styles.replyUser}>{r.username || 'User'}</span>
+                  {r.userInteraction?.isAuthor && (
+                    <button
+                      className={styles.replyDeleteBtn}
+                      title="Delete reply"
+                      onClick={() => onDeleteReply?.(memory.id, r.id)}
+                    >
+                      <FontAwesomeIcon icon={faTrash} />
+                    </button>
+                  )}
+                </div>
+
+                <div className={styles.replyText}>{r.content}</div>
+
+                <div className={styles.replyFooter}>
                   <button
-                    className={styles.replyDeleteBtn}
-                    title="Delete reply"
-                    onClick={() => onDeleteReply?.(memory.id, r.id)}
+                    type="button"
+                    className={`${styles.replyLikeBtn} ${r.userInteraction?.liked ? styles.liked : ''}`}
+                    onClick={() => onLikeReply?.(memory.id, r.id)}
                   >
-                    <FontAwesomeIcon icon={faTrash} />
+                    <FontAwesomeIcon icon={faHeart} />
+                    <span>{r.likes || 0}</span>
                   </button>
-                )}
+                </div>
               </div>
-
-              <div className={styles.replyText}>{r.content}</div>
-
-              <div className={styles.replyFooter}>
-                <button
-                  type="button"
-                  className={`${styles.replyLikeBtn} ${r.userInteraction?.liked ? styles.liked : ''}`}
-                  onClick={() => onLikeReply?.(memory.id, r.id)}
-                >
-                  <FontAwesomeIcon icon={faHeart} />
-                  <span>{r.likes || 0}</span>
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

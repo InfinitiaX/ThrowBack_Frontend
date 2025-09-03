@@ -13,9 +13,7 @@ import {
   faCopy,
   faList,
   faFilter,
-  faTimes,
-  faArrowLeft,
-  faThumbsUp
+  faTimes
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './VideoDetail.module.css';
 import PlaylistModal from './PlaylistModal';
@@ -78,8 +76,7 @@ const ConfirmDialog = ({
 const VideoDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const isMobile = window.innerWidth <= 768;
-  
+
   // Main states
   const [video, setVideo] = useState(null);
   const [allVideos, setAllVideos] = useState([]);
@@ -89,7 +86,6 @@ const VideoDetail = () => {
   const [allMemories, setAllMemories] = useState([]);
   const [memoryText, setMemoryText] = useState('');
   const [showAllMemories, setShowAllMemories] = useState(false);
-  const [notification, setNotification] = useState(null);
 
   // Interaction states
   const [userLiked, setUserLiked] = useState(false);
@@ -97,7 +93,6 @@ const VideoDetail = () => {
   const [likeCount, setLikeCount] = useState(0);
   const [isLiking, setIsLiking] = useState(false);
   const [isAddingMemory, setIsAddingMemory] = useState(false);
-  const [memoriesVisible, setMemoriesVisible] = useState(!isMobile);
 
   // Interface states
   const [videosLoading, setVideosLoading] = useState(false);
@@ -120,19 +115,7 @@ const VideoDetail = () => {
     fetchAllVideos();
     fetchAllMemories();
     window.addEventListener('storage', handleStorageChange);
-    
-    // Responsive listener
-    const handleResize = () => {
-      const mobile = window.innerWidth <= 768;
-      setMemoriesVisible(!mobile);
-    };
-    
-    window.addEventListener('resize', handleResize);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('resize', handleResize);
-    }
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   useEffect(() => {
@@ -147,19 +130,12 @@ const VideoDetail = () => {
     if (event.key === 'memoriesUpdated' && event.newValue) fetchVideoMemories(id);
   };
 
-  const showNotification = (message, type = 'success', duration = 3000) => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), duration);
-  };
-
   /* ---------- Data fetching ---------- */
   const fetchAllVideos = async () => {
     try {
       setVideosLoading(true);
       const videosData = await videoAPI.getAllVideos({ type: 'music', limit: '50' });
       setAllVideos(Array.isArray(videosData) ? videosData : []);
-    } catch (error) {
-      console.error("Error fetching videos:", error);
     } finally {
       setVideosLoading(false);
     }
@@ -204,21 +180,17 @@ const VideoDetail = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log(`Fetching video details for ID: ${videoId}`);
       const videoData = await videoAPI.getVideoById(videoId);
       if (myToken !== requestTokenRef.current.video) return;
       if (videoData) {
-        console.log(`Video data received:`, videoData);
         setVideo(videoData);
         setUserLiked(videoData.userInteraction?.liked || false);
         setViewCount(videoData.vues || 0);
         setLikeCount(videoData.likes || 0);
       } else {
         setError('Unable to load video details');
-        console.error('No video data received');
       }
-    } catch (error) {
-      console.error(`Error fetching video ${videoId}:`, error);
+    } catch {
       if (myToken !== requestTokenRef.current.video) return;
       setError('Error loading video');
     } finally {
@@ -226,66 +198,79 @@ const VideoDetail = () => {
     }
   };
 
-  // Récupération des commentaires simplifiée et plus fiable
   const fetchVideoMemories = async (videoId) => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+    const myToken = ++requestTokenRef.current.memories;
     try {
-      console.log(`Fetching memories for video: ${videoId}`);
       setMemoriesLoading(true);
-      
-      // Essai direct de l'API publique
-      try {
-        const response = await api.get(`/api/public/videos/${videoId}/memories`);
-        console.log('Public API response:', response.data);
-        
-        if (response.data && response.data.success && Array.isArray(response.data.data)) {
-          const memories = response.data.data;
-          console.log(`Found ${memories.length} memories via public API`);
-          setMemories(formatMemories(memories, videoId));
-          return;
-        }
-      } catch (error) {
-        console.warn('Error with public API:', error.message);
+
+      // 1) from state cache
+      const memFromState = allMemories.length > 0 ? filterMemoriesForCurrentVideo(allMemories, videoId) : [];
+      if (myToken !== requestTokenRef.current.memories) return;
+      if (memFromState.length > 0) {
+        setMemories(formatMemories(memFromState, videoId));
+        return;
       }
-      
-      // Essai avec l'API standard
+
+      // 2) from localStorage
       try {
-        const fallbackResponse = await api.get(`/api/videos/${videoId}/memories`);
-        console.log('Fallback API response:', fallbackResponse.data);
-        
-        if (fallbackResponse.data && fallbackResponse.data.success && Array.isArray(fallbackResponse.data.data)) {
-          const memories = fallbackResponse.data.data;
-          console.log(`Found ${memories.length} memories via fallback API`);
-          setMemories(formatMemories(memories, videoId));
-          return;
-        }
-      } catch (error) {
-        console.warn('Error with fallback API:', error.message);
-      }
-      
-      // Si tout échoue, essayer le cache
-      try {
-        const cachedMemories = localStorage.getItem('allMemories');
-        if (cachedMemories) {
-          const parsed = JSON.parse(cachedMemories);
+        const cached = localStorage.getItem('allMemories');
+        if (cached) {
+          const parsed = JSON.parse(cached);
           const filtered = filterMemoriesForCurrentVideo(parsed, videoId);
-          console.log(`Found ${filtered.length} memories in cache`);
+          if (myToken !== requestTokenRef.current.memories) return;
           if (filtered.length > 0) {
             setMemories(formatMemories(filtered, videoId));
+            setAllMemories(parsed);
             return;
           }
         }
-      } catch (error) {
-        console.warn('Error with cache:', error.message);
+      } catch {}
+
+      // 3) strict API
+      const apiMem = await videoAPI.getVideoMemories(videoId);
+      if (myToken !== requestTokenRef.current.memories) return;
+      if (Array.isArray(apiMem)) {
+        const strictly = apiMem.filter(m => {
+          const vid =
+            (m.video && typeof m.video === 'object' ? m.video._id : null) ||
+            (typeof m.video === 'string' ? m.video : null) ||
+            m.videoId || m.video_id;
+          return vid && vid.toString() === videoId.toString();
+        });
+        setMemories(formatMemories(strictly, videoId));
+        retryCountRef.current = 0;
+      } else if (retryCountRef.current < maxRetries) {
+        retryCountRef.current++;
+        setTimeout(() => {
+          fetchingRef.current = false;
+          fetchVideoMemories(videoId);
+        }, 1000 * retryCountRef.current);
+        return;
+      } else {
+        setMemories([]);
+        retryCountRef.current = 0;
       }
-      
-      // Dernier recours: tableau vide
-      console.log('No memories found from any source');
-      setMemories([]);
-    } catch (error) {
-      console.error(`Error fetching memories for video ${videoId}:`, error);
-      setMemories([]);
+    } catch {
+      if (retryCountRef.current < maxRetries) {
+        retryCountRef.current++;
+        try {
+          await fetchAllMemories();
+          const newFiltered = filterMemoriesForCurrentVideo(allMemories, videoId);
+          setMemories(formatMemories(newFiltered, videoId));
+        } catch {
+          setMemories([]);
+        }
+      } else {
+        setMemories([]);
+      }
     } finally {
-      setMemoriesLoading(false);
+      if (myToken === requestTokenRef.current.memories) {
+        fetchingRef.current = false;
+        setMemoriesLoading(false);
+        retryCountRef.current = 0;
+      }
     }
   };
 
@@ -340,31 +325,14 @@ const VideoDetail = () => {
 
   const fetchReplies = async (memoryId) => {
     try {
-      console.log(`Fetching replies for memory: ${memoryId}`);
       setMemoriesLoading(true);
-      
-      // Essai direct de l'API standard
       try {
         const response = await api.get(`/api/memories/${memoryId}/replies`);
-        console.log('Reply API response:', response.data);
-        if (response.data?.success && Array.isArray(response.data.data)) {
-          return response.data.data;
-        }
-      } catch (error) {
-        console.warn('Error with standard reply API:', error.message);
-      }
-      
-      // Essai avec l'API publique
-      try {
+        if (response.data?.success) return response.data.data;
+      } catch {
         const fallbackResponse = await api.get(`/api/public/memories/${memoryId}/replies`);
-        console.log('Fallback reply API response:', fallbackResponse.data);
-        if (fallbackResponse.data?.success && Array.isArray(fallbackResponse.data.data)) {
-          return fallbackResponse.data.data;
-        }
-      } catch (error) {
-        console.warn('Error with fallback reply API:', error.message);
+        if (fallbackResponse.data?.success) return fallbackResponse.data.data;
       }
-      
       return [];
     } finally {
       setMemoriesLoading(false);
@@ -373,36 +341,23 @@ const VideoDetail = () => {
 
   const handleToggleReplies = async (memoryId) => {
     if (memoriesLoading) return;
-    
-    console.log(`Toggling replies for memory: ${memoryId}`);
     const idx = memories.findIndex(m => m.id === memoryId);
-    if (idx === -1) {
-      console.warn(`Memory ${memoryId} not found in current memories`);
-      return;
-    }
-    
+    if (idx === -1) return;
     const item = memories[idx];
-    
-    // Si déjà affiché, masquer les réponses
+
     if (item.showReplies) {
-      console.log(`Hiding replies for memory: ${memoryId}`);
       const updated = [...memories];
       updated[idx] = { ...item, showReplies: false };
       setMemories(updated);
       return;
     }
-    
-    // Si aucune réponse n'est chargée, les récupérer
+
     if (!item.replies || item.replies.length === 0) {
-      console.log(`Loading replies for memory: ${memoryId}`);
       const replies = await fetchReplies(memoryId);
-      console.log(`Got ${replies.length} replies`);
       const updated = [...memories];
       updated[idx] = { ...item, replies, showReplies: true };
       setMemories(updated);
     } else {
-      // Sinon, afficher les réponses déjà chargées
-      console.log(`Showing ${item.replies.length} cached replies`);
       const updated = [...memories];
       updated[idx] = { ...item, showReplies: true };
       setMemories(updated);
@@ -410,77 +365,38 @@ const VideoDetail = () => {
   };
 
   const handleAddReply = async (memoryId, replyText) => {
-    console.log(`Adding reply to memory ${memoryId}: "${replyText}"`);
     try {
-      // Essai direct sur l'API standard
-      try {
-        console.log('Trying standard API for reply');
-        const response = await api.post(`/api/memories/${memoryId}/replies`, { contenu: replyText });
-        if (response.data?.success) {
-          console.log('Reply added successfully via standard API:', response.data);
-          const newReply = response.data.data;
-          
-          // Mise à jour optimiste de l'UI
-          const updated = memories.map(m => (m.id === memoryId)
-            ? { 
-                ...m, 
-                nb_commentaires: (m.nb_commentaires || 0) + 1, 
-                replies: [...(m.replies || []), newReply],
-                showReplies: true // Auto-afficher les réponses
-              }
-            : m
-          );
-          
-          setMemories(updated);
-          showNotification('Reply added successfully');
-          return true;
-        }
-      } catch (error) {
-        console.warn('Standard API failed for reply:', error.message);
+      const response = await api.post(`/api/memories/${memoryId}/replies`, { contenu: replyText });
+      if (response.data?.success) {
+        const updated = memories.map(m => (m.id === memoryId)
+          ? { ...m, nb_commentaires: (m.nb_commentaires || 0) + 1, replies: [...(m.replies || []), response.data.data] }
+          : m
+        );
+        setMemories(updated);
+        return true;
       }
-      
-      // Essai sur l'API publique
+      return false;
+    } catch (err) {
       try {
-        console.log('Trying public API for reply');
         const fallback = await api.post(`/api/public/memories/${memoryId}/replies`, { contenu: replyText });
         if (fallback.data?.success) {
-          console.log('Reply added successfully via public API:', fallback.data);
-          const newReply = fallback.data.data;
-          
-          // Mise à jour optimiste de l'UI
           const updated = memories.map(m => (m.id === memoryId)
-            ? { 
-                ...m, 
-                nb_commentaires: (m.nb_commentaires || 0) + 1, 
-                replies: [...(m.replies || []), newReply],
-                showReplies: true // Auto-afficher les réponses
-              }
+            ? { ...m, nb_commentaires: (m.nb_commentaires || 0) + 1, replies: [...(m.replies || []), fallback.data.data] }
             : m
           );
-          
           setMemories(updated);
-          showNotification('Reply added successfully');
           return true;
         }
-      } catch (error) {
-        console.warn('Public API failed for reply:', error.message);
-      }
-      
-      // Si tout échoue
-      console.error('All reply attempts failed');
-      showNotification('Error adding reply. Please try again.', 'error');
-      return false;
-    } catch (error) {
-      console.error('Unexpected error adding reply:', error);
-      showNotification('An unexpected error occurred', 'error');
+      } catch {}
+      if (err.response?.status === 401) alert('Please log in to add a reply');
+      else alert('Error adding reply. Please try again.');
       return false;
     }
   };
 
   const handleLikeMemory = async (memoryId) => {
-    console.log(`Liking memory: ${memoryId}`);
     try {
-      // Mise à jour optimiste (gère à la fois les cartes et les réponses)
+      // optimistic (handles both cards and replies)
       setMemories(memories.map(m => (m.id === memoryId ? {
         ...m,
         likes: m.userInteraction?.liked ? Math.max(0, (m.likes || 0) - 1) : (m.likes || 0) + 1,
@@ -496,10 +412,9 @@ const VideoDetail = () => {
           : r))
       })));
 
-      // Synchronisation serveur
+      // server sync
       const r = await videoAPI.likeMemory(memoryId);
       if (r?.success && r.data) {
-        console.log('Like response from server:', r.data);
         setMemories(cur => cur.map(m => (m.id === memoryId ? {
           ...m,
           likes: r.data.likes,
@@ -512,12 +427,7 @@ const VideoDetail = () => {
         })));
       }
     } catch (err) {
-      console.error('Error liking memory:', err);
-      if (err.response?.status === 401) {
-        showNotification('Please log in to like this item', 'error');
-      } else {
-        showNotification('Error liking the item', 'error');
-      }
+      if (err.response?.status === 401) alert('Please log in to like this item');
     }
   };
 
@@ -535,132 +445,37 @@ const VideoDetail = () => {
   };
   const cancelConfirm = () => setConfirm({ open: false, title: '', message: '', onConfirm: null });
 
-  // Fonction améliorée pour la suppression des commentaires
   const handleDeleteMemory = async (memoryId) => {
-    console.log(`Requesting deletion of memory: ${memoryId}`);
-    
     openConfirm(
-      'Delete Memory',
+      'Delete',
       'Are you sure you want to delete this item? This action cannot be undone.',
       async () => {
         try {
-          console.log(`Confirmed deletion of memory: ${memoryId}`);
-          
-          // Mise à jour optimiste de l'UI
-          const updatedMemories = memories.filter(m => m.id !== memoryId);
-          setMemories(updatedMemories);
-          
-          // Essai de suppression via l'API standard
-          try {
-            console.log('Attempting to delete via standard API');
-            const response = await api.delete(`/api/memories/${memoryId}`);
-            console.log('Standard API delete response:', response.data);
-            showNotification('Memory deleted successfully');
-            return;
-          } catch (standardError) {
-            console.warn('Standard API delete failed:', standardError.message);
-          }
-          
-          // Essai via l'API publique en cas d'échec
-          try {
-            console.log('Attempting to delete via public API');
-            const fallbackResponse = await api.delete(`/api/public/memories/${memoryId}`);
-            console.log('Public API delete response:', fallbackResponse.data);
-            showNotification('Memory deleted successfully');
-            return;
-          } catch (publicError) {
-            console.error('Public API delete also failed:', publicError.message);
-          }
-          
-          // Restauration en cas d'échec complet et notification
-          console.error('All deletion attempts failed, restoring state');
-          showNotification('Failed to delete memory. Please try again.', 'error');
-          fetchVideoMemories(id);
-        } catch (error) {
-          console.error('Unexpected error deleting memory:', error);
-          showNotification('An unexpected error occurred', 'error');
-          fetchVideoMemories(id);
-        }
-      }
-    );
-  };
+          // optimistic remove (card or reply)
+          setMemories(prev =>
+            prev
+              .map(m => {
+                if (m.id === memoryId) return null; // remove main card
+                return { ...m, replies: (m.replies || []).filter(r => (r.id || r._id) !== memoryId) };
+              })
+              .filter(Boolean)
+          );
 
-  // Fonction corrigée pour la suppression des réponses
-  const handleDeleteReply = async (replyId) => {
-    console.log(`Requesting deletion of reply: ${replyId}`);
-    
-    // Variables pour stocker les références
-    let parentMemoryId = null;
-    let replyIndex = -1;
-    let parentMemory = null;
-    
-    // Recherche plus approfondie du commentaire parent
-    for (let i = 0; i < memories.length; i++) {
-      const memory = memories[i];
-      if (!memory.replies) continue; // Ignorer si pas de réponses
-      
-      for (let j = 0; j < memory.replies.length; j++) {
-        const reply = memory.replies[j];
-        const currentReplyId = reply.id || reply._id;
-        
-        if (currentReplyId === replyId) {
-          parentMemoryId = memory.id;
-          parentMemory = memory;
-          replyIndex = j;
-          console.log(`Found parent memory ${parentMemoryId} for reply ${replyId} at index ${replyIndex}`);
-          break;
-        }
-      }
-      
-      if (parentMemoryId) break;
-    }
-    
-    if (!parentMemoryId) {
-      console.error(`Could not find parent memory for reply: ${replyId}`);
-      // Afficher un message pour l'utilisateur au lieu de planter
-      showNotification('Unable to locate the parent comment. Please refresh the page.', 'error');
-      return;
-    }
-    
-    openConfirm(
-      'Delete Reply',
-      'Are you sure you want to delete this reply? This action cannot be undone.',
-      async () => {
-        try {
-          // Mise à jour optimiste de l'UI avec une meilleure gestion
-          const updatedMemories = memories.map(memory => {
-            if (memory.id === parentMemoryId) {
-              return {
-                ...memory,
-                replies: memory.replies.filter(r => (r.id !== replyId && r._id !== replyId)),
-                nb_commentaires: Math.max(0, (memory.nb_commentaires || 0) - 1)
-              };
-            }
-            return memory;
-          });
-          
-          setMemories(updatedMemories);
-          
-          // Tentatives de suppression via API
+          // API delete (internal -> public)
           try {
-            await api.delete(`/api/memories/${parentMemoryId}/replies/${replyId}`);
-            showNotification('Reply deleted successfully');
-          } catch (e1) {
-            console.warn('Standard API delete failed:', e1.message);
-            
+            await api.delete(`/api/memories/${memoryId}`);
+          } catch (apiErr) {
             try {
-              await api.delete(`/api/public/memories/${parentMemoryId}/replies/${replyId}`);
-              showNotification('Reply deleted successfully');
-            } catch (e2) {
-              console.error('All API delete attempts failed:', e2.message);
-              
-              // On garde la mise à jour optimiste même en cas d'erreur API
-              showNotification('Reply was removed locally but the server update failed', 'warning');
+              await api.delete(`/api/public/memories/${memoryId}`);
+            } catch {
+              if (apiErr.response?.status === 401) alert('You must be logged in to delete this item');
+              else if (apiErr.response?.status === 403) alert("You don't have permission to delete this item");
+              // restore by re-fetch
+              fetchVideoMemories(id);
             }
           }
-        } catch (error) {
-          console.error('Unexpected error during reply deletion:', error);
-          showNotification('An error occurred', 'error');
+        } catch {
+          fetchVideoMemories(id);
         }
       }
     );
@@ -669,59 +484,41 @@ const VideoDetail = () => {
   /* ---------- Video interactions ---------- */
   const handleLikeVideo = async () => {
     if (isLiking) return;
-    
-    console.log('Liking video:', id);
     try {
       setIsLiking(true);
-      
-      // Mise à jour optimiste
       const newLikedState = !userLiked;
       const newLikeCount = newLikedState ? likeCount + 1 : Math.max(0, likeCount - 1);
       setUserLiked(newLikedState);
       setLikeCount(newLikeCount);
 
-      // Synchronisation serveur
       const response = await videoAPI.likeVideo(id);
-      console.log('Video like response:', response);
-      
       if (response.success && response.data) {
         setUserLiked(response.data.liked);
         setLikeCount(response.data.likes);
-        showNotification(response.data.liked ? 'Video liked!' : 'Like removed');
       } else {
-        // Restauration en cas de problème
         setUserLiked(!newLikedState);
         setLikeCount(likeCount);
-        showNotification('Error updating like status', 'error');
       }
     } catch (err) {
-      console.error('Error liking video:', err);
-      
-      // Restauration de l'état
       setUserLiked(!userLiked);
       setLikeCount(likeCount);
-      
-      if (err.response?.status === 401) {
-        showNotification('Please log in to like this video', 'error');
-      } else {
-        showNotification('Error liking the video. Please try again.', 'error');
-      }
+      if (err.response?.status === 401) alert('Please log in to like this video');
+      else alert('Error liking the video. Please try again.');
     } finally {
       setIsLiking(false);
     }
   };
 
   const handleShareVideo = () => setShowShareOptions(!showShareOptions);
-  
   const handleShareOption = async (option) => {
     const videoUrl = window.location.href;
     const videoTitle = video ? `${video.artiste} - ${video.titre}` : 'ThrowBack video';
-    
     try {
       switch (option) {
         case 'copy':
           await navigator.clipboard.writeText(videoUrl);
-          showNotification('URL copied to clipboard!');
+          setShareMessage('URL copied to clipboard!');
+          setTimeout(() => setShareMessage(''), 3000);
           break;
         case 'facebook':
           window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(videoUrl)}`, '_blank');
@@ -734,105 +531,61 @@ const VideoDetail = () => {
           break;
         default: return;
       }
-      
-      // Enregistrer le partage côté serveur
-      videoAPI.shareVideo(id).catch(() => {
-        console.warn('Error recording share on server');
-      });
-    } catch (error) {
-      console.error('Error sharing:', error);
-      showNotification('Error sharing', 'error');
+      videoAPI.shareVideo(id).catch(() => {});
+    } catch {
+      setShareMessage('Error sharing.');
+      setTimeout(() => setShareMessage(''), 3000);
     }
-    
     setShowShareOptions(false);
   };
 
-  /* ---------- Add Memory ---------- */
+  /* ---------- Add Memory (now defined and reused) ---------- */
   const handleAddMemory = async (e) => {
     e.preventDefault();
     if (!memoryText.trim() || isAddingMemory) return;
-    
-    console.log(`Adding memory for video ${id}: "${memoryText}"`);
-    
     try {
       setIsAddingMemory(true);
       let serverMemory = null;
 
-      // Tentative via API publique
+      // Try public route
       try {
-        console.log('Trying public API for adding memory');
         const res = await api.post(`/api/public/videos/${id}/memories`, {
-          contenu: memoryText.trim(), 
-          video_id: id, 
-          videoId: id, 
-          video: id
+          contenu: memoryText.trim(), video_id: id, videoId: id, video: id
         });
-        
-        if (res.data?.success) {
-          console.log('Memory added successfully via public API:', res.data);
-          serverMemory = res.data.data;
-        }
-      } catch (publicError) {
-        console.warn('Public API failed for adding memory:', publicError.message);
-      }
+        if (res.data?.success) serverMemory = res.data.data;
+      } catch {}
 
-      // Tentative via API standard si la première échoue
+      // Fallback private route
       if (!serverMemory) {
-        try {
-          console.log('Trying standard API for adding memory');
-          const fb = await api.post(`/api/videos/${id}/memories`, {
-            contenu: memoryText.trim(), 
-            video_id: id, 
-            videoId: id, 
-            video: id
-          });
-          
-          if (fb.data?.success) {
-            console.log('Memory added successfully via standard API:', fb.data);
-            serverMemory = fb.data.data;
-          }
-        } catch (standardError) {
-          console.warn('Standard API failed for adding memory:', standardError.message);
-        }
+        const fb = await api.post(`/api/videos/${id}/memories`, {
+          contenu: memoryText.trim(), video_id: id, videoId: id, video: id
+        });
+        if (fb.data?.success) serverMemory = fb.data.data;
       }
 
-      if (!serverMemory) {
-        console.error('All attempts to add memory failed');
-        throw new Error('Error adding memory');
-      }
+      if (!serverMemory) throw new Error('Error adding memory');
 
-      // Préparation du nouveau commentaire avec les données vidéo
       const newMemoryData = {
         ...serverMemory,
         video: { _id: id, titre: video?.titre, artiste: video?.artiste, annee: video?.annee },
         videoId: id
       };
-      
-      // Formatage et ajout à l'UI
       const newMemory = formatMemories([newMemoryData])[0];
+
       setMemories(prev => [newMemory, ...prev]);
-      
-      // Mise à jour du cache global
       const updatedAll = [newMemoryData, ...allMemories];
       setAllMemories(updatedAll);
-      
       try {
         localStorage.setItem('allMemories', JSON.stringify(updatedAll));
         localStorage.setItem('memoriesUpdated', Date.now().toString());
-      } catch (storageError) {
-        console.warn('Error updating memory cache:', storageError);
-      }
+      } catch {}
 
       setMemoryText('');
-      showNotification('Memory added successfully!');
+      setShareMessage('Memory added successfully!');
+      setTimeout(() => setShareMessage(''), 3000);
     } catch (err) {
-      console.error('Error adding memory:', err);
-      
-      if (err.response?.status === 401) {
-        showNotification('Please log in to share a memory', 'error');
-      } else {
-        showNotification('Error adding memory. Please try again.', 'error');
-      }
+      if (err.response?.status === 401) alert('Please log in to share a memory');
+      else alert('Error adding memory. Please try again.');
     } finally {
       setIsAddingMemory(false);
     }
@@ -880,15 +633,34 @@ const VideoDetail = () => {
     return videoId ? `https://www.youtube.com/embed/${videoId}` : safe;
   };
 
-  /* ---------- Mobile helpers ---------- */
-  const toggleMemories = () => {
-    setMemoriesVisible(!memoriesVisible);
+  /* ---------- Small child component ---------- */
+  const RecommendedVideo = ({ video: recommendedVideo }) => {
+    if (!recommendedVideo) return null;
+    const isCurrentVideo = video && recommendedVideo._id === video._id;
+    const handleClick = (e) => {
+      e.preventDefault();
+      navigate(`/dashboard/videos/${recommendedVideo._id}`);
+    };
+    return (
+      <a
+        href={`/dashboard/videos/${recommendedVideo._id}`}
+        className={`${styles.recommendedVideo} ${isCurrentVideo ? styles.currentVideo : ''}`}
+        onClick={handleClick}
+      >
+        <img
+          src={getYouTubeThumbnail(recommendedVideo.youtubeUrl)}
+          alt={`${recommendedVideo.artiste || 'Artist'} - ${recommendedVideo.titre || 'Title'}`}
+          className={styles.recommendedImg}
+          onError={(e) => { e.target.src = '/images/video-placeholder.jpg'; }}
+        />
+        <div className={styles.recommendedInfo}>
+          <div className={styles.recommendedArtist}>{recommendedVideo.artiste || 'Artist'}</div>
+          <div className={styles.recommendedTitle}>: {recommendedVideo.titre || 'Title'} ({recommendedVideo.annee || '----'})</div>
+        </div>
+        {isCurrentVideo && <div className={styles.currentlyPlaying}>▶ Now Playing</div>}
+      </a>
+    );
   };
-  
-  const goBack = () => {
-    navigate(-1);
-  };
-
 
   /* ---------- Render ---------- */
   if (loading) {
@@ -918,13 +690,6 @@ const VideoDetail = () => {
 
   return (
     <div className={styles.throwbackVideosBg}>
-      {/* Notification Toast */}
-      {notification && (
-        <div className={`${styles.notificationToast} ${styles[notification.type]}`}>
-          {notification.message}
-        </div>
-      )}
-      
       {/* Playlist Modal */}
       {showPlaylistModal && (
         <PlaylistModal
@@ -948,27 +713,8 @@ const VideoDetail = () => {
         cancelText="Cancel"
       />
 
-      {/* Mobile Header */}
-      {isMobile && (
-        <div className={styles.mobileHeader}>
-          <button className={styles.backButton} onClick={goBack}>
-            <FontAwesomeIcon icon={faArrowLeft} />
-          </button>
-          <h2 className={styles.mobileTitle}>
-            {video?.artiste || 'Artist'} - {video?.titre || 'Video'}
-          </h2>
-          <button 
-            className={`${styles.commentsToggle} ${memoriesVisible ? styles.active : ''}`}
-            onClick={toggleMemories}
-          >
-            <FontAwesomeIcon icon={faComment} />
-            <span className={styles.commentCount}>{memories.length}</span>
-          </button>
-        </div>
-      )}
-
-      <div className={`${styles.mainContentWrap} ${isMobile ? styles.mobileLayout : ''}`}>
-        <main className={`${styles.mainContent} ${isMobile && memoriesVisible ? styles.hidden : ''}`}>
+      <div className={styles.mainContentWrap}>
+        <main className={styles.mainContent}>
           {/* Player */}
           <div className={styles.videoPlayerContainer} key={id}>
             {isYoutubeEmbed ? (
@@ -987,7 +733,7 @@ const VideoDetail = () => {
                   src={getYouTubeThumbnail(video.youtubeUrl)}
                   alt={`${video.artiste} - ${video.titre}`}
                   className={styles.thumbnailImg}
-                  onError={(e) => { e.target.src = '/images/video-placeholder.jpg'; e.target.onerror = null; }}
+                  onError={(e) => { e.target.src = '/images/video-placeholder.jpg'; }}
                 />
                 <div className={styles.playButton}>▶</div>
               </div>
@@ -996,11 +742,9 @@ const VideoDetail = () => {
 
           {/* Title / Stats */}
           <div className={styles.videoInfoBar}>
-            {!isMobile && (
-              <h1 className={styles.videoTitle}>
-                {video.artiste || 'Artist'} : <span style={{ fontWeight: 300, fontSize: 18 }}>{video.titre || 'Title'} ({video.annee || '----'})</span>
-              </h1>
-            )}
+            <h1 className={styles.videoTitle}>
+              {video.artiste || 'Artist'} : <span style={{ fontWeight: 300, fontSize: 18 }}>{video.titre || 'Title'} ({video.annee || '----'})</span>
+            </h1>
             <div className={styles.videoStats}>
               <div className={styles.statItem}>
                 <FontAwesomeIcon icon={faEye} />
@@ -1040,6 +784,7 @@ const VideoDetail = () => {
                 </div>
               </div>
             )}
+            {shareMessage && <div className={styles.shareMessage}>{shareMessage}</div>}
           </div>
 
           {/* Add Memory */}
@@ -1063,72 +808,78 @@ const VideoDetail = () => {
           </div>
 
           {/* Recommendations */}
-
+          <div className={styles.recommendedVideosSection}>
+            <h3 className={styles.recommendedSectionTitle}>All Music Videos</h3>
+            <div className={styles.recommendedVideosGrid}>
+              {videosLoading ? (
+                <div className={styles.recommendedLoading}>
+                  <FontAwesomeIcon icon={faSpinner} spin />
+                  <span>Loading videos...</span>
+                </div>
+              ) : allVideos.length > 0 ? (
+                allVideos.map((videoItem) => (
+                  <RecommendedVideo key={videoItem._id || `video-${Math.random()}`} video={videoItem} />
+                ))
+              ) : (
+                <div className={styles.emptyRecommendations}>
+                  <p>We're adding new videos soon!</p>
+                </div>
+              )}
+            </div>
+          </div>
         </main>
 
         {/* Sidebar Memories */}
-        {(!isMobile || (isMobile && memoriesVisible)) && (
-          <aside className={`${styles.rightCards} ${isMobile ? styles.mobileComments : ''}`}>
-            {isMobile && (
-              <div className={styles.mobileCommentsHeader}>
-                <button className={styles.closeCommentsButton} onClick={toggleMemories}>
-                  <FontAwesomeIcon icon={faTimes} />
-                </button>
-                <h3>Comments ({memories.length})</h3>
-              </div>
-            )}
-            
-            {!isMobile && (
-              <div className={styles.memoriesHeader}>
-                <h3>Memories {!showAllMemories && 'for this video'}</h3>
-                <div className={styles.memoriesControls}>
-                  <button
-                    className={styles.filterToggleButton}
-                    onClick={() => setShowAllMemories(!showAllMemories)}
-                    title={showAllMemories ? 'Show only memories for this video' : 'Show all memories'}
-                  >
-                    <FontAwesomeIcon icon={faFilter} />
-                    <span>{showAllMemories ? 'Filter' : 'All'}</span>
-                  </button>
-                </div>
-              </div>
-            )}
+        <aside className={styles.rightCards}>
+          <div className={styles.memoriesHeader}>
+            <h3>Memories {!showAllMemories && 'for this video'}</h3>
+            <div className={styles.memoriesControls}>
+              {/* Refresh removed */}
+              <button
+                className={styles.filterToggleButton}
+                onClick={() => setShowAllMemories(!showAllMemories)}
+                title={showAllMemories ? 'Show only memories for this video' : 'Show all memories'}
+              >
+                <FontAwesomeIcon icon={faFilter} />
+                <span>{showAllMemories ? 'Filter' : 'All'}</span>
+              </button>
+            </div>
+          </div>
 
-            {memoriesLoading ? (
-              <div className={styles.memoriesLoading}>
-                <FontAwesomeIcon icon={faSpinner} spin className={styles.spinnerIcon} />
-                <p>Loading memories...</p>
-              </div>
-            ) : memoriesToDisplay.length > 0 ? (
-              memoriesToDisplay.map((memory) => (
-                <MemoryCard
-                  key={memory.id || `memory-${Math.random()}`}
-                  memory={memory}
-                  baseUrl={baseUrl}
-                  onLike={handleLikeMemory}
-                  onAddReply={handleAddReply}
-                  onDeleteMemory={handleDeleteMemory}
-                  onRequestDelete={handleDeleteReply}
-                  onToggleReplies={handleToggleReplies}
-                  currentVideoId={id}
-                  replies={memory.replies || []}
-                  showReplies={memory.showReplies || false}
-                  isMobile={isMobile}
-                />
-              ))
-            ) : (
-              <div className={styles.emptyMemories}>
-                <p>No memories shared{!showAllMemories && ' for this video'}.</p>
-                <p>Be the first to share a memory!</p>
-                {!showAllMemories && allMemories.length > 0 && (
-                  <button className={styles.showAllButton} onClick={() => setShowAllMemories(true)}>
-                    View all memories
-                  </button>
-                )}
-              </div>
-            )}
-          </aside>
-        )}
+          {memoriesLoading ? (
+            <div className={styles.memoriesLoading}>
+              <FontAwesomeIcon icon={faSpinner} spin className={styles.spinnerIcon} />
+              <p>Loading memories...</p>
+            </div>
+          ) : memoriesToDisplay.length > 0 ? (
+            memoriesToDisplay.map((memory) => (
+              <MemoryCard
+                key={memory.id || `memory-${Math.random()}`}
+                memory={memory}
+                baseUrl={baseUrl}
+                onLike={handleLikeMemory}
+                onAddReply={handleAddReply}
+                onDeleteMemory={handleDeleteMemory}
+                onRequestDelete={handleDeleteMemory}
+                onToggleReplies={handleToggleReplies}
+                currentVideoId={id}
+                replies={memory.replies || []}
+                showReplies={memory.showReplies || false}
+              />
+            ))
+          ) : (
+            <div className={styles.emptyMemories}>
+              <p>No memories shared{!showAllMemories && ' for this video'}.</p>
+              <p>Be the first to share a memory!</p>
+              {!showAllMemories && allMemories.length > 0 && (
+                <button className={styles.showAllButton} onClick={() => setShowAllMemories(true)}>
+                  View all memories
+                </button>
+              )}
+              {/* Refresh removed */}
+            </div>
+          )}
+        </aside>
       </div>
     </div>
   );

@@ -303,6 +303,20 @@ const LiveThrowback = () => {
           <div className={styles.videoInfo}>
             <h2 className={styles.streamTitle}>{currentStream.title}</h2>
             <p className={styles.hostInfo}>Hosted by: {currentStream.hostName || 'ThrowBack Host'}</p>
+                      {/* Métadatas */}
+            {currentStream?.description && (
+              <p className={styles.streamDescription}>
+                {currentStream.description}
+              </p>
+            )}
+
+            {Array.isArray(currentStream?.tags) && currentStream.tags.length > 0 && (
+              <div className={styles.tagList} aria-label="tags">
+                {currentStream.tags.map((tag, i) => (
+                  <span key={`${tag}-${i}`} className={styles.tagChip}>#{tag}</span>
+                ))}
+              </div>
+            )}
 
             <div className={styles.interactionBar}>
               <button

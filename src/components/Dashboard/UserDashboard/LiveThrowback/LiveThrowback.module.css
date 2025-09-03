@@ -258,6 +258,31 @@
   cursor: pointer;
 }
 
+
+.streamDescription {
+  margin: 8px 0 12px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #444;
+  white-space: pre-wrap; /* pour respecter les retours ligne */
+}
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tagChip {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 16px;
+  background: #f3f3f3;
+  color: #555;
+  font-size: 12px;
+  border: 1px solid #e6e6e6;
+}
+
 /* États */
 .loadingComments, .noComments, .loadingMoreComments {
   text-align: center;

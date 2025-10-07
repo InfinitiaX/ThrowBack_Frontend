@@ -46,8 +46,7 @@ const navItems = [
   { 
     label: 'ThrowBack Wall', 
     to: '/dashboard/wall', 
-    icon: faStream,
-    inDevelopment: true
+    icon: faStream
   },
   { 
     label: 'ThrowBack Chat', 

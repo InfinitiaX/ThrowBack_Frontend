@@ -10,12 +10,12 @@ import styles from './Toast.module.css';
 /**
  * Composant Toast pour afficher des notifications
  * 
- * @param {boolean} show - Indique si le toast doit être affiché
- * @param {string} message - Message à afficher
- * @param {string} type - Type de toast (success, error, info, warning)
- * @param {Function} onClose - Fonction à appeler pour fermer le toast
- * @param {number} duration - Durée d'affichage en millisecondes (0 pour ne pas disparaître automatiquement)
- * @param {string} position - Position du toast (top-right, top-center, top-left, bottom-right, bottom-center, bottom-left)
+ * @param {boolean} show 
+ * @param {string} message 
+ * @param {string} type 
+ * @param {Function} onClose 
+ * @param {number} duration 
+ * @param {string} position 
  */
 const Toast = ({ 
   show, 

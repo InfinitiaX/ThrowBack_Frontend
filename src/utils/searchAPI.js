@@ -1,191 +1,110 @@
+// utils/searchAPI.js
 import api from './api';
 
-// API pour les fonctionnalités de recherche
+/**
+ * Client de recherche
+ * Toutes les méthodes renvoient la réponse axios.data
+ */
 const searchAPI = {
   /**
-   * Effectue une recherche globale sur tous les types de contenu
-   * @param {string} query - Terme de recherche
-   * @param {Object} options - Options de recherche
-   * @returns {Promise<Object>} - Résultats de recherche
+   * Recherche globale
+   * @param {string} query
+   * @param {Object} options { page=1, limit=10, type='all' }
    */
   globalSearch: async (query, options = {}) => {
-    try {
-      const { page = 1, limit = 10, type = 'all' } = options;
-      
-      const response = await api.get('/api/search', {
-        params: {
-          query,
-          page,
-          limit,
-          type
-        }
-      });
-      
-      return response.data;
-    } catch (error) {
-      console.error('Erreur lors de la recherche globale:', error);
-      throw error;
-    }
+    const { page = 1, limit = 10, type = 'all' } = options;
+    const lim = Number(limit) || 10;
+
+    const response = await api.get('/api/search', {
+      params: { query, page, limit: lim, type },
+    });
+    return response.data;
   },
-  
+
   /**
-   * Effectue une recherche spécifique de vidéos
-   * @param {string} query - Terme de recherche
-   * @param {Object} options - Options de recherche
-   * @returns {Promise<Object>} - Résultats de recherche
+   * Recherche vidéos
+   * @param {string} query
+   * @param {Object} options { page=1, limit=12, genre, decennie, sort='relevance' }
    */
   searchVideos: async (query, options = {}) => {
-    try {
-      const { 
-        page = 1, 
-        limit = 12, 
-        genre = null, 
-        decennie = null, 
-        sort = 'relevance' 
-      } = options;
-      
-      const params = {
-        query,
-        page,
-        limit,
-        sort
-      };
-      
-      // Ajouter les paramètres optionnels uniquement s'ils sont définis
-      if (genre) params.genre = genre;
-      if (decennie) params.decennie = decennie;
-      
-      const response = await api.get('/api/search/videos', { params });
-      
-      return response.data;
-    } catch (error) {
-      console.error('Erreur lors de la recherche de vidéos:', error);
-      throw error;
-    }
+    const {
+      page = 1,
+      limit = 12,
+      genre = null,
+      decennie = null,
+      sort = 'relevance',
+    } = options;
+    const lim = Number(limit) || 12;
+
+    const response = await api.get('/api/search/videos', {
+      params: { query, page, limit: lim, genre, decennie, sort },
+    });
+    return response.data;
   },
-  
+
   /**
-   * Effectue une recherche spécifique de playlists
-   * @param {string} query - Terme de recherche
-   * @param {Object} options - Options de recherche
-   * @returns {Promise<Object>} - Résultats de recherche
+   * Recherche playlists
+   * @param {string} query
+   * @param {Object} options { page=1, limit=12, sort='popularity' }
    */
   searchPlaylists: async (query, options = {}) => {
-    try {
-      const { 
-        page = 1, 
-        limit = 12, 
-        sort = 'popularity' 
-      } = options;
-      
-      const response = await api.get('/api/search/playlists', {
-        params: {
-          query,
-          page,
-          limit,
-          sort
-        }
-      });
-      
-      return response.data;
-    } catch (error) {
-      console.error('Erreur lors de la recherche de playlists:', error);
-      throw error;
-    }
+    const { page = 1, limit = 12, sort = 'popularity' } = options;
+    const lim = Number(limit) || 12;
+
+    const response = await api.get('/api/search/playlists', {
+      params: { query, page, limit: lim, sort },
+    });
+    return response.data;
   },
-  
+
   /**
-   * Effectue une recherche spécifique de podcasts
-   * @param {string} query - Terme de recherche
-   * @param {Object} options - Options de recherche
-   * @returns {Promise<Object>} - Résultats de recherche
+   * Recherche podcasts
+   * @param {string} query
+   * @param {Object} options { page=1, limit=12, category, sort='newest' }
    */
   searchPodcasts: async (query, options = {}) => {
-    try {
-      const { 
-        page = 1, 
-        limit = 12, 
-        category = null, 
-        sort = 'newest' 
-      } = options;
-      
-      const params = {
-        query,
-        page,
-        limit,
-        sort
-      };
-      
-      if (category) params.category = category;
-      
-      const response = await api.get('/api/search/podcasts', { params });
-      
-      return response.data;
-    } catch (error) {
-      console.error('Erreur lors de la recherche de podcasts:', error);
-      throw error;
-    }
+    const { page = 1, limit = 12, category = null, sort = 'newest' } = options;
+    const lim = Number(limit) || 12;
+
+    const response = await api.get('/api/search/podcasts', {
+      params: { query, page, limit: lim, category, sort },
+    });
+    return response.data;
   },
-  
+
   /**
-   * Effectue une recherche spécifique de livestreams
-   * @param {string} query - Terme de recherche
-   * @param {Object} options - Options de recherche
-   * @returns {Promise<Object>} - Résultats de recherche
+   * Recherche livestreams
+   * @param {string} query
+   * @param {Object} options { page=1, limit=12, status='all', category }
    */
   searchLivestreams: async (query, options = {}) => {
-    try {
-      const { 
-        page = 1, 
-        limit = 12, 
-        status = 'all', 
-        category = null 
-      } = options;
-      
-      const params = {
-        query,
-        page,
-        limit,
-        status
-      };
-      
-      if (category) params.category = category;
-      
-      const response = await api.get('/api/search/livestreams', { params });
-      
-      return response.data;
-    } catch (error) {
-      console.error('Erreur lors de la recherche de livestreams:', error);
-      throw error;
-    }
+    const { page = 1, limit = 12, status = 'all', category = null } = options;
+    const lim = Number(limit) || 12;
+
+    const response = await api.get('/api/search/livestreams', {
+      params: { query, page, limit: lim, status, category },
+    });
+    return response.data;
   },
-  
+
   /**
-   * Récupère les suggestions de recherche
-   * @param {string} query - Terme de recherche
-   * @param {number} limit - Nombre maximum de suggestions
-   * @returns {Promise<Object>} - Suggestions de recherche
+   * Suggestions d'auto-complétion
+   * @param {string} query
+   * @param {number} limit = 8
+   * @returns {Promise<{success:boolean, data:Array}>}
    */
-  getSearchSuggestions: async (query, limit = 5) => {
-    if (!query || query.length < 2) {
-      return { success: true, data: [] };
-    }
-    
+  getSearchSuggestions: async (query, limit = 8) => {
     try {
+      const lim = Number(limit) || 8;
       const response = await api.get('/api/search/suggestions', {
-        params: {
-          query,
-          limit
-        }
+        params: { query, limit: lim },
       });
-      
       return response.data;
     } catch (error) {
       console.error('Erreur lors de la récupération des suggestions:', error);
-      // En cas d'erreur, retourner un tableau vide pour éviter de bloquer l'interface
       return { success: false, data: [] };
     }
-  }
+  },
 };
 
 export default searchAPI;

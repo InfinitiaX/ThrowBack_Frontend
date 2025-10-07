@@ -1,0 +1,188 @@
+.sidebar {
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  height: fit-content;
+}
+
+.sidebarHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.sidebarHeader h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #8b0000;
+  margin: 0;
+}
+
+.refreshButton {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: none;
+  border: none;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.refreshButton:hover {
+  background-color: #f5f5f5;
+}
+
+.refreshButton:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.sidebarSection {
+  padding: 16px;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.sidebarSection:last-child {
+  border-bottom: none;
+}
+
+.sidebarSection h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #333;
+}
+
+.loading {
+  text-align: center;
+  color: #888;
+  font-style: italic;
+  padding: 10px 0;
+}
+
+.trendingHashtags {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hashtagItem {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #333;
+  transition: background-color 0.2s;
+}
+
+.hashtagItem:hover {
+  background-color: #f5f5f5;
+}
+
+.hashtagName {
+  margin-left: 8px;
+  font-size: 14px;
+  flex: 1;
+}
+
+.hashtagCount {
+  font-size: 12px;
+  color: #666;
+  background-color: #f5f5f5;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.suggestedUsers {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.userItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.userLink {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: #333;
+  flex: 1;
+}
+
+.userAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 10px;
+}
+
+.userName {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.followButton {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+  border: none;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.followButton:hover {
+  background-color: #8b0000;
+  color: white;
+}
+
+.discoverLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.discoverLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #333;
+  transition: background-color 0.2s;
+}
+
+.discoverLink:hover {
+  background-color: #f5f5f5;
+}
+
+.discoverLink span {
+  font-size: 14px;
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    display: none;
+  }
+}

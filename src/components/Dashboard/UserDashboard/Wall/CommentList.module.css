@@ -1,0 +1,98 @@
+.commentListContainer {
+  margin-top: 16px;
+  border-top: 1px solid #eee;
+  padding-top: 16px;
+}
+
+.commentList {
+  margin-top: 16px;
+}
+
+.emptyComments {
+  text-align: center;
+  padding: 20px;
+  color: #777;
+  font-style: italic;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.loadingComments {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  color: #666;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+.loadMoreButton {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  color: #333;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-top: 16px;
+  transition: background-color 0.2s;
+}
+
+.loadMoreButton:hover {
+  background-color: #eee;
+}
+
+.errorMessage {
+  background-color: rgba(179, 18, 23, 0.1);
+  color: #b31217;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.retryButton {
+  background-color: #b31217;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+  margin-top: 6px;
+}
+
+.retryButton:hover {
+  background-color: #9c1015;
+}
+
+@media (max-width: 576px) {
+  .commentListContainer {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+  
+  .loadMoreButton {
+    font-size: 0.85rem;
+    padding: 8px;
+  }
+  
+  .errorMessage {
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
+  
+  .retryButton {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+  }
+}

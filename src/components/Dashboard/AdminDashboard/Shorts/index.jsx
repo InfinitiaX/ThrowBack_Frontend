@@ -3,7 +3,7 @@ import AdminShortFormModal from './AdminShortFormModal';
 import AdminShortDetailModal from './AdminShortDetailModal';
 import styles from '../Videos/Videos.module.css';
 
-// Configuration de l'URL de l'API
+// API Base URL configuration
 const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
 const Shorts = () => {
@@ -21,34 +21,27 @@ const Shorts = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [stats, setStats] = useState({ total: 0, recent: [] });
   
-  // Fonction pour obtenir l'URL complète d'une vidéo
+  // Function to get full video URL
   const getFullVideoUrl = (path) => {
     if (!path) return '';
-    
-    // Si l'URL est déjà absolue, la retourner telle quelle
     if (path.startsWith('http')) return path;
-    
-    // S'assurer que le chemin commence par un slash
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    
-    // Toujours utiliser une URL de base
     const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
     const fullUrl = `${apiBaseUrl}${normalizedPath}`;
-    
     return fullUrl;
   };
   
-  // Fonction améliorée pour obtenir les headers d'authentification
+  // Auth headers
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     if (!token) {
-      setError("Authentification requise. Veuillez vous reconnecter.");
+      setError('Authentication required. Please log in again.');
       return null;
     }
-    return { 'Authorization': `Bearer ${token}` };
+    return { Authorization: `Bearer ${token}` };
   };
 
-  // Version améliorée de fetchShorts
+  // Fetch shorts
   const fetchShorts = async () => {
     setLoading(true);
     setError('');
@@ -60,35 +53,26 @@ const Shorts = () => {
     }
     
     try {
-      // Build query parameters
       const params = new URLSearchParams();
       if (searchQuery) params.append('search', searchQuery);
       params.append('page', currentPage);
       params.append('limit', 12);
       
-      console.log(`Fetching shorts from: ${API_BASE_URL}/api/admin/shorts?${params.toString()}`);
-      
       const res = await fetch(`${API_BASE_URL}/api/admin/shorts?${params.toString()}`, {
         headers,
-        credentials: 'include' // Important pour les cookies
+        credentials: 'include'
       });
       
-      console.log("Response status:", res.status, res.statusText);
-      
       if (!res.ok) {
-        // Tenter de récupérer le message d'erreur JSON si disponible
         try {
           const errorData = await res.json();
-          throw new Error(errorData.message || `Erreur ${res.status}: ${res.statusText}`);
-        } catch (jsonError) {
-          // Si pas de JSON valide, utiliser le statut HTTP
-          throw new Error(`Erreur ${res.status}: ${res.statusText}`);
+          throw new Error(errorData.message || `Error ${res.status}: ${res.statusText}`);
+        } catch {
+          throw new Error(`Error ${res.status}: ${res.statusText}`);
         }
       }
       
       const data = await res.json();
-      console.log("Shorts data received:", data);
-      
       let shortsData = [];
       
       if (data.videos && Array.isArray(data.videos)) {
@@ -99,8 +83,7 @@ const Shorts = () => {
         shortsData = data;
       }
       
-      // Process video URLs to make them absolute
-      shortsData = shortsData.map(short => {
+      shortsData = shortsData.map((short) => {
         const videoUrl = getFullVideoUrl(short.youtubeUrl);
         return {
           ...short,
@@ -110,45 +93,37 @@ const Shorts = () => {
       
       setShorts(shortsData);
       setTotalPages(data.totalPages || 1);
-      
     } catch (err) {
-      console.error("Shorts fetch error:", err);
-      setError(err.message || "Une erreur s'est produite lors du chargement des shorts");
+      console.error('Shorts fetch error:', err);
+      setError(err.message || 'An error occurred while loading shorts.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Version améliorée de fetchStats
+  // Fetch stats
   const fetchStats = async () => {
     const headers = getAuthHeaders();
     if (!headers) return;
     
     try {
-      console.log("Fetching shorts stats");
-      
       const res = await fetch(`${API_BASE_URL}/api/admin/shorts/stats`, {
         headers,
         credentials: 'include'
       });
       
-      console.log("Stats response status:", res.status);
-      
       if (!res.ok) {
-        console.warn(`Stats fetch failed: ${res.status} ${res.statusText}`);
-        return; // Continue without stats rather than failing completely
+        return; // Continue without stats
       }
       
       const data = await res.json();
       if (data.success) {
         setStats(data.stats);
       } else {
-        // Fallback: compter le nombre total de shorts
         setStats({ total: shorts.length, recent: [] });
       }
     } catch (err) {
       console.error('Error fetching shorts stats:', err);
-      // Fallback: utiliser le nombre de shorts récupérés
       setStats({ total: shorts.length, recent: [] });
     }
   };
@@ -176,9 +151,9 @@ const Shorts = () => {
 
   const handleShortSaved = (short) => {
     if (editShort) {
-      setShorts(list => list.map(s => s._id === short._id ? short : s));
+      setShorts((list) => list.map((s) => (s._id === short._id ? short : s)));
     } else {
-      setShorts(list => [short, ...list]);
+      setShorts((list) => [short, ...list]);
     }
     setEditShort(null);
     fetchStats(); // Refresh stats
@@ -189,7 +164,7 @@ const Shorts = () => {
     setDeleteModalOpen(true);
   };
 
-  // Version améliorée de handleDelete
+  // Delete handler
   const handleDelete = async () => {
     if (!shortToDelete) return;
     
@@ -203,30 +178,26 @@ const Shorts = () => {
     }
     
     try {
-      console.log(`Deleting short: ${shortToDelete._id}`);
-      
       const res = await fetch(`${API_BASE_URL}/api/admin/shorts/${shortToDelete._id}`, {
         method: 'DELETE',
         headers,
         credentials: 'include'
       });
       
-      console.log("Delete response:", res.status);
-      
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || `Erreur ${res.status}: ${res.statusText}`);
+        throw new Error(errorData.message || `Error ${res.status}: ${res.statusText}`);
       }
       
       await res.json();
       
-      setShorts(list => list.filter(s => s._id !== shortToDelete._id));
+      setShorts((list) => list.filter((s) => s._id !== shortToDelete._id));
       fetchStats(); // Refresh stats
       setDeleteModalOpen(false);
       setShortToDelete(null);
     } catch (err) {
-      console.error("Delete error:", err);
-      setError(err.message || "Une erreur s'est produite lors de la suppression");
+      console.error('Delete error:', err);
+      setError(err.message || 'An error occurred while deleting.');
     } finally {
       setDeleteLoading(null);
     }
@@ -234,29 +205,21 @@ const Shorts = () => {
 
   const getVideoThumbnail = (short) => {
     const { youtubeUrl } = short;
-    
-    // Check if it's a YouTube video
-    const isYouTubeVideo = youtubeUrl && (
-      youtubeUrl.includes('youtube.com') || 
-      youtubeUrl.includes('youtu.be')
-    );
+    const isYouTubeVideo =
+      youtubeUrl && (youtubeUrl.includes('youtube.com') || youtubeUrl.includes('youtu.be'));
     
     if (isYouTubeVideo) {
-      // For YouTube videos, get video ID and use YouTube thumbnail
       const videoId = getYouTubeVideoId(youtubeUrl);
       if (videoId && videoId !== 'placeholder') {
         return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
       }
     } else if (youtubeUrl && (youtubeUrl.startsWith('/uploads/') || youtubeUrl.includes('/uploads/'))) {
-      // For uploaded files, use a placeholder image
       return `${API_BASE_URL}/images/video-thumbnail.jpg`;
     }
-    
-    // Default fallback
     return '/images/placeholder-video.jpg';
   };
 
-  // Component for displaying video thumbnails
+  // Thumbnail component
   const VideoThumbnail = ({ short }) => {
     const [thumbnailSrc, setThumbnailSrc] = useState(getVideoThumbnail(short));
     const [isGenerating, setIsGenerating] = useState(false);
@@ -265,7 +228,7 @@ const Shorts = () => {
       setIsGenerating(true);
       const video = document.createElement('video');
       video.crossOrigin = 'anonymous';
-      video.currentTime = 1; // Get frame at 1 second
+      video.currentTime = 1; // 1s frame
       
       video.onloadeddata = () => {
         const canvas = document.createElement('canvas');
@@ -291,8 +254,12 @@ const Shorts = () => {
     };
 
     const handleImageError = () => {
-      // If YouTube thumbnail fails or uploaded file, try to generate thumbnail
-      if (short.youtubeUrl && (short.youtubeUrl.startsWith('/uploads/') || short.youtubeUrl.includes('/uploads/')) && !isGenerating) {
+      // If YouTube fails or local upload, try to generate from video file
+      if (
+        short.youtubeUrl &&
+        (short.youtubeUrl.startsWith('/uploads/') || short.youtubeUrl.includes('/uploads/')) &&
+        !isGenerating
+      ) {
         generateThumbnailFromVideo(short.youtubeUrl);
       } else {
         setThumbnailSrc('/images/placeholder-video.jpg');
@@ -300,12 +267,12 @@ const Shorts = () => {
     };
 
     return (
-      <img 
+      <img
         src={thumbnailSrc}
         alt={short.titre}
         onError={handleImageError}
         crossOrigin="anonymous"
-        style={{ 
+        style={{
           opacity: isGenerating ? 0.5 : 1,
           transition: 'opacity 0.3s ease'
         }}
@@ -320,27 +287,32 @@ const Shorts = () => {
       let videoId = '';
       
       if (videoUrl.hostname.includes('youtube.com')) {
-        // Classic format: youtube.com/watch?v=VIDEO_ID
+        // youtube.com/watch?v=VIDEO_ID
         if (videoUrl.searchParams.get('v')) {
           videoId = videoUrl.searchParams.get('v');
         }
-        // Shorts format: youtube.com/shorts/VIDEO_ID
+        // youtube.com/shorts/VIDEO_ID
         else if (videoUrl.pathname.startsWith('/shorts/')) {
           videoId = videoUrl.pathname.replace('/shorts/', '');
         }
-        // Embed format: youtube.com/embed/VIDEO_ID
+        // youtube.com/embed/VIDEO_ID
         else if (videoUrl.pathname.startsWith('/embed/')) {
           videoId = videoUrl.pathname.replace('/embed/', '');
         }
       } else if (videoUrl.hostname.includes('youtu.be')) {
-        // Short format: youtu.be/VIDEO_ID
+        // youtu.be/VIDEO_ID
         videoId = videoUrl.pathname.substring(1);
       }
       
       return videoId;
     } catch (error) {
-      // Fallback pour les URLs mal formées
-      const match = url && url.match ? url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i) : null;
+      // Fallback for malformed URLs
+      const match =
+        url && url.match
+          ? url.match(
+              /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i
+            )
+          : null;
       if (match && match[1]) {
         return match[1];
       }
@@ -352,21 +324,24 @@ const Shorts = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div>
-          <h1>Gestion des Shorts</h1>
-          <p>Gérez les vidéos courtes (10-30 secondes) 🎬</p>
+          <h1>Shorts Management</h1>
+        <p>Manage short videos</p>
         </div>
-        <button 
-          className={styles.addButton} 
-          onClick={() => { setEditShort(null); setShowModal(true); }}
+        <button
+          className={styles.addButton}
+          onClick={() => {
+            setEditShort(null);
+            setShowModal(true);
+          }}
         >
-          <i className="fas fa-plus"></i> Ajouter un short
+          <i className="fas fa-plus"></i> Add Short
         </button>
       </div>
 
       {/* Stats Card */}
       <div className={styles.statsRow}>
         <div className={styles.statCard}>
-          <div className={styles.statIcon} style={{backgroundColor: '#fab005'}}>
+          <div className={styles.statIcon} style={{ backgroundColor: '#fab005' }}>
             <i className="fas fa-bolt"></i>
           </div>
           <div className={styles.statContent}>
@@ -382,7 +357,7 @@ const Shorts = () => {
           <div className={styles.searchForm}>
             <input
               type="text"
-              placeholder="Rechercher des shorts..."
+              placeholder="Search shorts..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={handleKeyPress}
@@ -392,17 +367,17 @@ const Shorts = () => {
               <i className="fas fa-search"></i>
             </button>
           </div>
-          
+
           {searchQuery && (
-            <button 
+            <button
               onClick={() => {
                 setSearchQuery('');
                 setCurrentPage(1);
                 fetchShorts();
-              }} 
+              }}
               className={styles.resetButton}
             >
-              <i className="fas fa-times"></i> Effacer
+              <i className="fas fa-times"></i> Clear
             </button>
           )}
         </div>
@@ -413,7 +388,7 @@ const Shorts = () => {
           <i className="fas fa-exclamation-circle"></i>
           <span>{error}</span>
           <button className={styles.retryButton} onClick={fetchShorts}>
-            <i className="fas fa-redo"></i> Réessayer
+            <i className="fas fa-redo"></i> Retry
           </button>
         </div>
       )}
@@ -423,73 +398,67 @@ const Shorts = () => {
           <div className={styles.loadingSpinner}>
             <i className="fas fa-spinner fa-spin"></i>
           </div>
-          <div className={styles.loadingText}>Chargement des shorts...</div>
+          <div className={styles.loadingText}>Loading shorts...</div>
         </div>
       ) : shorts.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>
             <i className="fas fa-bolt"></i>
           </div>
-          <h3 className={styles.emptyTitle}>Aucun short trouvé</h3>
+          <h3 className={styles.emptyTitle}>No shorts found</h3>
           <p className={styles.emptyMessage}>
-            {searchQuery ? 'Aucun short ne correspond à votre recherche' : 'Ajoutez votre premier short pour commencer'}
+            {searchQuery ? 'No shorts match your search' : 'Add your first short to get started'}
           </p>
-          <button 
-            onClick={() => setShowModal(true)}
-            className={styles.addEmptyButton}
-          >
-            <i className="fas fa-plus"></i> Ajouter votre premier short
+          <button onClick={() => setShowModal(true)} className={styles.addEmptyButton}>
+            <i className="fas fa-plus"></i> Add your first short
           </button>
         </div>
       ) : (
         <>
           {/* Grid View */}
           <div className={styles.videoGrid}>
-            {shorts.map(short => (
+            {shorts.map((short) => (
               <div key={short._id} className={styles.videoCard} data-type="short">
                 <div className={styles.videoType}>SHORT</div>
-                <div 
-                  className={styles.videoThumbnail}
-                  onClick={() => setViewShort(short)}
-                >
+                <div className={styles.videoThumbnail} onClick={() => setViewShort(short)}>
                   <VideoThumbnail short={short} />
-                  
-                  {short.duree && (
-                    <div className={styles.videoDuration}>{short.duree}s</div>
-                  )}
+                  {short.duree && <div className={styles.videoDuration}>{short.duree}s</div>}
                 </div>
-                
+
                 <div className={styles.videoInfo}>
                   <h3 className={styles.videoTitle} title={short.titre}>
                     {short.titre}
                   </h3>
                   <div className={styles.videoMeta}>
-                    <div className={styles.videoArtist}>{short.artiste || 'Artiste inconnu'}</div>
+                    <div className={styles.videoArtist}>{short.artiste || 'Unknown Artist'}</div>
                     <div className={styles.videoYear}>
                       {new Date(short.createdAt).toLocaleDateString()}
                     </div>
                   </div>
                 </div>
-                
+
                 <div className={styles.videoActions}>
-                  <button 
-                    className={styles.actionButton} 
+                  <button
+                    className={styles.actionButton}
                     onClick={() => setViewShort(short)}
-                    title="Voir les détails"
+                    title="View details"
                   >
                     <i className="fas fa-eye"></i>
                   </button>
-                  <button 
-                    className={styles.actionButton} 
-                    onClick={() => { setEditShort(short); setShowModal(true); }}
-                    title="Modifier"
+                  <button
+                    className={styles.actionButton}
+                    onClick={() => {
+                      setEditShort(short);
+                      setShowModal(true);
+                    }}
+                    title="Edit"
                   >
                     <i className="fas fa-edit"></i>
                   </button>
-                  <button 
-                    className={styles.actionButton} 
+                  <button
+                    className={styles.actionButton}
                     onClick={() => handleDeleteClick(short)}
-                    title="Supprimer"
+                    title="Delete"
                     disabled={deleteLoading === short._id}
                   >
                     {deleteLoading === short._id ? (
@@ -509,15 +478,15 @@ const Shorts = () => {
               <button
                 className={styles.paginationButton}
                 disabled={currentPage === 1}
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               >
-                <i className="fas fa-chevron-left"></i> Précédent
+                <i className="fas fa-chevron-left"></i> Previous
               </button>
-              
+
               <div className={styles.pageNumbers}>
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   let pageNum;
-                  
+
                   if (totalPages <= 5) {
                     pageNum = i + 1;
                   } else if (currentPage <= 3) {
@@ -527,11 +496,13 @@ const Shorts = () => {
                   } else {
                     pageNum = currentPage - 2 + i;
                   }
-                  
+
                   return (
                     <button
                       key={pageNum}
-                      className={`${styles.pageNumber} ${currentPage === pageNum ? styles.currentPage : ''}`}
+                      className={`${styles.pageNumber} ${
+                        currentPage === pageNum ? styles.currentPage : ''
+                      }`}
                       onClick={() => setCurrentPage(pageNum)}
                     >
                       {pageNum}
@@ -539,13 +510,13 @@ const Shorts = () => {
                   );
                 })}
               </div>
-              
+
               <button
                 className={styles.paginationButton}
                 disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               >
-                Suivant <i className="fas fa-chevron-right"></i>
+                Next <i className="fas fa-chevron-right"></i>
               </button>
             </div>
           )}
@@ -555,11 +526,14 @@ const Shorts = () => {
       {/* Modals */}
       <AdminShortFormModal
         isOpen={showModal}
-        onClose={() => { setShowModal(false); setEditShort(null); }}
+        onClose={() => {
+          setShowModal(false);
+          setEditShort(null);
+        }}
         onShortSaved={handleShortSaved}
         initialData={editShort}
       />
-      
+
       <AdminShortDetailModal
         isOpen={!!viewShort}
         onClose={() => setViewShort(null)}
@@ -571,9 +545,9 @@ const Shorts = () => {
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent} style={{ maxWidth: '450px' }}>
             <div className={styles.modalHeader}>
-              <h2>Confirmer la suppression</h2>
-              <button 
-                className={styles.closeButton} 
+              <h2>Confirm Deletion</h2>
+              <button
+                className={styles.closeButton}
                 onClick={() => {
                   setDeleteModalOpen(false);
                   setShortToDelete(null);
@@ -583,26 +557,30 @@ const Shorts = () => {
                 <i className="fas fa-times"></i>
               </button>
             </div>
-            
+
             <div className={styles.modalForm}>
               <div className={styles.deleteConfirmContent}>
                 <div className={styles.deleteIcon}>
-                  <i className="fas fa-exclamation-triangle"></i> Supprimer le Short
+                  <i className="fas fa-exclamation-triangle"></i> Delete Short
                 </div>
-                
+
                 <div className={styles.deleteMessage}>
-                  <p><strong>Êtes-vous sûr de vouloir supprimer cette vidéo ?</strong></p>
-                  
+                  <p>
+                    <strong>Are you sure you want to delete this video?</strong>
+                  </p>
+
                   <div className={styles.deleteDetails}>
-                    <p>Vous êtes sur le point de supprimer : <strong>{shortToDelete.titre}</strong></p>
-                    <p className={styles.deleteWarningText}>Cette action ne peut pas être annulée.</p>
+                    <p>
+                      You are about to delete: <strong>{shortToDelete.titre}</strong>
+                    </p>
+                    <p className={styles.deleteWarningText}>This action cannot be undone.</p>
                   </div>
                 </div>
               </div>
             </div>
-            
+
             <div className={styles.modalFooter}>
-              <button 
+              <button
                 type="button"
                 className={styles.cancelButton}
                 onClick={() => {
@@ -611,9 +589,9 @@ const Shorts = () => {
                 }}
                 disabled={deleteLoading}
               >
-                Annuler
+                Cancel
               </button>
-              <button 
+              <button
                 type="button"
                 className={styles.deleteButton}
                 onClick={handleDelete}
@@ -621,10 +599,10 @@ const Shorts = () => {
               >
                 {deleteLoading ? (
                   <>
-                    <i className="fas fa-spinner fa-spin"></i> Suppression...
+                    <i className="fas fa-spinner fa-spin"></i> Deleting...
                   </>
                 ) : (
-                  'Supprimer'
+                  'Delete'
                 )}
               </button>
             </div>

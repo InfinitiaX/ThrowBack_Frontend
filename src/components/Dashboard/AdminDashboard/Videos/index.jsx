@@ -265,7 +265,7 @@ const Videos = () => {
       <div className={styles.header}>
         <div>
           <h1>Music Video Management</h1>
-          <p>Manage all your music videos 🎵</p>
+          <p>Manage all your music videos</p>
         </div>
         <div className={styles.headerActions}>
           {!isMobile && (

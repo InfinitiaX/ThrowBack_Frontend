@@ -5,7 +5,7 @@ import PodcastDetailModal from './PodcastDetailModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import styles from './Podcasts.module.css';
 
-// Catégories disponibles pour les podcasts
+// Available podcast categories
 const CATEGORIES = [
   'PERSONAL BRANDING',
   'MUSIC BUSINESS',
@@ -16,23 +16,23 @@ const CATEGORIES = [
 ];
 
 const Podcasts = () => {
-  // URL de base de l'API
+  // API base URL
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
   
-  // État des podcasts et du chargement
+  // Podcasts & loading state
   const [podcasts, setPodcasts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showError, setShowError] = useState(false);
   
-  // État des modals
+  // Modals state
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedPodcast, setSelectedPodcast] = useState(null);
   
-  // État des filtres
+  // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [seasonFilter, setSeasonFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -40,45 +40,44 @@ const Podcasts = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   
-  // Statistiques
+  // Stats
   const [stats, setStats] = useState({
     total: 0,
     byCategory: [],
     bySeason: []
   });
 
-  // Mode d'affichage (grille ou tableau)
+  // View mode (grid or table)
   const [viewMode, setViewMode] = useState('grid');
   
-  // Détection de la taille de l'écran pour le responsive
+  // Responsive detection
   const [isMobile, setIsMobile] = useState(false);
 
-  // Détecter les changements de taille d'écran
+  // Detect viewport changes
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
-      // Passer automatiquement en mode grille sur mobile
       if (window.innerWidth <= 768 && viewMode === 'table') {
         setViewMode('grid');
       }
     };
 
-    handleResize(); // Vérifier la taille initiale
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [viewMode]);
 
-  // Récupérer les podcasts avec les filtres
+  // Fetch podcasts with filters
   const fetchPodcasts = async () => {
     try {
       setLoading(true);
       setShowError(false);
       const token = localStorage.getItem('token');
       if (!token) {
-        throw new Error("Vous n'êtes pas authentifié. Veuillez vous reconnecter.");
+        throw new Error("You are not authenticated. Please log in again.");
       }
       
-      // Construire les paramètres de requête
+      // Build query params
       const params = new URLSearchParams();
       if (searchQuery) params.append('search', searchQuery);
       if (seasonFilter) params.append('season', seasonFilter);
@@ -95,33 +94,33 @@ const Podcasts = () => {
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Erreur serveur' }));
-        throw new Error(errorData.message || 'Échec de la récupération des podcasts');
+        const errorData = await response.json().catch(() => ({ message: 'Server error' }));
+        throw new Error(errorData.message || 'Failed to fetch podcasts');
       }
       
       const data = await response.json();
       setPodcasts(data.data || []);
       setTotalPages(data.pagination?.totalPages || 1);
       
-      // Si nous sommes sur la première page sans filtres, récupérer les statistiques
+      // On first page with no filters, fetch stats
       if (currentPage === 1 && !seasonFilter && !categoryFilter && !publishFilter && !searchQuery) {
         fetchPodcastStats();
       }
     } catch (err) {
       setError(err.message);
       setShowError(true);
-      console.error('Erreur lors de la récupération des podcasts:', err);
+      console.error('Error fetching podcasts:', err);
     } finally {
       setLoading(false);
     }
   };
   
-  // Récupérer les statistiques des podcasts
+  // Fetch podcasts stats
   const fetchPodcastStats = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        console.error("Token d'authentification non trouvé");
+        console.error("Auth token not found");
         return;
       }
       
@@ -133,8 +132,8 @@ const Podcasts = () => {
       });
       
       if (!response.ok) {
-        console.error('Erreur lors de la récupération des statistiques');
-        return; // Échouer silencieusement pour les stats
+        console.error('Error fetching podcast statistics');
+        return;
       }
       
       const data = await response.json();
@@ -142,23 +141,23 @@ const Podcasts = () => {
         setStats(data.data);
       }
     } catch (err) {
-      console.error('Erreur lors de la récupération des statistiques:', err);
+      console.error('Error fetching podcast statistics:', err);
     }
   };
 
-  // Charger les podcasts au montage et quand les filtres changent
+  // Load podcasts on mount & on filters change
   useEffect(() => {
     fetchPodcasts();
   }, [seasonFilter, categoryFilter, publishFilter, currentPage]);
 
-  // Gérer la soumission du formulaire de recherche
+  // Search submit
   const handleSearch = (e) => {
     e.preventDefault();
     setCurrentPage(1);
     fetchPodcasts();
   };
 
-  // Réinitialiser les filtres
+  // Reset filters
   const handleReset = () => {
     setSearchQuery('');
     setSeasonFilter('');
@@ -167,21 +166,21 @@ const Podcasts = () => {
     setCurrentPage(1);
   };
 
-  // Basculer entre les modes d'affichage (grille/tableau)
+  // Toggle view mode (grid/table)
   const toggleViewMode = () => {
-    if (!isMobile) { // Empêcher le mode tableau sur mobile
+    if (!isMobile) {
       setViewMode(prev => prev === 'grid' ? 'table' : 'grid');
     }
   };
 
-  // Gérer la création d'un podcast
+  // On podcast created
   const handlePodcastCreated = (newPodcast) => {
     setPodcasts(prevPodcasts => [newPodcast, ...prevPodcasts]);
     setAddModalOpen(false);
     fetchPodcastStats();
   };
 
-  // Gérer la mise à jour d'un podcast
+  // On podcast updated
   const handlePodcastUpdated = (updatedPodcast) => {
     setPodcasts(prevPodcasts => 
       prevPodcasts.map(podcast => 
@@ -192,13 +191,13 @@ const Podcasts = () => {
     setSelectedPodcast(null);
   };
 
-  // Gérer le clic sur supprimer
+  // Delete click
   const handleDeleteClick = (podcast) => {
     setSelectedPodcast(podcast);
     setDeleteModalOpen(true);
   };
 
-  // Gérer la suppression d'un podcast
+  // On podcast deleted
   const handlePodcastDeleted = (deletedId) => {
     setPodcasts(prevPodcasts => 
       prevPodcasts.filter(podcast => podcast._id !== deletedId)
@@ -208,19 +207,19 @@ const Podcasts = () => {
     fetchPodcastStats();
   };
 
-  // Gérer l'affichage des détails d'un podcast
+  // View details
   const handleViewDetails = (podcast) => {
     setSelectedPodcast(podcast);
     setDetailModalOpen(true);
   };
 
-  // Gérer le clic sur modifier
+  // Edit click
   const handleEditClick = (podcast) => {
     setSelectedPodcast(podcast);
     setEditModalOpen(true);
   };
 
-  // Extraire l'ID Vimeo à partir de l'URL
+  // Extract Vimeo ID from URL
   const getVimeoId = (url) => {
     try {
       if (!url) return null;
@@ -228,11 +227,9 @@ const Podcasts = () => {
       const vimeoUrl = new URL(url);
       
       if (vimeoUrl.hostname.includes('vimeo.com')) {
-        // Format: https://vimeo.com/123456789
         const segments = vimeoUrl.pathname.split('/').filter(Boolean);
         return segments[0];
       } else if (vimeoUrl.hostname.includes('player.vimeo.com')) {
-        // Format: https://player.vimeo.com/video/123456789
         const segments = vimeoUrl.pathname.split('/').filter(Boolean);
         if (segments[0] === 'video') {
           return segments[1];
@@ -241,37 +238,29 @@ const Podcasts = () => {
       
       return null;
     } catch (error) {
-      console.error('Erreur lors de l\'extraction de l\'ID Vimeo:', error);
+      console.error('Error extracting Vimeo ID:', error);
       return null;
     }
   };
 
-  // Générer l'URL de la vignette Vimeo
+  // Build Vimeo thumbnail URL or fallbacks
   const getVimeoThumbnail = (podcast) => {
-    // Si le podcast a une image de couverture personnalisée, l'utiliser
     if (podcast.coverImage && !podcast.coverImage.includes('podcast-default.jpg')) {
       return podcast.coverImage;
     }
-    
-    // Sinon, essayer d'utiliser la vignette Vimeo (note: dans un cas réel,
-    // il faudrait appeler l'API Vimeo côté serveur pour obtenir les vraies vignettes)
     const vimeoId = getVimeoId(podcast.vimeoUrl);
-    
-    // Si nous avons un ID Vimeo, renvoyer une image de remplacement Vimeo
     if (vimeoId) {
       return `/images/vimeo-placeholder.jpg`;
     }
-    
-    // Renvoyer l'image par défaut
     return '/images/podcast-default.jpg';
   };
 
-  // Formater l'épisode (EP.01)
+  // Format episode (EP.01)
   const formatEpisode = (episode) => {
     return `EP.${episode.toString().padStart(2, '0')}`;
   };
 
-  // Rendre un élément de la grille de podcasts
+  // Grid item
   const renderPodcastGridItem = (podcast) => (
     <div key={podcast._id} className={styles.podcastCard}>
       <div className={styles.podcastCategory}>{podcast.category}</div>
@@ -291,7 +280,7 @@ const Podcasts = () => {
         <div className={styles.podcastEpisode}>{formatEpisode(podcast.episode)}</div>
         
         {podcast.season > 1 && (
-          <div className={styles.podcastSeason}>Saison {podcast.season}</div>
+          <div className={styles.podcastSeason}>Season {podcast.season}</div>
         )}
         
         <div className={styles.podcastDuration}>{podcast.duration} min</div>
@@ -303,7 +292,7 @@ const Podcasts = () => {
         </h3>
         <div className={styles.podcastMeta}>
           <div className={styles.podcastHost}>
-            {podcast.guestName ? `Invité: ${podcast.guestName}` : `Host: ${podcast.hostName}`}
+            {podcast.guestName ? `Guest: ${podcast.guestName}` : `Host: ${podcast.hostName}`}
           </div>
           <div className={styles.podcastDate}>
             {new Date(podcast.publishDate).toLocaleDateString()}
@@ -313,7 +302,7 @@ const Podcasts = () => {
       
       {!podcast.isPublished && (
         <div className={styles.unpublishedBadge}>
-          <i className="fas fa-eye-slash"></i> Non publié
+          <i className="fas fa-eye-slash"></i> Unpublished
         </div>
       )}
       
@@ -321,21 +310,21 @@ const Podcasts = () => {
         <button 
           className={styles.actionButton} 
           onClick={() => handleViewDetails(podcast)}
-          title="Voir les détails"
+          title="View details"
         >
           <i className="fas fa-eye"></i>
         </button>
         <button 
           className={styles.actionButton} 
           onClick={() => handleEditClick(podcast)}
-          title="Modifier le podcast"
+          title="Edit podcast"
         >
           <i className="fas fa-edit"></i>
         </button>
         <button 
           className={styles.actionButton} 
           onClick={() => handleDeleteClick(podcast)}
-          title="Supprimer le podcast"
+          title="Delete podcast"
         >
           <i className="fas fa-trash"></i>
         </button>
@@ -343,7 +332,7 @@ const Podcasts = () => {
     </div>
   );
 
-  // Rendre une ligne du tableau de podcasts
+  // Table row
   const renderPodcastTableRow = (podcast) => (
     <tr key={podcast._id} className={styles.podcastTableRow}>
       <td className={styles.thumbnailCell}>
@@ -366,7 +355,7 @@ const Podcasts = () => {
         {podcast.title}
       </td>
       <td>{formatEpisode(podcast.episode)}</td>
-      <td>Saison {podcast.season}</td>
+      <td>Season {podcast.season}</td>
       <td>{podcast.guestName || '-'}</td>
       <td>
         <span className={styles.categoryTag}>
@@ -379,21 +368,21 @@ const Podcasts = () => {
         <button 
           className={styles.actionButton} 
           onClick={() => handleViewDetails(podcast)}
-          title="Voir les détails"
+          title="View details"
         >
           <i className="fas fa-eye"></i>
         </button>
         <button 
           className={styles.actionButton} 
           onClick={() => handleEditClick(podcast)}
-          title="Modifier le podcast"
+          title="Edit podcast"
         >
           <i className="fas fa-edit"></i>
         </button>
         <button 
           className={styles.actionButton} 
           onClick={() => handleDeleteClick(podcast)}
-          title="Supprimer le podcast"
+          title="Delete podcast"
         >
           <i className="fas fa-trash"></i>
         </button>
@@ -405,9 +394,9 @@ const Podcasts = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div>
-          <h1>Gestion des Podcasts</h1>
+          <h1>Podcast Management</h1>
           <br/>
-          <p>Bienvenue dans le panneau de gestion des podcasts 👋</p>
+          <p>Welcome to the podcast management panel</p>
         </div>
   
         <div className={styles.headerActions}>
@@ -415,7 +404,7 @@ const Podcasts = () => {
             <button 
               className={styles.viewToggleButton}
               onClick={toggleViewMode}
-              title={viewMode === 'grid' ? "Passer en vue tableau" : "Passer en vue grille"}
+              title={viewMode === 'grid' ? "Switch to table view" : "Switch to grid view"}
             >
               <i className={`fas fa-${viewMode === 'grid' ? 'list' : 'th'}`}></i>
             </button>
@@ -425,12 +414,12 @@ const Podcasts = () => {
             onClick={() => setAddModalOpen(true)}
           >
             <i className="fas fa-plus"></i> 
-            <span>{isMobile ? 'Ajouter' : 'Ajouter un podcast'}</span>
+            <span>{isMobile ? 'Add' : 'Add Podcast'}</span>
           </button>
         </div>
       </div>
       
-      {/* Cartes de statistiques */}
+      {/* Stats cards */}
       <div className={styles.statsRow}>
         <div className={styles.statCard}>
           <div className={styles.statIcon}>
@@ -461,19 +450,19 @@ const Podcasts = () => {
             </div>
             <div className={styles.statContent}>
               <div className={styles.statValue}>{season.count}</div>
-              <div className={styles.statLabel}>Saison {season._id}</div>
+              <div className={styles.statLabel}>Season {season._id}</div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Recherche et filtres */}
+      {/* Search & filters */}
       <div className={styles.filtersContainer}>
         <div className={styles.filtersTop}>
           <form onSubmit={handleSearch} className={styles.searchForm}>
             <input
               type="text"
-              placeholder={isMobile ? "Rechercher..." : "Rechercher un podcast..."}
+              placeholder={isMobile ? "Search..." : "Search a podcast..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={styles.searchInput}
@@ -490,7 +479,7 @@ const Podcasts = () => {
                 className={styles.resetButton}
               >
                 <i className="fas fa-times"></i> 
-                <span>{isMobile ? 'Effacer' : 'Effacer les filtres'}</span>
+                <span>{isMobile ? 'Clear' : 'Clear filters'}</span>
               </button>
             )}
           </div>
@@ -498,7 +487,7 @@ const Podcasts = () => {
         
         <div className={styles.filtersBottom}>
           <div className={styles.filterGroup}>
-            <label htmlFor="seasonFilter" className={styles.filterLabel}>Saison:</label>
+            <label htmlFor="seasonFilter" className={styles.filterLabel}>Season:</label>
             <select
               id="seasonFilter"
               value={seasonFilter}
@@ -508,16 +497,16 @@ const Podcasts = () => {
               }}
               className={styles.filterSelect}
             >
-              <option value="">Toutes les saisons</option>
-              <option value="1">Saison 1</option>
-              <option value="2">Saison 2</option>
-              <option value="3">Saison 3</option>
-              <option value="4">Saison 4</option>
+              <option value="">All seasons</option>
+              <option value="1">Season 1</option>
+              <option value="2">Season 2</option>
+              <option value="3">Season 3</option>
+              <option value="4">Season 4</option>
             </select>
           </div>
           
           <div className={styles.filterGroup}>
-            <label htmlFor="categoryFilter" className={styles.filterLabel}>Catégorie:</label>
+            <label htmlFor="categoryFilter" className={styles.filterLabel}>Category:</label>
             <select
               id="categoryFilter"
               value={categoryFilter}
@@ -527,7 +516,7 @@ const Podcasts = () => {
               }}
               className={styles.filterSelect}
             >
-              <option value="">Toutes les catégories</option>
+              <option value="">All categories</option>
               {CATEGORIES.map(category => (
                 <option key={category} value={category}>{category}</option>
               ))}
@@ -535,7 +524,7 @@ const Podcasts = () => {
           </div>
           
           <div className={styles.filterGroup}>
-            <label htmlFor="publishFilter" className={styles.filterLabel}>Statut:</label>
+            <label htmlFor="publishFilter" className={styles.filterLabel}>Status:</label>
             <select
               id="publishFilter"
               value={publishFilter}
@@ -545,9 +534,9 @@ const Podcasts = () => {
               }}
               className={styles.filterSelect}
             >
-              <option value="">Tous les statuts</option>
-              <option value="published">Publiés</option>
-              <option value="unpublished">Non publiés</option>
+              <option value="">All statuses</option>
+              <option value="published">Published</option>
+              <option value="unpublished">Unpublished</option>
             </select>
           </div>
           
@@ -559,7 +548,7 @@ const Podcasts = () => {
                 </span> 
                 <span className={styles.countLabel}>
                   {podcasts.length === 1 ? 'podcast' : 'podcasts'}
-                  {!isMobile && ' trouvés'}
+                  {!isMobile && ' found'}
                 </span>
               </>
             )}
@@ -567,17 +556,17 @@ const Podcasts = () => {
         </div>
       </div>
 
-      {/* État de chargement */}
+      {/* Loading state */}
       {loading && podcasts.length === 0 && (
         <div className={styles.loadingState}>
           <div className={styles.loadingSpinner}>
             <i className="fas fa-spinner fa-spin"></i>
           </div>
-          <div className={styles.loadingText}>Chargement des podcasts...</div>
+          <div className={styles.loadingText}>Loading podcasts...</div>
         </div>
       )}
 
-      {/* État d'erreur */}
+      {/* Error state */}
       {showError && error && (
         <div className={styles.errorState}>
           <i className="fas fa-exclamation-circle"></i>
@@ -586,29 +575,29 @@ const Podcasts = () => {
             className={styles.retryButton}
             onClick={() => fetchPodcasts()}
           >
-            <i className="fas fa-redo"></i> Réessayer
+            <i className="fas fa-redo"></i> Retry
           </button>
         </div>
       )}
 
-      {/* Grille ou tableau de podcasts */}
+      {/* Grid or table */}
       {!loading && podcasts.length === 0 && !showError ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>
             <i className="fas fa-podcast"></i>
           </div>
-          <h3 className={styles.emptyTitle}>Aucun podcast trouvé</h3>
+          <h3 className={styles.emptyTitle}>No podcast found</h3>
           <p className={styles.emptyMessage}>
             {searchQuery || seasonFilter || categoryFilter || publishFilter ? 
-              'Essayez d\'ajuster vos filtres ou votre recherche' :
-              'Ajoutez votre premier podcast pour commencer'
+              'Try adjusting your filters or search' :
+              'Add your first podcast to get started'
             }
           </p>
           <button 
             onClick={() => setAddModalOpen(true)}
             className={styles.addEmptyButton}
           >
-            <i className="fas fa-plus"></i> Ajouter votre premier podcast
+            <i className="fas fa-plus"></i> Add your first podcast
           </button>
         </div>
       ) : viewMode === 'grid' || isMobile ? (
@@ -620,13 +609,13 @@ const Podcasts = () => {
           <table className={styles.podcastTable}>
             <thead>
               <tr>
-                <th className={styles.thumbnailHeader}>Vignette</th>
-                <th>Titre</th>
-                <th>Épisode</th>
-                <th>Saison</th>
-                <th>Invité</th>
-                <th>Catégorie</th>
-                <th>Durée</th>
+                <th className={styles.thumbnailHeader}>Thumbnail</th>
+                <th>Title</th>
+                <th>Episode</th>
+                <th>Season</th>
+                <th>Guest</th>
+                <th>Category</th>
+                <th>Duration</th>
                 <th>Date</th>
                 <th>Actions</th>
               </tr>
@@ -647,7 +636,7 @@ const Podcasts = () => {
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
           >
             <i className="fas fa-chevron-left"></i> 
-            {!isMobile && 'Précédent'}
+            {!isMobile && 'Previous'}
           </button>
           
           <div className={styles.pageNumbers}>
@@ -681,7 +670,7 @@ const Podcasts = () => {
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
           >
-            {!isMobile && 'Suivant'} <i className="fas fa-chevron-right"></i>
+            {!isMobile && 'Next'} <i className="fas fa-chevron-right"></i>
           </button>
         </div>
       )}
@@ -730,7 +719,7 @@ const Podcasts = () => {
   );
 };
 
-// Fonction utilitaire pour obtenir une couleur pour une catégorie
+// Utility to get a color for a category
 const getCategoryColor = (category) => {
   const categoryColors = {
     'PERSONAL BRANDING': '#4c6ef5',

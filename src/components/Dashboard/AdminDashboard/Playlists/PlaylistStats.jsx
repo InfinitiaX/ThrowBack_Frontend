@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import styles from './PlaylistStats.module.css';
 
-// Couleurs pour les graphiques
+// Colors for the charts
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#d88489'];
 const VISIBILITY_COLORS = {
   'PUBLIC': '#00C49F',
@@ -21,70 +21,70 @@ const TYPE_COLORS = {
 };
 
 const PlaylistStats = ({ stats, loading, onRefresh }) => {
-  // Si chargement en cours
+  // If loading
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.spinner}></div>
-        <p>Chargement des statistiques...</p>
+        <p>Loading statistics...</p>
       </div>
     );
   }
 
-  // Si aucune statistique
+  // If no statistics
   if (!stats) {
     return (
       <div className={styles.errorContainer}>
         <i className="fas fa-exclamation-triangle"></i>
-        <p>Impossible de charger les statistiques</p>
-        <button onClick={onRefresh}>Réessayer</button>
+        <p>Unable to load statistics</p>
+        <button onClick={onRefresh}>Retry</button>
       </div>
     );
   }
 
-  // Formater les données pour le graphique des playlists par type
+  // Format data for playlists by type chart
   const playlistsByTypeData = stats.playlistsByType.map(item => ({
-    name: item._id === 'MANUELLE' ? 'Manuelle' :
+    name: item._id === 'MANUELLE' ? 'Manual' :
           item._id === 'AUTO_GENRE' ? 'Auto (Genre)' :
-          item._id === 'AUTO_DECENNIE' ? 'Auto (Décennie)' :
-          item._id === 'AUTO_ARTISTE' ? 'Auto (Artiste)' : item._id,
+          item._id === 'AUTO_DECENNIE' ? 'Auto (Decade)' :
+          item._id === 'AUTO_ARTISTE' ? 'Auto (Artist)' : item._id,
     value: item.count,
     color: TYPE_COLORS[item._id] || COLORS[0]
   }));
 
-  // Formater les données pour le graphique des playlists par visibilité
+  // Format data for playlists by visibility chart
   const playlistsByVisibilityData = stats.playlistsByVisibility.map(item => ({
     name: item._id,
     value: item.count,
     color: VISIBILITY_COLORS[item._id] || COLORS[0]
   }));
 
-  // Formater les données pour le graphique d'évolution
+  // Sort data for playlist creation trend chart
   const sortedTrends = [...stats.playlistsCreationTrend].sort((a, b) => {
     return new Date(a.date) - new Date(b.date);
   });
 
-  // Formater les données pour le graphique des top créateurs
+  // Format data for top creators chart
   const topCreatorsData = stats.topPlaylistCreators.map(item => ({
-    name: item.user.nom ? `${item.user.prenom} ${item.user.nom}` : 'Utilisateur inconnu',
+    name: item.user.nom ? `${item.user.prenom} ${item.user.nom}` : 'Unknown user',
     playlists: item.count
   }));
 
-  // Formater les données pour le graphique des top playlists
+  // Format data for top playlists chart
   const topPlaylistsData = stats.topPlaylists.map(playlist => ({
     name: playlist.nom,
     lectures: playlist.nb_lectures,
     favoris: playlist.nb_favoris,
-    creator: playlist.proprietaire ? `${playlist.proprietaire.prenom} ${playlist.proprietaire.nom}` : 'Inconnu'
+    creator: playlist.proprietaire ? `${playlist.proprietaire.prenom} ${playlist.proprietaire.nom}` : 'Unknown'
   }));
 
   return (
     <div className={styles.statsContainer}>
       <div className={styles.statsHeader}>
-        <h2>Statistiques des Playlists</h2>
+        <h2>Playlist Statistics</h2>
         <button className={styles.refreshButton} onClick={onRefresh}>
           <i className="fas fa-sync-alt"></i>
-          Rafraîchir
+          Refresh
         </button>
       </div>
 
@@ -94,7 +94,7 @@ const PlaylistStats = ({ stats, loading, onRefresh }) => {
             <i className="fas fa-list"></i>
           </div>
           <div className={styles.statInfo}>
-            <h3>Total des Playlists</h3>
+            <h3>Total Playlists</h3>
             <p>{stats.totalPlaylists}</p>
           </div>
         </div>
@@ -104,7 +104,7 @@ const PlaylistStats = ({ stats, loading, onRefresh }) => {
             <i className="fas fa-globe"></i>
           </div>
           <div className={styles.statInfo}>
-            <h3>Playlists Publiques</h3>
+            <h3>Public Playlists</h3>
             <p>
               {
                 stats.playlistsByVisibility.find(item => item._id === 'PUBLIC')?.count || 0
@@ -118,7 +118,7 @@ const PlaylistStats = ({ stats, loading, onRefresh }) => {
             <i className="fas fa-lock"></i>
           </div>
           <div className={styles.statInfo}>
-            <h3>Playlists Privées</h3>
+            <h3>Private Playlists</h3>
             <p>
               {
                 stats.playlistsByVisibility.find(item => item._id === 'PRIVE')?.count || 0
@@ -132,7 +132,7 @@ const PlaylistStats = ({ stats, loading, onRefresh }) => {
             <i className="fas fa-magic"></i>
           </div>
           <div className={styles.statInfo}>
-            <h3>Playlists Automatiques</h3>
+            <h3>Automatic Playlists</h3>
             <p>
               {
                 (stats.playlistsByType.find(item => item._id === 'AUTO_GENRE')?.count || 0) +
@@ -145,9 +145,9 @@ const PlaylistStats = ({ stats, loading, onRefresh }) => {
       </div>
 
       <div className={styles.chartsGrid}>
-        {/* Graphique des playlists par type */}
+        {/* Playlists by type chart */}
         <div className={styles.chartCard}>
-          <h3>Distribution par Type</h3>
+          <h3>Distribution by Type</h3>
           <div className={styles.chartContainer}>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -166,16 +166,16 @@ const PlaylistStats = ({ stats, loading, onRefresh }) => {
                     <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => [`${value} playlists`, 'Nombre']} />
+                <Tooltip formatter={(value) => [`${value} playlists`, 'Count']} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
         
-        {/* Graphique des playlists par visibilité */}
+        {/* Playlists by visibility chart */}
         <div className={styles.chartCard}>
-          <h3>Distribution par Visibilité</h3>
+          <h3>Distribution by Visibility</h3>
           <div className={styles.chartContainer}>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -194,16 +194,16 @@ const PlaylistStats = ({ stats, loading, onRefresh }) => {
                     <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => [`${value} playlists`, 'Nombre']} />
+                <Tooltip formatter={(value) => [`${value} playlists`, 'Count']} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
         
-        {/* Graphique d'évolution des créations de playlists */}
+        {/* Playlist creation trend chart */}
         <div className={`${styles.chartCard} ${styles.fullWidth}`}>
-          <h3>Évolution des Playlists Créées</h3>
+          <h3>Trend of Created Playlists</h3>
           <div className={styles.chartContainer}>
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart
@@ -213,16 +213,16 @@ const PlaylistStats = ({ stats, loading, onRefresh }) => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
-                <Tooltip formatter={(value) => [`${value} playlists`, 'Créées']} />
+                <Tooltip formatter={(value) => [`${value} playlists`, 'Created']} />
                 <Area type="monotone" dataKey="count" name="Playlists" stroke="#8884d8" fill="#8884d8" fillOpacity={0.3} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
         
-        {/* Graphique des top créateurs de playlists */}
+        {/* Top playlist creators chart */}
         <div className={styles.chartCard}>
-          <h3>Top Créateurs de Playlists</h3>
+          <h3>Top Playlist Creators</h3>
           <div className={styles.chartContainer}>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart
@@ -233,7 +233,7 @@ const PlaylistStats = ({ stats, loading, onRefresh }) => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" />
                 <YAxis dataKey="name" type="category" width={150} />
-                <Tooltip formatter={(value) => [`${value} playlists`, 'Nombre']} />
+                <Tooltip formatter={(value) => [`${value} playlists`, 'Count']} />
                 <Legend />
                 <Bar dataKey="playlists" name="Playlists" fill="#0088FE" />
               </BarChart>
@@ -241,9 +241,9 @@ const PlaylistStats = ({ stats, loading, onRefresh }) => {
           </div>
         </div>
         
-        {/* Graphique des top playlists */}
+        {/* Top playlists chart */}
         <div className={styles.chartCard}>
-          <h3>Top Playlists Populaires</h3>
+          <h3>Top Popular Playlists</h3>
           <div className={styles.chartContainer}>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart
@@ -254,15 +254,15 @@ const PlaylistStats = ({ stats, loading, onRefresh }) => {
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip 
-                  formatter={(value, name) => [value, name === 'lectures' ? 'Lectures' : 'Favoris']}
+                  formatter={(value, name) => [value, name === 'lectures' ? 'Plays' : 'Favorites']}
                   labelFormatter={(label) => {
                     const playlist = topPlaylistsData.find(p => p.name === label);
-                    return `${label} (${playlist?.creator || 'Inconnu'})`;
+                    return `${label} (${playlist?.creator || 'Unknown'})`;
                   }}
                 />
                 <Legend />
-                <Bar dataKey="lectures" name="Lectures" fill="#00C49F" />
-                <Bar dataKey="favoris" name="Favoris" fill="#FFBB28" />
+                <Bar dataKey="lectures" name="Plays" fill="#00C49F" />
+                <Bar dataKey="favoris" name="Favorites" fill="#FFBB28" />
               </BarChart>
             </ResponsiveContainer>
           </div>

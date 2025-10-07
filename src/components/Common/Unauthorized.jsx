@@ -8,16 +8,16 @@ const Unauthorized = () => {
     <div className={styles.unauthorized_container}>
       <div className={styles.unauthorized_content}>
         <h1>403</h1>
-        <h2>Accès non autorisé</h2>
+        <h2>Unauthorized access</h2>
         <p>
-          Vous n'avez pas les permissions nécessaires pour accéder à cette page.
+          You do not have the necessary permissions to access this page.
         </p>
         <div className={styles.unauthorized_actions}>
           <Link to="/login" className={`${styles.btn} ${styles.btn_primary}`}>
-            Se connecter
+            Go to login
           </Link>
           <Link to="/dashboard" className={`${styles.btn} ${styles.btn_secondary}`}>
-            Retour au tableau de bord
+            Go to dashboard
           </Link>
         </div>
       </div>

@@ -245,7 +245,7 @@ const Users = () => {
       <div className={styles.content_header}>
         <div>
           <h1 className={styles.page_title}>Manage Users</h1>
-          <p>Welcome to the user management panel 👋</p>
+          <p>Welcome to the user management panel</p>
         </div>
       </div>
 

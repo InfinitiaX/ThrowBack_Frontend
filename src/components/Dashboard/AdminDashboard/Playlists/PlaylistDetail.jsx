@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import { format } from 'date-fns';
 import styles from './PlaylistDetail.module.css';
 
-// Configuration de l'URL de base pour les ressources
+// Base URL configuration for assets
 const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
 const PlaylistDetail = () => {
@@ -33,10 +33,10 @@ const PlaylistDetail = () => {
   const [userLoading, setUserLoading] = useState(false);
   const [selectedPermission, setSelectedPermission] = useState('LECTURE');
   
-  // État pour suivre les images qui ont échoué à charger
+  // Track images that failed to load
   const [failedImages, setFailedImages] = useState({});
 
-  // Fonction pour gérer les erreurs de chargement d'image
+  // Handle image load errors
   const handleImageError = (id, type) => {
     setFailedImages(prev => ({
       ...prev,
@@ -44,20 +44,16 @@ const PlaylistDetail = () => {
     }));
   };
 
-  // Fonction pour construire l'URL complète des images
+  // Build full image URL
   const getImageUrl = (path) => {
     if (!path) return null;
-    
-    // Si l'URL est déjà absolue (commence par http ou https)
     if (path.startsWith('http://') || path.startsWith('https://')) {
       return path;
     }
-    
-    // Si l'URL est relative, préfixer avec l'URL de base de l'API
     return `${API_BASE_URL}${path}`;
   };
 
-  // Charger les détails de la playlist
+  // Load playlist details
   useEffect(() => {
     fetchPlaylistDetails();
   }, [id]);
@@ -76,19 +72,19 @@ const PlaylistDetail = () => {
           tags: response.data.data.tags ? response.data.data.tags.join(', ') : ''
         });
       } else {
-        setError('Erreur lors du chargement de la playlist');
-        toast.error('Erreur lors du chargement de la playlist');
+        setError('Error loading playlist');
+        toast.error('Error loading playlist');
       }
     } catch (err) {
-      console.error('Erreur fetchPlaylistDetails:', err);
-      setError('Erreur lors du chargement de la playlist');
-      toast.error('Erreur lors du chargement de la playlist');
+      console.error('Error fetchPlaylistDetails:', err);
+      setError('Error loading playlist');
+      toast.error('Error loading playlist');
     } finally {
       setLoading(false);
     }
   };
 
-  // Rechercher des vidéos à ajouter
+  // Search videos to add
   const searchVideos = async () => {
     if (!searchQuery.trim()) return;
     
@@ -97,24 +93,23 @@ const PlaylistDetail = () => {
       const response = await axios.get(`${API_BASE_URL}/api/videos/search?q=${encodeURIComponent(searchQuery)}`);
       
       if (response.data.success || response.data.data) {
-        // Filtrer les vidéos déjà dans la playlist
         const playlistVideoIds = playlist.videos.map(v => v.video_id._id);
         const filteredResults = (response.data.data || response.data.videos || [])
           .filter(video => !playlistVideoIds.includes(video._id));
         
         setSearchResults(filteredResults);
       } else {
-        toast.warning('Aucun résultat trouvé');
+        toast.warning('No results found');
       }
     } catch (err) {
-      console.error('Erreur searchVideos:', err);
-      toast.error('Erreur lors de la recherche de vidéos');
+      console.error('Error searchVideos:', err);
+      toast.error('Error while searching videos');
     } finally {
       setSearchLoading(false);
     }
   };
 
-  // Rechercher des utilisateurs pour la collaboration
+  // Search users for collaboration
   const searchUsers = async () => {
     if (!userSearch.trim()) return;
     
@@ -123,24 +118,23 @@ const PlaylistDetail = () => {
       const response = await axios.get(`${API_BASE_URL}/api/admin/users?search=${encodeURIComponent(userSearch)}`);
       
       if (response.data.success || response.data.users) {
-        // Filtrer les utilisateurs déjà collaborateurs
         const collaboratorIds = playlist.collaborateurs.map(c => c.utilisateur._id);
         const filteredUsers = (response.data.users || response.data.data || [])
           .filter(user => !collaboratorIds.includes(user._id) && !user._id.includes(playlist.proprietaire._id));
         
         setUserResults(filteredUsers);
       } else {
-        toast.warning('Aucun utilisateur trouvé');
+        toast.warning('No users found');
       }
     } catch (err) {
-      console.error('Erreur searchUsers:', err);
-      toast.error('Erreur lors de la recherche d\'utilisateurs');
+      console.error('Error searchUsers:', err);
+      toast.error('Error while searching users');
     } finally {
       setUserLoading(false);
     }
   };
 
-  // Gérer le changement des inputs du formulaire
+  // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -149,7 +143,7 @@ const PlaylistDetail = () => {
     }));
   };
 
-  // Sauvegarder les modifications
+  // Save changes
   const handleSaveChanges = async () => {
     try {
       const tagsArray = formData.tags
@@ -164,19 +158,19 @@ const PlaylistDetail = () => {
       });
       
       if (response.data.success) {
-        toast.success('Playlist mise à jour avec succès');
+        toast.success('Playlist updated successfully');
         setPlaylist(response.data.data);
         setEditMode(false);
       } else {
-        toast.error('Erreur lors de la mise à jour de la playlist');
+        toast.error('Error while updating playlist');
       }
     } catch (err) {
-      console.error('Erreur handleSaveChanges:', err);
-      toast.error('Erreur lors de la mise à jour de la playlist');
+      console.error('Error handleSaveChanges:', err);
+      toast.error('Error while updating playlist');
     }
   };
 
-  // Ajouter une vidéo à la playlist
+  // Add a video to playlist
   const handleAddVideo = async (videoId) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/admin/playlists/${id}/videos`, {
@@ -184,38 +178,38 @@ const PlaylistDetail = () => {
       });
       
       if (response.data.success) {
-        toast.success('Vidéo ajoutée à la playlist');
-        fetchPlaylistDetails(); // Rafraîchir les détails
+        toast.success('Video added to playlist');
+        fetchPlaylistDetails();
         setSearchResults(prev => prev.filter(video => video._id !== videoId));
       } else {
-        toast.error('Erreur lors de l\'ajout de la vidéo');
+        toast.error('Error adding video');
       }
     } catch (err) {
-      console.error('Erreur handleAddVideo:', err);
-      toast.error('Erreur lors de l\'ajout de la vidéo');
+      console.error('Error handleAddVideo:', err);
+      toast.error('Error adding video');
     }
   };
 
-  // Supprimer une vidéo de la playlist
+  // Remove a video from playlist
   const handleRemoveVideo = async (videoId) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette vidéo de la playlist ?')) {
+    if (window.confirm('Are you sure you want to remove this video from the playlist?')) {
       try {
         const response = await axios.delete(`${API_BASE_URL}/api/admin/playlists/${id}/videos/${videoId}`);
         
         if (response.data.success) {
-          toast.success('Vidéo supprimée de la playlist');
-          fetchPlaylistDetails(); // Rafraîchir les détails
+          toast.success('Video removed from playlist');
+          fetchPlaylistDetails();
         } else {
-          toast.error('Erreur lors de la suppression de la vidéo');
+          toast.error('Error removing video');
         }
       } catch (err) {
-        console.error('Erreur handleRemoveVideo:', err);
-        toast.error('Erreur lors de la suppression de la vidéo');
+        console.error('Error handleRemoveVideo:', err);
+        toast.error('Error removing video');
       }
     }
   };
 
-  // Réorganiser les vidéos
+  // Reorder videos
   const handleDragEnd = async (result) => {
     if (!result.destination) return;
     
@@ -223,13 +217,11 @@ const PlaylistDetail = () => {
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
     
-    // Mise à jour temporaire pour l'interface
     setPlaylist(prev => ({
       ...prev,
       videos: items
     }));
     
-    // Envoyer la nouvelle organisation au serveur
     try {
       const nouveauOrdre = items.map((item, index) => ({
         videoId: item.video_id._id,
@@ -241,19 +233,19 @@ const PlaylistDetail = () => {
       });
       
       if (response.data.success) {
-        toast.success('Ordre des vidéos mis à jour');
+        toast.success('Video order updated');
       } else {
-        toast.error('Erreur lors de la mise à jour de l\'ordre');
-        fetchPlaylistDetails(); // Rafraîchir en cas d'erreur
+        toast.error('Error updating order');
+        fetchPlaylistDetails();
       }
     } catch (err) {
-      console.error('Erreur handleDragEnd:', err);
-      toast.error('Erreur lors de la mise à jour de l\'ordre');
-      fetchPlaylistDetails(); // Rafraîchir en cas d'erreur
+      console.error('Error handleDragEnd:', err);
+      toast.error('Error updating order');
+      fetchPlaylistDetails();
     }
   };
 
-  // Ajouter un collaborateur
+  // Add collaborator
   const handleAddCollaborator = async (userId) => {
     try {
       const response = await axios.put(`${API_BASE_URL}/api/admin/playlists/${id}/collaborateurs`, {
@@ -263,21 +255,21 @@ const PlaylistDetail = () => {
       });
       
       if (response.data.success) {
-        toast.success('Collaborateur ajouté avec succès');
-        fetchPlaylistDetails(); // Rafraîchir les détails
+        toast.success('Collaborator added successfully');
+        fetchPlaylistDetails();
         setUserResults(prev => prev.filter(user => user._id !== userId));
       } else {
-        toast.error('Erreur lors de l\'ajout du collaborateur');
+        toast.error('Error adding collaborator');
       }
     } catch (err) {
-      console.error('Erreur handleAddCollaborator:', err);
-      toast.error('Erreur lors de l\'ajout du collaborateur');
+      console.error('Error handleAddCollaborator:', err);
+      toast.error('Error adding collaborator');
     }
   };
 
-  // Supprimer un collaborateur
+  // Remove collaborator
   const handleRemoveCollaborator = async (userId) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce collaborateur ?')) {
+    if (window.confirm('Are you sure you want to remove this collaborator?')) {
       try {
         const response = await axios.put(`${API_BASE_URL}/api/admin/playlists/${id}/collaborateurs`, {
           action: 'remove',
@@ -285,19 +277,19 @@ const PlaylistDetail = () => {
         });
         
         if (response.data.success) {
-          toast.success('Collaborateur supprimé avec succès');
-          fetchPlaylistDetails(); // Rafraîchir les détails
+          toast.success('Collaborator removed successfully');
+          fetchPlaylistDetails();
         } else {
-          toast.error('Erreur lors de la suppression du collaborateur');
+          toast.error('Error removing collaborator');
         }
       } catch (err) {
-        console.error('Erreur handleRemoveCollaborator:', err);
-        toast.error('Erreur lors de la suppression du collaborateur');
+        console.error('Error handleRemoveCollaborator:', err);
+        toast.error('Error removing collaborator');
       }
     }
   };
 
-  // Mettre à jour les permissions d'un collaborateur
+  // Update collaborator permission
   const handleUpdateCollaboratorPermission = async (userId, permission) => {
     try {
       const response = await axios.put(`${API_BASE_URL}/api/admin/playlists/${id}/collaborateurs`, {
@@ -307,54 +299,54 @@ const PlaylistDetail = () => {
       });
       
       if (response.data.success) {
-        toast.success('Permission mise à jour avec succès');
-        fetchPlaylistDetails(); // Rafraîchir les détails
+        toast.success('Permission updated successfully');
+        fetchPlaylistDetails();
       } else {
-        toast.error('Erreur lors de la mise à jour de la permission');
+        toast.error('Error updating permission');
       }
     } catch (err) {
-      console.error('Erreur handleUpdateCollaboratorPermission:', err);
-      toast.error('Erreur lors de la mise à jour de la permission');
+      console.error('Error handleUpdateCollaboratorPermission:', err);
+      toast.error('Error updating permission');
     }
   };
 
-  // Formatter la date
+  // Format date
   const formatDate = (dateString) => {
     try {
       return format(new Date(dateString), 'dd/MM/yyyy HH:mm');
     } catch (error) {
-      return 'Date invalide';
+      return 'Invalid date';
     }
   };
 
-  // Si chargement en cours
+  // Loading state
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.spinner}></div>
-        <p>Chargement de la playlist...</p>
+        <p>Loading playlist...</p>
       </div>
     );
   }
 
-  // Si erreur
+  // Error state
   if (error) {
     return (
       <div className={styles.errorContainer}>
         <i className="fas fa-exclamation-triangle"></i>
         <p>{error}</p>
-        <button onClick={() => navigate('/admin/playlists')}>Retour aux playlists</button>
+        <button onClick={() => navigate('/admin/playlists')}>Back to playlists</button>
       </div>
     );
   }
 
-  // Si la playlist n'existe pas
+  // Not found
   if (!playlist) {
     return (
       <div className={styles.errorContainer}>
         <i className="fas fa-exclamation-triangle"></i>
-        <p>Playlist non trouvée</p>
-        <button onClick={() => navigate('/admin/playlists')}>Retour aux playlists</button>
+        <p>Playlist not found</p>
+        <button onClick={() => navigate('/admin/playlists')}>Back to playlists</button>
       </div>
     );
   }
@@ -367,7 +359,7 @@ const PlaylistDetail = () => {
           onClick={() => navigate('/admin/playlists')}
         >
           <i className="fas fa-arrow-left"></i>
-          Retour aux playlists
+          Back to playlists
         </button>
         <div className={styles.actions}>
           <button 
@@ -375,40 +367,40 @@ const PlaylistDetail = () => {
             onClick={() => setEditMode(!editMode)}
           >
             <i className={`fas ${editMode ? 'fa-times' : 'fa-edit'}`}></i>
-            {editMode ? 'Annuler' : 'Modifier'}
+            {editMode ? 'Cancel' : 'Edit'}
           </button>
           <button 
             className={`${styles.actionButton} ${styles.deleteButton}`}
             onClick={() => {
-              if (window.confirm('Êtes-vous sûr de vouloir supprimer cette playlist ? Cette action est irréversible.')) {
+              if (window.confirm('Are you sure you want to delete this playlist? This action is irreversible.')) {
                 axios.delete(`${API_BASE_URL}/api/admin/playlists/${id}`)
                   .then(response => {
                     if (response.data.success) {
-                      toast.success('Playlist supprimée avec succès');
+                      toast.success('Playlist deleted successfully');
                       navigate('/admin/playlists');
                     } else {
-                      toast.error('Erreur lors de la suppression de la playlist');
+                      toast.error('Error deleting playlist');
                     }
                   })
                   .catch(err => {
-                    console.error('Erreur suppression playlist:', err);
-                    toast.error('Erreur lors de la suppression de la playlist');
+                    console.error('Error deleting playlist:', err);
+                    toast.error('Error deleting playlist');
                   });
               }
             }}
           >
             <i className="fas fa-trash-alt"></i>
-            Supprimer
+            Delete
           </button>
         </div>
       </div>
 
       <div className={styles.playlistInfo}>
-        {/* Mode édition */}
+        {/* Edit mode */}
         {editMode ? (
           <div className={styles.editForm}>
             <div className={styles.formGroup}>
-              <label htmlFor="nom">Nom de la playlist</label>
+              <label htmlFor="nom">Playlist name</label>
               <input
                 type="text"
                 id="nom"
@@ -430,7 +422,7 @@ const PlaylistDetail = () => {
             </div>
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
-                <label htmlFor="visibilite">Visibilité</label>
+                <label htmlFor="visibilite">Visibility</label>
                 <select
                   id="visibilite"
                   name="visibilite"
@@ -438,12 +430,12 @@ const PlaylistDetail = () => {
                   onChange={handleInputChange}
                 >
                   <option value="PUBLIC">Public</option>
-                  <option value="PRIVE">Privé</option>
-                  <option value="AMIS">Amis</option>
+                  <option value="PRIVE">Private</option>
+                  <option value="AMIS">Friends</option>
                 </select>
               </div>
               <div className={styles.formGroup}>
-                <label htmlFor="tags">Tags (séparés par des virgules)</label>
+                <label htmlFor="tags">Tags (comma separated)</label>
                 <input
                   type="text"
                   id="tags"
@@ -467,13 +459,13 @@ const PlaylistDetail = () => {
                   });
                 }}
               >
-                Annuler
+                Cancel
               </button>
               <button 
                 className={styles.saveButton}
                 onClick={handleSaveChanges}
               >
-                Enregistrer
+                Save
               </button>
             </div>
           </div>
@@ -484,35 +476,35 @@ const PlaylistDetail = () => {
               <div className={styles.metaItem}>
                 <i className="fas fa-user"></i>
                 <span>
-                  Créée par {playlist.proprietaire.prenom} {playlist.proprietaire.nom}
+                  Created by {playlist.proprietaire.prenom} {playlist.proprietaire.nom}
                 </span>
               </div>
               <div className={styles.metaItem}>
                 <i className="fas fa-calendar-alt"></i>
-                <span>Créée le {formatDate(playlist.creation_date)}</span>
+                <span>Created on {formatDate(playlist.creation_date)}</span>
               </div>
               <div className={styles.metaItem}>
                 <i className="fas fa-eye"></i>
                 <span>
-                  {playlist.visibilite === 'PUBLIC' ? 'Publique' :
-                   playlist.visibilite === 'PRIVE' ? 'Privée' : 'Amis uniquement'}
+                  {playlist.visibilite === 'PUBLIC' ? 'Public' :
+                   playlist.visibilite === 'PRIVE' ? 'Private' : 'Friends only'}
                 </span>
               </div>
               <div className={styles.metaItem}>
                 <i className="fas fa-video"></i>
-                <span>{playlist.videos.length} vidéos</span>
+                <span>{playlist.videos.length} videos</span>
               </div>
               <div className={styles.metaItem}>
                 <i className="fas fa-play"></i>
-                <span>{playlist.nb_lectures || 0} lectures</span>
+                <span>{playlist.nb_lectures || 0} plays</span>
               </div>
               <div className={styles.metaItem}>
                 <i className="fas fa-heart"></i>
-                <span>{playlist.nb_favoris || 0} favoris</span>
+                <span>{playlist.nb_favoris || 0} favorites</span>
               </div>
               <div className={styles.metaItem}>
                 <i className="fas fa-users"></i>
-                <span>{playlist.collaborateurs.length} collaborateurs</span>
+                <span>{playlist.collaborateurs.length} collaborators</span>
               </div>
             </div>
             {playlist.description && (
@@ -540,25 +532,25 @@ const PlaylistDetail = () => {
             onClick={() => setCollaboratorsMode(false)}
           >
             <i className="fas fa-list"></i>
-            Vidéos
+            Videos
           </button>
           <button 
             className={`${styles.tabButton} ${collaboratorsMode ? styles.active : ''}`}
             onClick={() => setCollaboratorsMode(true)}
           >
             <i className="fas fa-users"></i>
-            Collaborateurs
+            Collaborators
           </button>
         </div>
 
-        {/* Onglet Vidéos */}
+        {/* Videos tab */}
         {!collaboratorsMode && (
           <div className={styles.videosContainer}>
             <div className={styles.searchContainer}>
               <div className={styles.searchBox}>
                 <input
                   type="text"
-                  placeholder="Rechercher des vidéos à ajouter..."
+                  placeholder="Search videos to add..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && searchVideos()}
@@ -577,10 +569,10 @@ const PlaylistDetail = () => {
               </div>
             </div>
 
-            {/* Résultats de recherche */}
+            {/* Search results */}
             {searchResults.length > 0 && (
               <div className={styles.searchResults}>
-                <h3>Résultats de recherche</h3>
+                <h3>Search results</h3>
                 <div className={styles.resultsGrid}>
                   {searchResults.map((video) => (
                     <div key={video._id} className={styles.videoCard}>
@@ -602,14 +594,14 @@ const PlaylistDetail = () => {
                       </div>
                       <div className={styles.videoInfo}>
                         <h4>{video.titre}</h4>
-                        <p>{video.artiste || 'Artiste inconnu'}</p>
+                        <p>{video.artiste || 'Unknown artist'}</p>
                       </div>
                       <button 
                         className={styles.addButton}
                         onClick={() => handleAddVideo(video._id)}
                       >
                         <i className="fas fa-plus"></i>
-                        Ajouter
+                        Add
                       </button>
                     </div>
                   ))}
@@ -617,13 +609,13 @@ const PlaylistDetail = () => {
               </div>
             )}
 
-            {/* Liste des vidéos de la playlist */}
+            {/* Playlist videos */}
             <div className={styles.playlistVideos}>
-              <h3>Vidéos dans la playlist</h3>
+              <h3>Videos in the playlist</h3>
               {playlist.videos.length === 0 ? (
                 <div className={styles.emptyState}>
                   <i className="fas fa-film"></i>
-                  <p>Aucune vidéo dans cette playlist</p>
+                  <p>No videos in this playlist</p>
                 </div>
               ) : (
                 <DragDropContext onDragEnd={handleDragEnd}>
@@ -668,7 +660,7 @@ const PlaylistDetail = () => {
                                 </div>
                                 <div className={styles.videoInfo}>
                                   <h4>{item.video_id.titre}</h4>
-                                  <p>{item.video_id.artiste || 'Artiste inconnu'}</p>
+                                  <p>{item.video_id.artiste || 'Unknown artist'}</p>
                                   <div className={styles.videoMeta}>
                                     <span className={styles.videoDuration}>
                                       <i className="fas fa-clock"></i>
@@ -676,7 +668,7 @@ const PlaylistDetail = () => {
                                     </span>
                                     <span className={styles.videoType}>
                                       <i className="fas fa-tag"></i>
-                                      {item.video_id.type === 'music' ? 'Musique' : 
+                                      {item.video_id.type === 'music' ? 'Music' : 
                                        item.video_id.type === 'short' ? 'Short' : 
                                        item.video_id.type === 'podcast' ? 'Podcast' : 
                                        item.video_id.type}
@@ -684,7 +676,7 @@ const PlaylistDetail = () => {
                                     {item.ajoute_par && (
                                       <span className={styles.videoAddedBy}>
                                         <i className="fas fa-user"></i>
-                                        Ajouté par {item.ajoute_par.prenom} {item.ajoute_par.nom}
+                                        Added by {item.ajoute_par.prenom} {item.ajoute_par.nom}
                                       </span>
                                     )}
                                   </div>
@@ -709,14 +701,14 @@ const PlaylistDetail = () => {
           </div>
         )}
 
-        {/* Onglet Collaborateurs */}
+        {/* Collaborators tab */}
         {collaboratorsMode && (
           <div className={styles.collaboratorsContainer}>
             <div className={styles.searchContainer}>
               <div className={styles.searchBox}>
                 <input
                   type="text"
-                  placeholder="Rechercher des utilisateurs..."
+                  placeholder="Search users..."
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && searchUsers()}
@@ -740,17 +732,17 @@ const PlaylistDetail = () => {
                   value={selectedPermission}
                   onChange={(e) => setSelectedPermission(e.target.value)}
                 >
-                  <option value="LECTURE">Lecture</option>
-                  <option value="AJOUT">Ajout de vidéos</option>
-                  <option value="MODIFICATION">Modification complète</option>
+                  <option value="LECTURE">Read</option>
+                  <option value="AJOUT">Add videos</option>
+                  <option value="MODIFICATION">Full edit</option>
                 </select>
               </div>
             </div>
 
-            {/* Résultats de recherche utilisateurs */}
+            {/* User search results */}
             {userResults.length > 0 && (
               <div className={styles.userResults}>
-                <h3>Résultats de recherche</h3>
+                <h3>Search results</h3>
                 <div className={styles.userGrid}>
                   {userResults.map((user) => (
                     <div key={user._id} className={styles.userCard}>
@@ -776,7 +768,7 @@ const PlaylistDetail = () => {
                         onClick={() => handleAddCollaborator(user._id)}
                       >
                         <i className="fas fa-plus"></i>
-                        Ajouter
+                        Add
                       </button>
                     </div>
                   ))}
@@ -784,9 +776,9 @@ const PlaylistDetail = () => {
               </div>
             )}
 
-            {/* Liste des collaborateurs */}
+            {/* Collaborators list */}
             <div className={styles.collaboratorsList}>
-              <h3>Collaborateurs</h3>
+              <h3>Collaborators</h3>
               <div className={styles.ownerCard}>
                 <div className={styles.userAvatar}>
                   {playlist.proprietaire.photo_profil && !failedImages[`owner_${playlist.proprietaire._id}`] ? (
@@ -807,14 +799,14 @@ const PlaylistDetail = () => {
                 </div>
                 <div className={styles.ownerBadge}>
                   <i className="fas fa-crown"></i>
-                  Propriétaire
+                  Owner
                 </div>
               </div>
 
               {playlist.collaborateurs.length === 0 ? (
                 <div className={styles.emptyState}>
                   <i className="fas fa-users"></i>
-                  <p>Aucun collaborateur</p>
+                  <p>No collaborator</p>
                 </div>
               ) : (
                 <div className={styles.collaboratorsGrid}>
@@ -842,9 +834,9 @@ const PlaylistDetail = () => {
                           value={collab.permissions}
                           onChange={(e) => handleUpdateCollaboratorPermission(collab.utilisateur._id, e.target.value)}
                         >
-                          <option value="LECTURE">Lecture</option>
-                          <option value="AJOUT">Ajout de vidéos</option>
-                          <option value="MODIFICATION">Modification complète</option>
+                          <option value="LECTURE">Read</option>
+                          <option value="AJOUT">Add videos</option>
+                          <option value="MODIFICATION">Full edit</option>
                         </select>
                         <button 
                           className={styles.removeButton}

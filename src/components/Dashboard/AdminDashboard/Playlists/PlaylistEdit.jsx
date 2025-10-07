@@ -20,7 +20,7 @@ const PlaylistEdit = () => {
   });
   const [originalData, setOriginalData] = useState(null);
   
-  // Charger les détails de la playlist
+  // Load playlist details
   useEffect(() => {
     if (id && id !== 'new') {
       fetchPlaylistDetails();
@@ -44,19 +44,19 @@ const PlaylistEdit = () => {
           image_couverture: playlist.image_couverture || ''
         });
       } else {
-        setError('Erreur lors du chargement de la playlist');
-        toast.error('Erreur lors du chargement de la playlist');
+        setError('Error while loading the playlist');
+        toast.error('Error while loading the playlist');
       }
     } catch (err) {
-      console.error('Erreur fetchPlaylistDetails:', err);
-      setError('Erreur lors du chargement de la playlist');
-      toast.error('Erreur lors du chargement de la playlist');
+      console.error('Error fetchPlaylistDetails:', err);
+      setError('Error while loading the playlist');
+      toast.error('Error while loading the playlist');
     } finally {
       setLoading(false);
     }
   };
   
-  // Gérer le changement des inputs
+  // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -65,26 +65,26 @@ const PlaylistEdit = () => {
     }));
   };
   
-  // Gérer l'upload d'image
+  // Handle image upload
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     
-    // Vérifier le type et la taille du fichier
+    // Validate file type and size
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     const maxSize = 5 * 1024 * 1024; // 5MB
     
     if (!validTypes.includes(file.type)) {
-      toast.error('Format d\'image non supporté. Utilisez JPG, PNG, GIF ou WEBP.');
+      toast.error('Unsupported image format. Use JPG, PNG, GIF, or WEBP.');
       return;
     }
     
     if (file.size > maxSize) {
-      toast.error('L\'image est trop volumineuse. Taille maximale: 5MB');
+      toast.error('Image is too large. Max size: 5MB');
       return;
     }
     
-    // Lire le fichier comme une URL data
+    // Read file as data URL
     const reader = new FileReader();
     reader.onload = (event) => {
       setFormData(prev => ({
@@ -95,7 +95,7 @@ const PlaylistEdit = () => {
     reader.readAsDataURL(file);
   };
   
-  // Supprimer l'image
+  // Remove image
   const handleRemoveImage = () => {
     setFormData(prev => ({
       ...prev,
@@ -103,7 +103,7 @@ const PlaylistEdit = () => {
     }));
   };
   
-  // Enregistrer les modifications
+  // Save changes
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -124,29 +124,29 @@ const PlaylistEdit = () => {
       let response;
       
       if (id && id !== 'new') {
-        // Mise à jour
+        // Update
         response = await axios.put(`/api/admin/playlists/${id}`, dataToSend);
         if (response.data.success) {
-          toast.success('Playlist mise à jour avec succès');
+          toast.success('Playlist updated successfully');
           navigate(`/admin/playlists/${id}`);
         }
       } else {
-        // Création
+        // Create
         response = await axios.post('/api/admin/playlists', dataToSend);
         if (response.data.success) {
-          toast.success('Playlist créée avec succès');
+          toast.success('Playlist created successfully');
           navigate(`/admin/playlists/${response.data.data._id}`);
         }
       }
     } catch (err) {
-      console.error('Erreur handleSubmit:', err);
-      toast.error(err.response?.data?.message || 'Erreur lors de l\'enregistrement');
+      console.error('Error handleSubmit:', err);
+      toast.error(err.response?.data?.message || 'Error while saving');
     } finally {
       setSaving(false);
     }
   };
   
-  // Annuler les modifications
+  // Cancel changes
   const handleCancel = () => {
     if (id && id !== 'new') {
       navigate(`/admin/playlists/${id}`);
@@ -155,9 +155,9 @@ const PlaylistEdit = () => {
     }
   };
   
-  // Vérifier s'il y a des modifications
+  // Check if there are changes
   const hasChanges = () => {
-    if (!originalData) return true; // Nouvelle playlist
+    if (!originalData) return true; // New playlist
     
     const originalTags = originalData.tags ? originalData.tags.join(', ') : '';
     
@@ -170,23 +170,23 @@ const PlaylistEdit = () => {
     );
   };
   
-  // Si chargement en cours
+  // Loading state
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.spinner}></div>
-        <p>Chargement...</p>
+        <p>Loading...</p>
       </div>
     );
   }
   
-  // Si erreur
+  // Error state
   if (error) {
     return (
       <div className={styles.errorContainer}>
         <i className="fas fa-exclamation-triangle"></i>
         <p>{error}</p>
-        <button onClick={() => navigate('/admin/playlists')}>Retour aux playlists</button>
+        <button onClick={() => navigate('/admin/playlists')}>Back to playlists</button>
       </div>
     );
   }
@@ -194,22 +194,22 @@ const PlaylistEdit = () => {
   return (
     <div className={styles.playlistEditContainer}>
       <div className={styles.header}>
-        <h1>{id && id !== 'new' ? 'Modifier la playlist' : 'Créer une playlist'}</h1>
+        <h1>{id && id !== 'new' ? 'Edit playlist' : 'Create a playlist'}</h1>
         <button 
           className={styles.backButton}
           onClick={() => navigate('/admin/playlists')}
         >
           <i className="fas fa-times"></i>
-          Annuler
+          Cancel
         </button>
       </div>
       
       <form onSubmit={handleSubmit} className={styles.editForm}>
         <div className={styles.formSection}>
-          <h2>Informations générales</h2>
+          <h2>General information</h2>
           
           <div className={styles.formGroup}>
-            <label htmlFor="nom">Nom de la playlist *</label>
+            <label htmlFor="nom">Playlist name *</label>
             <input
               type="text"
               id="nom"
@@ -217,7 +217,7 @@ const PlaylistEdit = () => {
               value={formData.nom}
               onChange={handleInputChange}
               required
-              placeholder="Entrez le nom de la playlist"
+              placeholder="Enter the playlist name"
             />
           </div>
           
@@ -229,13 +229,13 @@ const PlaylistEdit = () => {
               value={formData.description}
               onChange={handleInputChange}
               rows={4}
-              placeholder="Décrivez cette playlist (optionnel)"
+              placeholder="Describe this playlist (optional)"
             />
           </div>
           
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
-              <label htmlFor="visibilite">Visibilité *</label>
+              <label htmlFor="visibilite">Visibility *</label>
               <select
                 id="visibilite"
                 name="visibilite"
@@ -244,13 +244,13 @@ const PlaylistEdit = () => {
                 required
               >
                 <option value="PUBLIC">Public</option>
-                <option value="PRIVE">Privé</option>
-                <option value="AMIS">Amis uniquement</option>
+                <option value="PRIVE">Private</option>
+                <option value="AMIS">Friends only</option>
               </select>
             </div>
             
             <div className={styles.formGroup}>
-              <label htmlFor="tags">Tags (séparés par des virgules)</label>
+              <label htmlFor="tags">Tags (comma separated)</label>
               <input
                 type="text"
                 id="tags"
@@ -264,7 +264,7 @@ const PlaylistEdit = () => {
         </div>
         
         <div className={styles.formSection}>
-          <h2>Image de couverture</h2>
+          <h2>Cover image</h2>
           
           <div className={styles.imageUploadContainer}>
             <div className={styles.imagePreview}>
@@ -272,7 +272,7 @@ const PlaylistEdit = () => {
                 <>
                   <img 
                     src={formData.image_couverture} 
-                    alt="Aperçu de la couverture" 
+                    alt="Cover preview" 
                   />
                   <button 
                     type="button"
@@ -285,7 +285,7 @@ const PlaylistEdit = () => {
               ) : (
                 <div className={styles.noImage}>
                   <i className="fas fa-music"></i>
-                  <p>Aucune image</p>
+                  <p>No image</p>
                 </div>
               )}
             </div>
@@ -293,7 +293,7 @@ const PlaylistEdit = () => {
             <div className={styles.uploadControls}>
               <label htmlFor="image_upload" className={styles.uploadButton}>
                 <i className="fas fa-upload"></i>
-                {formData.image_couverture ? 'Changer l\'image' : 'Ajouter une image'}
+                {formData.image_couverture ? 'Change image' : 'Add image'}
               </label>
               <input
                 type="file"
@@ -303,7 +303,7 @@ const PlaylistEdit = () => {
                 style={{ display: 'none' }}
               />
               <p className={styles.uploadHint}>
-                Formats acceptés: JPG, PNG, GIF, WEBP. Taille maximale: 5MB.
+                Accepted formats: JPG, PNG, GIF, WEBP. Max size: 5MB.
               </p>
             </div>
           </div>
@@ -315,7 +315,7 @@ const PlaylistEdit = () => {
             className={styles.cancelButton}
             onClick={handleCancel}
           >
-            Annuler
+            Cancel
           </button>
           <button 
             type="submit" 
@@ -325,12 +325,12 @@ const PlaylistEdit = () => {
             {saving ? (
               <>
                 <i className="fas fa-spinner fa-spin"></i>
-                Enregistrement...
+                Saving...
               </>
             ) : (
               <>
                 <i className="fas fa-save"></i>
-                {id && id !== 'new' ? 'Mettre à jour' : 'Créer la playlist'}
+                {id && id !== 'new' ? 'Update' : 'Create playlist'}
               </>
             )}
           </button>

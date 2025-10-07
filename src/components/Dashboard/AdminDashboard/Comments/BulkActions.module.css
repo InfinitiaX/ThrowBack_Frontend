@@ -1,0 +1,351 @@
+/* components/Dashboard/AdminDashboard/Comments/BulkActions.module.css */
+.bulkActionsBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #dee2e6;
+}
+
+.selectionInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #495057;
+  font-weight: 500;
+}
+
+.selectedCount {
+  color: #b31217;
+  font-weight: 600;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.actionBtn i {
+  font-size: 0.85rem;
+}
+
+.actionBtn:hover {
+  transform: translateY(-1px);
+}
+
+.success {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.success:hover {
+  background-color: #c3e6cb;
+}
+
+.warning {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.warning:hover {
+  background-color: #ffecb5;
+}
+
+.danger {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.danger:hover {
+  background-color: #f5c6cb;
+}
+
+.cancelContainer {
+  display: flex;
+}
+
+.cancelBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  background: none;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #6c757d;
+  transition: all 0.2s ease;
+}
+
+.cancelBtn:hover {
+  background-color: #f8f9fa;
+  color: #495057;
+}
+
+/* Modal styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.confirmationModal {
+  width: 100%;
+  max-width: 550px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from { 
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modalHeader {
+  padding: 1.5rem;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.modalHeader i {
+  color: #6c757d;
+}
+
+.modalContent {
+  padding: 1.5rem;
+}
+
+.confirmationMessage {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.actionIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.actionIcon i {
+  font-size: 1.2rem;
+}
+
+.confirmationMessage p {
+  margin: 0;
+  color: #495057;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.reasonSection {
+  margin-bottom: 1.5rem;
+}
+
+.reasonSection label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.5rem;
+}
+
+.predefinedReasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.reasonBtn {
+  padding: 0.4rem 0.8rem;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reasonBtn:hover {
+  background-color: #e9ecef;
+}
+
+.reasonBtn.selected {
+  background-color: #b31217;
+  color: white;
+  border-color: #b31217;
+}
+
+.reasonTextarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color 0.2s ease;
+}
+
+.reasonTextarea:focus {
+  outline: none;
+  border-color: #b31217;
+  box-shadow: 0 0 0 3px rgba(179, 18, 23, 0.1);
+}
+
+.warningBox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: #fff3cd;
+  border-radius: 6px;
+  color: #856404;
+}
+
+.warningBox i {
+  font-size: 1.2rem;
+  margin-top: 0.1rem;
+}
+
+.warningBox div {
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.modalActions {
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.cancelModalBtn {
+  padding: 0.75rem 1.5rem;
+  background: none;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelModalBtn:hover {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.confirmBtn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.confirmBtn:hover {
+  transform: translateY(-1px);
+}
+
+.confirmBtn i {
+  font-size: 0.85rem;
+}
+
+.confirmBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .bulkActionsBar {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .actionButtons {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .cancelContainer {
+    justify-content: center;
+  }
+  
+  .confirmationModal {
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .predefinedReasons {
+    justify-content: center;
+  }
+}

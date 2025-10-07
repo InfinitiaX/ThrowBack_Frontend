@@ -23,20 +23,20 @@ const VideoCard = ({ video }) => {
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     
     if (diffDays === 0) {
-      return "Aujourd'hui";
+      return "Today";
     } else if (diffDays === 1) {
-      return "Hier";
+      return "Yesterday";
     } else if (diffDays < 7) {
-      return `Il y a ${diffDays} jours`;
+      return `There is ${diffDays} days`;
     } else if (diffDays < 30) {
       const weeks = Math.floor(diffDays / 7);
-      return `Il y a ${weeks} semaine${weeks > 1 ? 's' : ''}`;
+      return `There is ${weeks} weeks${weeks > 1 ? 's' : ''}`;
     } else if (diffDays < 365) {
       const months = Math.floor(diffDays / 30);
-      return `Il y a ${months} mois`;
+      return `There is ${months} months`;
     } else {
       const years = Math.floor(diffDays / 365);
-      return `Il y a ${years} an${years > 1 ? 's' : ''}`;
+      return `There is ${years} years${years > 1 ? 's' : ''}`;
     }
   };
 
@@ -75,7 +75,7 @@ const VideoCard = ({ video }) => {
           
           <div className="video-meta">
             <span className="video-views">
-              <i className="fas fa-eye"></i> {(video.vues || 0).toLocaleString()} vues
+              <i className="fas fa-eye"></i> {(video.vues || 0).toLocaleString()} views
             </span>
             <span className="video-date">{formatDate(video.createdAt)}</span>
           </div>

@@ -1,0 +1,68 @@
+/* components/Common/ConfirmDialog.module.css */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 400px;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.message {
+  margin-bottom: 20px;
+  font-size: 1rem;
+  color: #333;
+  text-align: center;
+}
+
+.buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.cancelButton, .confirmButton {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cancelButton {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.confirmButton {
+  background-color: #b31217;
+  color: white;
+}
+
+.cancelButton:hover {
+  background-color: #e0e0e0;
+}
+
+.confirmButton:hover {
+  background-color: #8f0e12;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

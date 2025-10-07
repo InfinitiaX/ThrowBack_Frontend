@@ -4,12 +4,12 @@ import styles from '../Videos/Videos.module.css';
 const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
   if (!isOpen || !short) return null;
 
-  // Fonction plus robuste pour extraire l'ID YouTube et construire des URLs correctes
+ 
   const getYouTubeEmbedUrl = (url) => {
     try {
       if (!url) return null;
       
-      // Si c'est un chemin local (/uploads/...), construire l'URL complète
+     
       if (url && url.startsWith('/uploads/')) {
         const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
         return `${apiBaseUrl}${url}`;
@@ -23,24 +23,24 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
           const videoUrl = new URL(url);
           
           if (videoUrl.hostname.includes('youtube.com')) {
-            // Classic format: youtube.com/watch?v=VIDEO_ID
+            // youtube.com/watch?v=VIDEO_ID
             if (videoUrl.searchParams.get('v')) {
               videoId = videoUrl.searchParams.get('v');
             }
-            // Shorts format: youtube.com/shorts/VIDEO_ID
+            // youtube.com/shorts/VIDEO_ID
             else if (videoUrl.pathname.startsWith('/shorts/')) {
               videoId = videoUrl.pathname.replace('/shorts/', '');
             }
-            // Embed format: youtube.com/embed/VIDEO_ID
+            // youtube.com/embed/VIDEO_ID
             else if (videoUrl.pathname.startsWith('/embed/')) {
               videoId = videoUrl.pathname.replace('/embed/', '');
             }
           } else if (videoUrl.hostname.includes('youtu.be')) {
-            // Short format: youtu.be/VIDEO_ID
+            // youtu.be/VIDEO_ID
             videoId = videoUrl.pathname.substring(1);
           }
         } catch (urlError) {
-          // Fallback pour les URLs mal formées
+          // Fallback for malformed URLs
           const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
           if (match && match[1]) {
             videoId = match[1];
@@ -50,7 +50,7 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
         return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
       }
       
-      // Return the URL as is if not YouTube or local
+      // Return as-is if not YouTube or local
       return url;
     } catch (error) {
       console.error("Error parsing YouTube URL:", error);
@@ -102,13 +102,13 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
                 <source src={getYouTubeEmbedUrl(short.youtubeUrl)} type="video/mp4" />
                 <source src={getYouTubeEmbedUrl(short.youtubeUrl)} type="video/webm" />
                 <source src={getYouTubeEmbedUrl(short.youtubeUrl)} type="video/ogg" />
-                Votre navigateur ne supporte pas la lecture de vidéos.
+                Your browser does not support video playback.
               </video>
             </div>
           ) : (
             <div className={styles.videoUnavailable}>
               <i className="fas fa-bolt"></i>
-              <p>Aperçu vidéo non disponible</p>
+              <p>Video preview unavailable</p>
               {short.youtubeUrl && (
                 <a 
                   href={short.youtubeUrl} 
@@ -116,7 +116,7 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
                   rel="noopener noreferrer"
                   className={styles.externalLink}
                 >
-                  Ouvrir le fichier <i className="fas fa-external-link-alt"></i>
+                  Open file <i className="fas fa-external-link-alt"></i>
                 </a>
               )}
             </div>
@@ -136,34 +136,34 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
                 )}
               </div>
               <div className={styles.videoAddedOn}>
-                Ajouté le {formattedDate}
+                Added on {formattedDate}
               </div>
             </div>
             
             <div className={styles.detailsGrid}>
               <div className={styles.detailItem}>
-                <h4>Titre</h4>
+                <h4>Title</h4>
                 <p>{short.titre}</p>
               </div>
               
               <div className={styles.detailItem}>
-                <h4>Artiste</h4>
+                <h4>Artist</h4>
                 <p>{short.artiste || '—'}</p>
               </div>
 
               <div className={styles.detailItem}>
-                <h4>Durée</h4>
+                <h4>Duration</h4>
                 <p>
                   {short.duree ? (
                     <span style={{ color: '#4caf50', fontWeight: '600' }}>
-                      <i className="fas fa-clock"></i> {short.duree} secondes
+                      <i className="fas fa-clock"></i> {short.duree} seconds
                     </span>
                   ) : '—'}
                 </p>
               </div>
 
               <div className={styles.detailItem}>
-                <h4>Type de source</h4>
+                <h4>Source type</h4>
                 <p>
                   {isYouTubeVideo ? (
                     <span style={{ color: '#ff0000', fontWeight: '600' }}>
@@ -171,17 +171,17 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
                     </span>
                   ) : (
                     <span style={{ color: '#2196f3', fontWeight: '600' }}>
-                      <i className="fas fa-upload"></i> Fichier uploadé
+                      <i className="fas fa-upload"></i> Uploaded file
                     </span>
                   )}
                 </p>
               </div>
 
               <div className={styles.detailItem}>
-                <h4>Vues</h4>
+                <h4>Views</h4>
                 <p>
                   <span style={{ color: '#4caf50' }}>
-                    <i className="fas fa-eye"></i> {short.vues || 0} vues
+                    <i className="fas fa-eye"></i> {short.vues || 0} views
                   </span>
                 </p>
               </div>
@@ -208,7 +208,7 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
               </div>
               
               <div className={styles.detailItem}>
-                <h4>URL/Chemin</h4>
+                <h4>URL/Path</h4>
                 <p className={styles.youtubeUrl}>
                   {isYouTubeVideo ? (
                     <a 
@@ -232,7 +232,7 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
               </div>
               
               <div className={styles.detailItem}>
-                <h4>Ajouté par</h4>
+                <h4>Added by</h4>
                 <p>
                   {short.auteur ? (
                     typeof short.auteur === 'object' && short.auteur.nom && short.auteur.prenom ? (
@@ -245,8 +245,8 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
               </div>
 
               <div className={styles.detailItem}>
-                <h4>Date de création</h4>
-                <p>{new Date(short.createdAt).toLocaleDateString('fr-FR', {
+                <h4>Created on</h4>
+                <p>{new Date(short.createdAt).toLocaleDateString('en-US', {
                   weekday: 'long',
                   year: 'numeric',
                   month: 'long',
@@ -258,8 +258,8 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
 
               {short.updatedAt && short.updatedAt !== short.createdAt && (
                 <div className={styles.detailItem}>
-                  <h4>Dernière modification</h4>
-                  <p>{new Date(short.updatedAt).toLocaleDateString('fr-FR', {
+                  <h4>Last updated</h4>
+                  <p>{new Date(short.updatedAt).toLocaleDateString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
@@ -277,7 +277,7 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
                   <p>
                     {short.vues > 0 && short.likes > 0 && (
                       <span style={{ color: '#4caf50' }}>
-                        Taux d'engagement: {((short.likes / short.vues) * 100).toFixed(1)}%
+                        Engagement rate: {((short.likes / short.vues) * 100).toFixed(1)}%
                       </span>
                     )}
                   </p>
@@ -292,7 +292,7 @@ const AdminShortDetailModal = ({ isOpen, onClose, short }) => {
             className={styles.closeModalButton}
             onClick={onClose}
           >
-            <i className="fas fa-times"></i> Fermer
+            <i className="fas fa-times"></i> Close
           </button>
         </div>
       </div>

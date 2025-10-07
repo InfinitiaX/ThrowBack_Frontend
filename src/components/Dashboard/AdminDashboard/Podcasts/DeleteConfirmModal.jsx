@@ -5,7 +5,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, podcastId, podcastTitle, onPodcas
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  // Utiliser l'URL de base de l'API
+  // Use API base URL
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
 
   if (!isOpen) return null;
@@ -17,7 +17,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, podcastId, podcastTitle, onPodcas
       
       const token = localStorage.getItem('token');
       if (!token) {
-        throw new Error("Vous n'êtes pas authentifié. Veuillez vous reconnecter.");
+        throw new Error("You are not authenticated. Please log in again.");
       }
       
       const response = await fetch(`${API_BASE_URL}/api/podcasts/${podcastId}`, {
@@ -29,15 +29,15 @@ const DeleteConfirmModal = ({ isOpen, onClose, podcastId, podcastTitle, onPodcas
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Erreur serveur' }));
-        throw new Error(errorData.message || 'Échec de la suppression du podcast');
+        const errorData = await response.json().catch(() => ({ message: 'Server error' }));
+        throw new Error(errorData.message || 'Failed to delete podcast');
       }
 
-      // Appeler le callback du composant parent
+      // Call parent callback
       onPodcastDeleted(podcastId);
     } catch (err) {
       setError(err.message);
-      console.error('Erreur lors de la suppression du podcast:', err);
+      console.error('Error while deleting podcast:', err);
     } finally {
       setLoading(false);
     }
@@ -47,7 +47,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, podcastId, podcastTitle, onPodcas
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
-          <h2>Confirmer la suppression</h2>
+          <h2>Confirm Deletion</h2>
           <button className={styles.closeButton} onClick={onClose} disabled={loading}>
             <i className="fas fa-times"></i>
           </button>
@@ -56,15 +56,15 @@ const DeleteConfirmModal = ({ isOpen, onClose, podcastId, podcastTitle, onPodcas
         <div className={styles.modalBody}>
           <div className={styles.deleteWarning}>
             <i className="fas fa-exclamation-triangle"></i>
-            <p>Êtes-vous sûr de vouloir supprimer ce podcast ?</p>
+            <p>Are you sure you want to delete this podcast?</p>
           </div>
           
           <p className={styles.deleteInfo}>
-            Vous êtes sur le point de supprimer : <strong>{podcastTitle}</strong>
+            You are about to delete: <strong>{podcastTitle}</strong>
           </p>
           
           <p className={styles.deletePermanent}>
-            Cette action ne peut pas être annulée.
+            This action cannot be undone.
           </p>
           
           {error && (
@@ -80,7 +80,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, podcastId, podcastTitle, onPodcas
             onClick={onClose}
             disabled={loading}
           >
-            Annuler
+            Cancel
           </button>
           <button 
             className={styles.deleteButton} 
@@ -89,11 +89,11 @@ const DeleteConfirmModal = ({ isOpen, onClose, podcastId, podcastTitle, onPodcas
           >
             {loading ? (
               <>
-                <i className="fas fa-spinner fa-spin"></i> Suppression...
+                <i className="fas fa-spinner fa-spin"></i> Deleting...
               </>
             ) : (
               <>
-                <i className="fas fa-trash"></i> Supprimer
+                <i className="fas fa-trash"></i> Delete
               </>
             )}
           </button>

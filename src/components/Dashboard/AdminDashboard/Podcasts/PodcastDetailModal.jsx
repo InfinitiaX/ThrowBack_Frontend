@@ -4,7 +4,7 @@ import styles from './Podcasts.module.css';
 const PodcastDetailModal = ({ isOpen, onClose, podcast }) => {
   if (!isOpen || !podcast) return null;
 
-  // Extraire l'ID Vimeo à partir de l'URL
+  // Extract Vimeo ID from URL
   const getVimeoEmbedUrl = (url) => {
     try {
       if (!url) return null;
@@ -26,23 +26,23 @@ const PodcastDetailModal = ({ isOpen, onClose, podcast }) => {
       
       return vimeoId ? `https://player.vimeo.com/video/${vimeoId}` : null;
     } catch (error) {
-      console.error('Erreur lors de l\'extraction de l\'URL d\'intégration Vimeo:', error);
+      console.error('Error extracting Vimeo embed URL:', error);
       return null;
     }
   };
 
-  // Formater l'épisode (EP.01)
+  // Format episode (EP.01)
   const formatEpisode = (episode) => {
     return `EP.${episode.toString().padStart(2, '0')}`;
   };
 
   const embedUrl = getVimeoEmbedUrl(podcast.vimeoUrl);
   
-  // Gestion des dates
-  const formattedDate = podcast.publishDate ? new Date(podcast.publishDate).toLocaleDateString() : 'Non définie';
-  const createdDate = podcast.createdAt ? new Date(podcast.createdAt).toLocaleDateString() : 'Non définie';
+  // Dates
+  const formattedDate = podcast.publishDate ? new Date(podcast.publishDate).toLocaleDateString() : 'Not set';
+  const createdDate = podcast.createdAt ? new Date(podcast.createdAt).toLocaleDateString() : 'Not set';
 
-  // Obtenir une couleur pour une catégorie
+  // Get a color for a category
   const getCategoryColor = (category) => {
     const categoryColors = {
       'PERSONAL BRANDING': '#4c6ef5',
@@ -80,7 +80,7 @@ const PodcastDetailModal = ({ isOpen, onClose, podcast }) => {
           ) : (
             <div className={styles.podcastUnavailable}>
               <i className="fas fa-podcast"></i>
-              <p>Aperçu du podcast non disponible</p>
+              <p>Podcast preview unavailable</p>
               {podcast.vimeoUrl && (
                 <a 
                   href={podcast.vimeoUrl} 
@@ -88,7 +88,7 @@ const PodcastDetailModal = ({ isOpen, onClose, podcast }) => {
                   rel="noopener noreferrer"
                   className={styles.externalLink}
                 >
-                  Ouvrir sur Vimeo <i className="fas fa-external-link-alt"></i>
+                  Open on Vimeo <i className="fas fa-external-link-alt"></i>
                 </a>
               )}
             </div>
@@ -107,52 +107,52 @@ const PodcastDetailModal = ({ isOpen, onClose, podcast }) => {
                   {formatEpisode(podcast.episode)}
                 </div>
                 <div className={styles.podcastSeason}>
-                  Saison {podcast.season}
+                  Season {podcast.season}
                 </div>
                 {!podcast.isPublished && (
                   <div className={styles.unpublishedBadge}>
-                    <i className="fas fa-eye-slash"></i> Non publié
+                    <i className="fas fa-eye-slash"></i> Unpublished
                   </div>
                 )}
               </div>
               <div className={styles.podcastAddedOn}>
-                Publié le {formattedDate}
+                Published on {formattedDate}
               </div>
             </div>
             
             <div className={styles.detailsGrid}>
               <div className={styles.detailItem}>
-                <h4>Titre</h4>
+                <h4>Title</h4>
                 <p>{podcast.title}</p>
               </div>
 
               <div className={styles.detailItem}>
-                <h4>Épisode</h4>
+                <h4>Episode</h4>
                 <p>{formatEpisode(podcast.episode)}</p>
               </div>
               
               <div className={styles.detailItem}>
-                <h4>Saison</h4>
+                <h4>Season</h4>
                 <p>{podcast.season}</p>
               </div>
               
               <div className={styles.detailItem}>
-                <h4>Invité</h4>
+                <h4>Guest</h4>
                 <p>{podcast.guestName || '—'}</p>
               </div>
 
               <div className={styles.detailItem}>
-                <h4>Hôte</h4>
+                <h4>Host</h4>
                 <p>{podcast.hostName || 'Mike Levis'}</p>
               </div>
 
               <div className={styles.detailItem}>
-                <h4>Durée</h4>
+                <h4>Duration</h4>
                 <p>{podcast.duration} minutes</p>
               </div>
 
               <div className={styles.detailItem}>
-                <h4>Catégorie</h4>
+                <h4>Category</h4>
                 <p>
                   <span 
                     style={{ 
@@ -166,32 +166,32 @@ const PodcastDetailModal = ({ isOpen, onClose, podcast }) => {
               </div>
 
               <div className={styles.detailItem}>
-                <h4>Date de publication</h4>
+                <h4>Publish Date</h4>
                 <p>{formattedDate}</p>
               </div>
 
               <div className={styles.detailItem}>
-                <h4>Date de création</h4>
+                <h4>Created Date</h4>
                 <p>{createdDate}</p>
               </div>
 
               <div className={styles.detailItem}>
-                <h4>Statut</h4>
+                <h4>Status</h4>
                 <p>
                   {podcast.isPublished ? (
                     <span style={{ color: '#4caf50' }}>
-                      <i className="fas fa-check-circle"></i> Publié
+                      <i className="fas fa-check-circle"></i> Published
                     </span>
                   ) : (
                     <span style={{ color: '#f44336' }}>
-                      <i className="fas fa-eye-slash"></i> Non publié
+                      <i className="fas fa-eye-slash"></i> Unpublished
                     </span>
                   )}
                 </p>
               </div>
 
               <div className={styles.detailItem}>
-                <h4>Vues</h4>
+                <h4>Views</h4>
                 <p>{podcast.viewCount || 0}</p>
               </div>
 
@@ -221,7 +221,7 @@ const PodcastDetailModal = ({ isOpen, onClose, podcast }) => {
               </div>
               
               <div className={styles.detailItem}>
-                <h4>URL Vimeo</h4>
+                <h4>Vimeo URL</h4>
                 <p className={styles.vimeoUrl}>
                   <a 
                     href={podcast.vimeoUrl} 
@@ -239,7 +239,7 @@ const PodcastDetailModal = ({ isOpen, onClose, podcast }) => {
               </div>
               
               <div className={styles.detailItem}>
-                <h4>Créé par</h4>
+                <h4>Created by</h4>
                 <p>
                   {podcast.author ? (
                     podcast.author.nom && podcast.author.prenom ? (
@@ -259,7 +259,7 @@ const PodcastDetailModal = ({ isOpen, onClose, podcast }) => {
             className={styles.closeModalButton}
             onClick={onClose}
           >
-            <i className="fas fa-times"></i> Fermer
+            <i className="fas fa-times"></i> Close
           </button>
         </div>
       </div>

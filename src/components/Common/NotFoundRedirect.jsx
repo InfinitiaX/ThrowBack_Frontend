@@ -11,14 +11,14 @@ export default function NotFoundRedirect() {
     const params = new URLSearchParams(search);
     const token = params.get('token');
 
-    // Si Render a renvoyé /index.html?token=..., on ré-achemine vers la bonne page
+
     if (token) {
       navigate(`/reset-password${search}`, { replace: true });
     } else {
-      // sinon on garde la query (message d’erreur éventuel) et on va au login
+
       navigate(`/login${search}`, { replace: true });
     }
   }, [location, navigate]);
 
-  return null; // rien à afficher, c’est juste une redirection
+  return null
 }

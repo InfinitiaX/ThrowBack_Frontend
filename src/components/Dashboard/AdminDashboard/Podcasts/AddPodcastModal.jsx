@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styles from './Podcasts.module.css';
 
-// Liste des catégories disponibles
+// List of available categories
 const CATEGORIES = [
   'PERSONAL BRANDING',
   'MUSIC BUSINESS',
@@ -12,7 +12,6 @@ const CATEGORIES = [
 ];
 
 const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
-  // Utiliser l'URL de base de l'API
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://throwback-backend.onrender.com';
   
   const [formData, setFormData] = useState({
@@ -37,33 +36,27 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
 
   if (!isOpen) return null;
 
-  // Extraire l'ID Vimeo à partir de l'URL
   const getVimeoId = (url) => {
     if (!url) return null;
     
     try {
       const vimeoUrl = new URL(url);
-      
       if (vimeoUrl.hostname.includes('vimeo.com')) {
-        // Format: https://vimeo.com/123456789
         const segments = vimeoUrl.pathname.split('/').filter(Boolean);
         return segments[0];
       } else if (vimeoUrl.hostname.includes('player.vimeo.com')) {
-        // Format: https://player.vimeo.com/video/123456789
         const segments = vimeoUrl.pathname.split('/').filter(Boolean);
         if (segments[0] === 'video') {
           return segments[1];
         }
       }
-      
       return null;
     } catch (error) {
-      console.error('Erreur lors de l\'extraction de l\'ID Vimeo:', error);
+      console.error('Error extracting Vimeo ID:', error);
       return null;
     }
   };
 
-  // Gérer les changements dans le formulaire
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -71,61 +64,51 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
       [name]: value
     }));
 
-    // Si l'URL Vimeo change, mettre à jour l'aperçu
     if (name === 'vimeoUrl') {
       const vimeoId = getVimeoId(value);
-      
       if (vimeoId) {
-        // Note: Dans une application réelle, nous ferions un appel API pour obtenir
-        // la vignette Vimeo. Ici, nous utilisons simplement une image de substitution.
         setPreviewUrl('/images/podcast-default.jpg');
       } else {
         setPreviewUrl('');
       }
     }
 
-    // Si coverImage est fourni, l'utiliser comme aperçu
     if (name === 'coverImage' && value) {
       setPreviewUrl(value);
     }
 
-    // Effacer l'erreur quand l'utilisateur tape
     if (error) setError('');
   };
 
-  // Valider le formulaire
   const validateForm = () => {
     if (!formData.title.trim()) {
-      setError('Le titre est requis');
+      setError('Title is required');
       return false;
     }
     if (!formData.episode.trim()) {
-      setError('Le numéro d\'épisode est requis');
+      setError('Episode number is required');
       return false;
     }
     if (!formData.vimeoUrl.trim()) {
-      setError('L\'URL Vimeo est requise');
+      setError('Vimeo URL is required');
       return false;
     }
     if (!formData.duration.trim()) {
-      setError('La durée est requise');
+      setError('Duration is required');
       return false;
     }
     
-    // Valider l'URL Vimeo
     const vimeoId = getVimeoId(formData.vimeoUrl);
     if (!vimeoId) {
-      setError('Veuillez entrer une URL Vimeo valide');
+      setError('Please enter a valid Vimeo URL');
       return false;
     }
 
     return true;
   };
 
-  // Gérer la soumission du formulaire
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
     
     setLoading(true);
@@ -134,10 +117,9 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        throw new Error("Vous n'êtes pas authentifié. Veuillez vous reconnecter.");
+        throw new Error("You are not authenticated. Please log in again.");
       }
       
-      // Préparer les topics comme un tableau
       const topicsArray = formData.topics
         ? formData.topics.split(',').map(topic => topic.trim())
         : [];
@@ -159,13 +141,12 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Erreur serveur' }));
-        throw new Error(errorData.message || 'Échec de la création du podcast');
+        const errorData = await response.json().catch(() => ({ message: 'Server error' }));
+        throw new Error(errorData.message || 'Failed to create podcast');
       }
       
       const data = await response.json();
       
-      // Réinitialiser le formulaire
       setFormData({
         title: '',
         episode: '',
@@ -183,18 +164,16 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
       });
       setPreviewUrl('');
       
-      // Notifier le composant parent
       onPodcastCreated(data.data);
       
     } catch (err) {
       setError(err.message);
-      console.error('Erreur lors de la création du podcast:', err);
+      console.error('Error creating podcast:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Gérer la fermeture
   const handleClose = () => {
     if (!loading) {
       setFormData({
@@ -222,7 +201,7 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
-          <h2>Ajouter un nouveau podcast</h2>
+          <h2>Add a New Podcast</h2>
           <button className={styles.closeButton} onClick={handleClose} disabled={loading}>
             <i className="fas fa-times"></i>
           </button>
@@ -238,7 +217,7 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
 
           <div className={styles.formGroup}>
             <label htmlFor="title">
-              Titre <span className={styles.required}>*</span>
+              Title <span className={styles.required}>*</span>
             </label>
             <input
               type="text"
@@ -246,7 +225,7 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
               name="title"
               value={formData.title}
               onChange={handleChange}
-              placeholder="Entrez le titre du podcast"
+              placeholder="Enter podcast title"
               disabled={loading}
               required
             />
@@ -255,7 +234,7 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
               <label htmlFor="episode">
-                Numéro d'épisode <span className={styles.required}>*</span>
+                Episode Number <span className={styles.required}>*</span>
               </label>
               <input
                 type="number"
@@ -272,7 +251,7 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
 
             <div className={styles.formGroup}>
               <label htmlFor="season">
-                Saison
+                Season
               </label>
               <input
                 type="number"
@@ -289,7 +268,7 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
 
           <div className={styles.formGroup}>
             <label htmlFor="vimeoUrl">
-              URL Vimeo <span className={styles.required}>*</span>
+              Vimeo URL <span className={styles.required}>*</span>
             </label>
             <input
               type="url"
@@ -303,16 +282,16 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
             />
             <small className={styles.formHelp}>
               {formData.vimeoUrl ? 
-                (getVimeoId(formData.vimeoUrl) ? 'URL Vimeo valide' : 'URL Vimeo invalide') :
-                'Exemple: https://vimeo.com/123456789'}
+                (getVimeoId(formData.vimeoUrl) ? 'Valid Vimeo URL' : 'Invalid Vimeo URL') :
+                'Example: https://vimeo.com/123456789'}
             </small>
           </div>
 
           {previewUrl && (
             <div className={styles.previewContainer}>
-              <label>Aperçu</label>
+              <label>Preview</label>
               <div className={styles.thumbnailPreview}>
-                <img src={previewUrl} alt="Vignette du podcast" />
+                <img src={previewUrl} alt="Podcast thumbnail" />
               </div>
             </div>
           )}
@@ -320,7 +299,7 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
               <label htmlFor="category">
-                Catégorie
+                Category
               </label>
               <select
                 id="category"
@@ -337,7 +316,7 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
 
             <div className={styles.formGroup}>
               <label htmlFor="duration">
-                Durée (minutes) <span className={styles.required}>*</span>
+                Duration (minutes) <span className={styles.required}>*</span>
               </label>
               <input
                 type="number"
@@ -356,7 +335,7 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
               <label htmlFor="guestName">
-                Nom de l'invité
+                Guest Name
               </label>
               <input
                 type="text"
@@ -364,14 +343,14 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
                 name="guestName"
                 value={formData.guestName}
                 onChange={handleChange}
-                placeholder="Nom de l'invité (optionnel)"
+                placeholder="Guest name (optional)"
                 disabled={loading}
               />
             </div>
 
             <div className={styles.formGroup}>
               <label htmlFor="hostName">
-                Nom de l'hôte
+                Host Name
               </label>
               <input
                 type="text"
@@ -387,7 +366,7 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
 
           <div className={styles.formGroup}>
             <label htmlFor="coverImage">
-              URL de l'image de couverture
+              Cover Image URL
             </label>
             <input
               type="url"
@@ -395,14 +374,14 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
               name="coverImage"
               value={formData.coverImage}
               onChange={handleChange}
-              placeholder="https://exemple.com/image.jpg (optionnel)"
+              placeholder="https://example.com/image.jpg (optional)"
               disabled={loading}
             />
           </div>
 
           <div className={styles.formGroup}>
             <label htmlFor="publishDate">
-              Date de publication
+              Publish Date
             </label>
             <input
               type="date"
@@ -416,7 +395,7 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
 
           <div className={styles.formGroup}>
             <label htmlFor="topics">
-              Topics (séparés par des virgules)
+              Topics (separated by commas)
             </label>
             <input
               type="text"
@@ -424,7 +403,7 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
               name="topics"
               value={formData.topics}
               onChange={handleChange}
-              placeholder="musique, histoire, carrière"
+              placeholder="music, history, career"
               disabled={loading}
             />
           </div>
@@ -438,7 +417,7 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
               name="description"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Description du podcast"
+              placeholder="Podcast description"
               disabled={loading}
               rows={4}
             />
@@ -456,7 +435,7 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
                 }))}
                 disabled={loading}
               />
-              Publier immédiatement
+              Publish immediately
             </label>
           </div>
         </form>
@@ -468,7 +447,7 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
             onClick={handleClose}
             disabled={loading}
           >
-            <i className="fas fa-times"></i> Annuler
+            <i className="fas fa-times"></i> Cancel
           </button>
           <button 
             type="submit"
@@ -478,11 +457,11 @@ const AddPodcastModal = ({ isOpen, onClose, onPodcastCreated }) => {
           >
             {loading ? (
               <>
-                <i className="fas fa-spinner fa-spin"></i> Création...
+                <i className="fas fa-spinner fa-spin"></i> Creating...
               </>
             ) : (
               <>
-                <i className="fas fa-plus"></i> Ajouter le podcast
+                <i className="fas fa-plus"></i> Add Podcast
               </>
             )}
           </button>

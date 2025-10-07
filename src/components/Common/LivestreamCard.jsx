@@ -17,9 +17,9 @@ const LivestreamCard = ({ stream }) => {
       if (timeDiff <= 0) {
         // Le stream a déjà commencé
         if (stream.status === 'LIVE') {
-          setTimeRemaining('EN DIRECT');
+          setTimeRemaining('LIVE');
         } else {
-          setTimeRemaining('PROGRAMMÉ');
+          setTimeRemaining('PROGRAM');
         }
         return;
       }
@@ -30,11 +30,11 @@ const LivestreamCard = ({ stream }) => {
       const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
       
       if (days > 0) {
-        setTimeRemaining(`Dans ${days}j ${hours}h`);
+        setTimeRemaining(`In ${days}j ${hours}h`);
       } else if (hours > 0) {
-        setTimeRemaining(`Dans ${hours}h ${minutes}min`);
+        setTimeRemaining(`In ${hours}h ${minutes}min`);
       } else {
-        setTimeRemaining(`Dans ${minutes}min`);
+        setTimeRemaining(`In ${minutes}min`);
       }
     };
     
@@ -81,13 +81,13 @@ const LivestreamCard = ({ stream }) => {
   const getStatusText = () => {
     switch (stream.status) {
       case 'LIVE':
-        return 'EN DIRECT';
+        return 'LIVE';
       case 'SCHEDULED':
-        return timeRemaining || 'PROGRAMMÉ';
+        return timeRemaining || 'PROGRAM';
       case 'COMPLETED':
-        return 'TERMINÉ';
+        return 'ENDED';
       case 'CANCELLED':
-        return 'ANNULÉ';
+        return 'CANCELLED';
       default:
         return '';
     }
@@ -111,7 +111,7 @@ const LivestreamCard = ({ stream }) => {
             
             {stream.status === 'LIVE' && (
               <div className="livestream-viewers">
-                <i className="fas fa-user"></i> {(stream.statistics?.maxConcurrentViewers || 0).toLocaleString()} spectateurs
+                <i className="fas fa-user"></i> {(stream.statistics?.maxConcurrentViewers || 0).toLocaleString()} viewers
               </div>
             )}
             
@@ -136,7 +136,7 @@ const LivestreamCard = ({ stream }) => {
           
           <div className="livestream-meta">
             <div className="livestream-host">
-              <span className="host-label">Animé par:</span> {stream.hostName || 'ThrowBack Host'}
+              <span className="host-label">Hosted by:</span> {stream.hostName || 'ThrowBack Host'}
             </div>
             
             <div className="livestream-schedule">
@@ -145,7 +145,7 @@ const LivestreamCard = ({ stream }) => {
             
             {stream.guests && stream.guests.length > 0 && (
               <div className="livestream-guests">
-                <span className="guests-label">Invités:</span> {stream.guests.join(', ')}
+                <span className="guests-label">Guests:</span> {stream.guests.join(', ')}
               </div>
             )}
           </div>
@@ -160,7 +160,7 @@ const LivestreamCard = ({ stream }) => {
           
           {stream.isRecurring && (
             <div className="livestream-recurring">
-              <i className="fas fa-sync-alt"></i> Émission récurrente
+              <i className="fas fa-sync-alt"></i> Recurring show
             </div>
           )}
           

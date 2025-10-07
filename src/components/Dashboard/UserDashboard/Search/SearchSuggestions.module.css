@@ -1,0 +1,65 @@
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: #111318;
+  border: 1px solid #22252d;
+  border-top: none;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.35);
+  max-height: 320px;
+  overflow-y: auto;
+  border-radius: 0 0 12px 12px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  color: #e7e9ee;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item:hover,
+.item.active {
+  background: #1a1d25;
+}
+
+.iconWrap {
+  width: 22px;
+  display: grid;
+  place-items: center;
+  opacity: 0.9;
+}
+
+.text {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.badge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border: 1px solid #2b2f3a;
+  border-radius: 999px;
+  color: #aeb4c2;
+}
+
+.empty {
+  padding: 14px;
+  color: #aeb4c2;
+}
+
+mark {
+  background: transparent;
+  color: #fff;
+  border-bottom: 2px solid #5b8cff;
+}

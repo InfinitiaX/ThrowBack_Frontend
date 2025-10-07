@@ -6,14 +6,14 @@ import styles from './EmptyState.module.css';
 /**
  * Composant EmptyState pour afficher un état vide avec une icône, un titre, un message et éventuellement une action
  * 
- * @param {Object} icon - Icône FontAwesome à afficher
- * @param {string} title - Titre de l'état vide
- * @param {string} message - Message détaillé
- * @param {string} actionText - Texte du bouton d'action (optionnel)
- * @param {Function} onAction - Fonction à appeler lors du clic sur le bouton d'action
- * @param {string} imageUrl - URL d'une image à afficher à la place de l'icône (optionnel)
- * @param {string} imageAlt - Texte alternatif pour l'image (optionnel)
- * @param {string} className - Classes CSS supplémentaires (optionnel)
+ * @param {Object} icon 
+ * @param {string} title 
+ * @param {string} message 
+ * @param {string} actionText
+ * @param {Function} onAction 
+ * @param {string} imageUrl 
+ * @param {string} imageAlt 
+ * @param {string} className 
  */
 const EmptyState = ({
   icon,

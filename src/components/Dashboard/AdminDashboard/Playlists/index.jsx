@@ -25,15 +25,13 @@ const Playlists = () => {
     type: ''
   });
   const [viewMode, setViewMode] = useState('list'); 
-  
+
   const navigate = useNavigate();
 
-  // Charger les playlists
   useEffect(() => {
     fetchPlaylists();
   }, [currentPage, limit, filters]);
 
-  // Charger les statistiques
   useEffect(() => {
     fetchStats();
   }, []);
@@ -41,32 +39,25 @@ const Playlists = () => {
   const fetchPlaylists = async () => {
     setLoading(true);
     try {
-      // Construire les paramètres de requête
       const params = new URLSearchParams();
       params.append('page', currentPage);
       params.append('limit', limit);
-      
-      // Ajouter les filtres non vides
       Object.entries(filters).forEach(([key, value]) => {
-        if (value) {
-          params.append(key, value);
-        }
+        if (value) params.append(key, value);
       });
-      
       const response = await axios.get(`/api/admin/playlists?${params.toString()}`);
-      
       if (response.data.success) {
         setPlaylists(response.data.data.playlists);
         setTotalPages(response.data.data.pagination.total);
         setTotalItems(response.data.data.pagination.totalItems);
       } else {
-        setError('Erreur lors du chargement des playlists');
-        toast.error('Erreur lors du chargement des playlists');
+        setError('Error loading playlists');
+        toast.error('Error loading playlists');
       }
     } catch (err) {
-      console.error('Erreur fetchPlaylists:', err);
-      setError('Erreur lors du chargement des playlists');
-      toast.error('Erreur lors du chargement des playlists');
+      console.error('Error fetchPlaylists:', err);
+      setError('Error loading playlists');
+      toast.error('Error loading playlists');
     } finally {
       setLoading(false);
     }
@@ -76,123 +67,77 @@ const Playlists = () => {
     setStatsLoading(true);
     try {
       const response = await axios.get('/api/admin/playlists/stats');
-      
-      if (response.data.success) {
-        setStats(response.data.data);
-      } else {
-        toast.warning('Impossible de charger les statistiques des playlists');
-      }
+      if (response.data.success) setStats(response.data.data);
+      else toast.warning('Unable to load playlist statistics');
     } catch (err) {
-      console.error('Erreur fetchStats:', err);
-      toast.warning('Impossible de charger les statistiques des playlists');
+      console.error('Error fetchStats:', err);
+      toast.warning('Unable to load playlist statistics');
     } finally {
       setStatsLoading(false);
     }
   };
 
-  const handlePageChange = (newPage) => {
-    setCurrentPage(newPage);
-  };
+  const handlePageChange = (newPage) => setCurrentPage(newPage);
 
   const handleLimitChange = (newLimit) => {
     setLimit(newLimit);
-    setCurrentPage(1); // Revenir à la première page
+    setCurrentPage(1);
   };
 
   const handleFilterChange = (name, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    setCurrentPage(1); // Revenir à la première page
+    setFilters(prev => ({ ...prev, [name]: value }));
+    setCurrentPage(1);
   };
 
   const handleResetFilters = () => {
-    setFilters({
-      search: '',
-      userId: '',
-      visibilite: '',
-      type: ''
-    });
+    setFilters({ search: '', userId: '', visibilite: '', type: '' });
     setCurrentPage(1);
   };
 
   const handleDeletePlaylist = async (playlistId) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette playlist ? Cette action est irréversible.")) {
+    if (window.confirm("Are you sure you want to delete this playlist? This action is irreversible.")) {
       try {
         const response = await axios.delete(`/api/admin/playlists/${playlistId}`);
-        
         if (response.data.success) {
-          toast.success('Playlist supprimée avec succès');
-          fetchPlaylists(); // Rafraîchir la liste
-          fetchStats(); // Mettre à jour les statistiques
+          toast.success('Playlist successfully deleted');
+          fetchPlaylists();
+          fetchStats();
         } else {
-          toast.error('Erreur lors de la suppression de la playlist');
+          toast.error('Error deleting playlist');
         }
       } catch (err) {
-        console.error('Erreur handleDeletePlaylist:', err);
-        toast.error('Erreur lors de la suppression de la playlist');
+        console.error('Error handleDeletePlaylist:', err);
+        toast.error('Error deleting playlist');
       }
     }
   };
 
-  const handleViewPlaylist = (playlistId) => {
-    navigate(`/admin/playlists/${playlistId}`);
-  };
+  const handleViewPlaylist = (playlistId) => navigate(`/admin/playlists/${playlistId}`);
+  const handleEditPlaylist = (playlistId) => navigate(`/admin/playlists/${playlistId}/edit`);
 
-  const handleEditPlaylist = (playlistId) => {
-    navigate(`/admin/playlists/${playlistId}/edit`);
-  };
-
-  const toggleViewMode = () => {
-    setViewMode(prev => prev === 'list' ? 'stats' : 'list');
-  };
+  const toggleViewMode = () => setViewMode(prev => prev === 'list' ? 'stats' : 'list');
 
   return (
     <div className={styles.playlistsContainer}>
       <div className={styles.header}>
-        <h1>Gestion des Playlists</h1>
+        <h1>Playlist Management</h1>
+        <br/>
+        <p>Create and manage your Playlists</p>
         <div className={styles.actions}>
-          <button 
-            className={`${styles.viewModeButton} ${viewMode === 'stats' ? styles.active : ''}`}
-            onClick={toggleViewMode}
-          >
+          <button className={`${styles.viewModeButton} ${viewMode === 'stats' ? styles.active : ''}`} onClick={toggleViewMode}>
             <i className={`fas ${viewMode === 'list' ? 'fa-chart-bar' : 'fa-list'}`}></i>
-            {viewMode === 'list' ? 'Voir les statistiques' : 'Voir la liste'}
+            {viewMode === 'list' ? 'View Statistics' : 'View List'}
           </button>
         </div>
       </div>
 
-      {/* Afficher la vue liste ou statistiques */}
       {viewMode === 'list' ? (
         <>
-          <FilterBar 
-            filters={filters} 
-            onFilterChange={handleFilterChange} 
-            onResetFilters={handleResetFilters} 
-          />
-          
-          <PlaylistsTable 
-            playlists={playlists}
-            loading={loading}
-            error={error}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            limit={limit}
-            onPageChange={handlePageChange}
-            onLimitChange={handleLimitChange}
-            onDelete={handleDeletePlaylist}
-            onView={handleViewPlaylist}
-            onEdit={handleEditPlaylist}
-          />
+          <FilterBar filters={filters} onFilterChange={handleFilterChange} onResetFilters={handleResetFilters} />
+          <PlaylistsTable playlists={playlists} loading={loading} error={error} currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} limit={limit} onPageChange={handlePageChange} onLimitChange={handleLimitChange} onDelete={handleDeletePlaylist} onView={handleViewPlaylist} onEdit={handleEditPlaylist} />
         </>
       ) : (
-        <PlaylistStats 
-          stats={stats} 
-          loading={statsLoading} 
-          onRefresh={fetchStats} 
-        />
+        <PlaylistStats stats={stats} loading={statsLoading} onRefresh={fetchStats} />
       )}
     </div>
   );

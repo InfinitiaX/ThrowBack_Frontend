@@ -1,0 +1,128 @@
+.commentForm {
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.formContent {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.userAvatar {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.commentInput {
+  flex: 1;
+  padding: 12px 14px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  resize: none;
+  font-family: inherit;
+  font-size: inherit;
+  min-height: 24px;
+  max-height: 120px;
+  overflow-y: auto;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.commentInput:focus {
+  outline: none;
+  border-color: #b31217;
+  box-shadow: 0 0 0 2px rgba(179, 18, 23, 0.1);
+}
+
+.submitButton {
+  background-color: #b31217;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+  flex-shrink: 0;
+  align-self: flex-end;
+}
+
+.submitButton:hover {
+  background-color: #9c1015;
+  transform: scale(1.05);
+}
+
+.submitButton:disabled {
+  background-color: #d3d3d3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.errorMessage {
+  color: #b31217;
+  font-size: 0.9rem;
+  margin-top: 8px;
+  background-color: rgba(179, 18, 23, 0.1);
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.cancelButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.cancelButton:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #b31217;
+}
+
+@media (max-width: 576px) {
+  .formContent {
+    gap: 8px;
+  }
+  
+  .userAvatar {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+  }
+  
+  .commentInput {
+    padding: 10px 12px;
+    font-size: 0.95rem;
+  }
+  
+  .submitButton {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .cancelButton {
+    font-size: 0.85rem;
+    padding: 4px 8px;
+  }
+}

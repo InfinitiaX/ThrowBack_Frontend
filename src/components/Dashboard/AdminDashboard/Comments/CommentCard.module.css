@@ -1,0 +1,348 @@
+/* components/Dashboard/AdminDashboard/Comments/CommentCard.module.css */
+.commentCard {
+  display: grid;
+  grid-template-columns: 50px 2fr 1fr 1fr 120px 150px 120px;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.commentCard:hover {
+  background-color: #f8f9fa;
+}
+
+.commentCard.selected {
+  background-color: #e7f3ff;
+  border-left: 4px solid #b31217;
+}
+
+.checkboxColumn {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 0.5rem;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #b31217;
+  cursor: pointer;
+}
+
+.contentColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.commentContent p {
+  margin: 0;
+  color: #2c3e50;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.commentContent p.truncated {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.toggleContent {
+  background: none;
+  border: none;
+  color: #b31217;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  align-self: flex-start;
+  padding: 0.25rem 0;
+  text-decoration: underline;
+}
+
+.toggleContent:hover {
+  color: #d32f2f;
+}
+
+.commentMeta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.metaItem i {
+  font-size: 0.75rem;
+}
+
+.metaItem.reported {
+  color: #dc3545;
+  font-weight: 500;
+}
+
+.authorColumn {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 0.5rem;
+}
+
+.authorInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.authorAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+.authorDetails {
+  flex: 1;
+  min-width: 0;
+}
+
+.authorName {
+  font-weight: 500;
+  color: #2c3e50;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.authorName.inactiveUser {
+  color: #6c757d;
+  font-style: italic;
+}
+
+.authorEmail {
+  font-size: 0.8rem;
+  color: #6c757d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contextColumn {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 0.5rem;
+}
+
+.contextInfo {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.contextIcon {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin-top: 0.1rem;
+  flex-shrink: 0;
+}
+
+.contextDetails {
+  flex: 1;
+  min-width: 0;
+}
+
+.contextType {
+  font-size: 0.8rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+}
+
+.contextTitle {
+  font-size: 0.85rem;
+  color: #495057;
+  margin-bottom: 0.25rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.3;
+}
+
+.contextArtist {
+  font-size: 0.75rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.statusColumn {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 0.5rem;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.statusBadge i {
+  font-size: 0.7rem;
+}
+
+.statusActive {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.statusModerated {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.statusDeleted {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.statusReported {
+  background-color: #f1c0c7;
+  color: #721c24;
+}
+
+.dateColumn {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 0.5rem;
+}
+
+.dateInfo {
+  text-align: center;
+  width: 100%;
+}
+
+.dateRelative {
+  font-size: 0.85rem;
+  color: #495057;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.dateAbsolute {
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+
+.actionsColumn {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 0.5rem;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.actionBtn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+}
+
+.actionBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.actionBtn:first-child {
+  background-color: #f8f9fa;
+  color: #6c757d;
+}
+
+.actionBtn:first-child:hover {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.approveBtn {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.approveBtn:hover {
+  background-color: #c3e6cb;
+}
+
+.deleteBtn {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.deleteBtn:hover {
+  background-color: #f1c0c7;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .commentCard {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .checkboxColumn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+  }
+
+  .authorColumn,
+  .contextColumn,
+  .statusColumn,
+  .dateColumn,
+  .actionsColumn {
+    justify-content: flex-start;
+  }
+
+  .statusColumn,
+  .actionsColumn {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+}

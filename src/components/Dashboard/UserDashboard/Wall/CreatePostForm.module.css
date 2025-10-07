@@ -1,0 +1,260 @@
+.createPostContainer {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.createPostForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.userAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background-color: #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #555;
+}
+
+.userName {
+  font-weight: 600;
+  color: #333;
+}
+
+.visibilitySelector {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #f5f5f5;
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.visibilitySelector:hover {
+  background-color: #eee;
+}
+
+.visibilityText {
+  font-size: 0.9rem;
+  color: #444;
+}
+
+.contentInput {
+  width: 100%;
+}
+
+.textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: inherit;
+  min-height: 80px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: #b31217;
+  box-shadow: 0 0 0 2px rgba(179, 18, 23, 0.1);
+}
+
+.mediaPreviewContainer {
+  position: relative;
+  margin-top: 12px;
+  border-radius: 12px;
+  overflow: hidden;
+  max-height: 400px;
+}
+
+.mediaPreview {
+  width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  border-radius: 8px;
+  background-color: #f5f5f5;
+}
+
+.audioPreview {
+  width: 100%;
+  padding: 20px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+}
+
+.removeMediaButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.removeMediaButton:hover {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.errorMessage {
+  color: #b31217;
+  background-color: rgba(179, 18, 23, 0.1);
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.formActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #eee;
+  padding-top: 16px;
+}
+
+.mediaButtons {
+  display: flex;
+  gap: 12px;
+}
+
+.mediaButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #555;
+  padding: 8px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.mediaButton:hover {
+  background-color: #f5f5f5;
+  color: #b31217;
+}
+
+.submitButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #b31217;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.submitButton:hover {
+  background-color: #9c1015;
+  transform: translateY(-1px);
+}
+
+.submitButton:disabled {
+  background-color: #d3d3d3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 768px) {
+  .createPostContainer {
+    padding: 16px;
+  }
+  
+  .userInfo {
+    gap: 8px;
+  }
+  
+  .userAvatar {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .formActions {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .mediaButtons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: 100%;
+    gap: 6px;
+  }
+  
+  .mediaButton {
+    justify-content: center;
+    padding: 6px 8px;
+    font-size: 0.85rem;
+  }
+  
+  .submitButton {
+    width: 100%;
+    justify-content: center;
+    padding: 10px;
+  }
+}
+
+@media (max-width: 576px) {
+  .createPostContainer {
+    padding: 12px;
+  }
+  
+  .userAvatar {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .userName {
+    font-size: 0.9rem;
+  }
+  
+  .visibilitySelector {
+    padding: 4px 8px;
+  }
+  
+  .visibilityText {
+    font-size: 0.8rem;
+  }
+  
+  .mediaButton {
+    font-size: 0.8rem;
+  }
+  
+  .mediaButton span {
+    display: none;
+  }
+}

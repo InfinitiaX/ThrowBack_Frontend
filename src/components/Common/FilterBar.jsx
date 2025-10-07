@@ -90,7 +90,7 @@ const FilterBar = ({ filters, onFilterChange, loading }) => {
           onClick={() => setShowMobileFilters(!showMobileFilters)}
         >
           <i className="fas fa-filter"></i>
-          Filtres
+          Filters
           {hasActiveFilters && <span className={styles.activeIndicator}></span>}
         </button>
 
@@ -143,7 +143,7 @@ const FilterBar = ({ filters, onFilterChange, loading }) => {
 
           {/* Sort Filter */}
           <div className={styles.filterGroup}>
-            <label>Trier par</label>
+            <label>sort by</label>
             <select
               value={filters.sortBy}
               onChange={(e) => handleFilterChange('sortBy', e.target.value)}

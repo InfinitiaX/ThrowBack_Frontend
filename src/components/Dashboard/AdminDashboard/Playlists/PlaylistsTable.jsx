@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { format } from 'date-fns';
 import styles from './PlaylistsTable.module.css';
 
-// Configuration de l'URL de base pour les ressources
+// Base URL configuration for assets
 const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
 const PlaylistsTable = ({ 
@@ -20,10 +20,10 @@ const PlaylistsTable = ({
   onView,
   onEdit
 }) => {
-  // État pour suivre les images qui ont échoué à charger
+  // Track images that failed to load
   const [failedImages, setFailedImages] = useState({});
 
-  // Gestion des erreurs de chargement d'image
+  // Handle image load errors
   const handleImageError = (id, type) => {
     setFailedImages(prev => ({
       ...prev,
@@ -31,29 +31,25 @@ const PlaylistsTable = ({
     }));
   };
 
-  // Fonction pour construire l'URL complète des images
+  // Build full image URL
   const getImageUrl = (path) => {
     if (!path) return null;
-    
-    // Si l'URL est déjà absolue (commence par http ou https)
     if (path.startsWith('http://') || path.startsWith('https://')) {
       return path;
     }
-    
-    // Si l'URL est relative, préfixer avec l'URL de base de l'API
     return `${API_BASE_URL}${path}`;
   };
 
-  // Fonction pour formatter la date
+  // Format date
   const formatDate = (dateString) => {
     try {
       return format(new Date(dateString), 'dd/MM/yyyy HH:mm');
     } catch (error) {
-      return 'Date invalide';
+      return 'Invalid date';
     }
   };
 
-  // Fonction pour obtenir la classe de badge selon la visibilité
+  // Visibility badge class
   const getVisibilityBadgeClass = (visibility) => {
     switch (visibility) {
       case 'PUBLIC':
@@ -67,7 +63,7 @@ const PlaylistsTable = ({
     }
   };
 
-  // Fonction pour obtenir la classe de badge selon le type
+  // Type badge class
   const getTypeBadgeClass = (type) => {
     switch (type) {
       case 'MANUELLE':
@@ -83,7 +79,7 @@ const PlaylistsTable = ({
     }
   };
 
-  // Générer les options de pagination
+  // Pagination options
   const paginationOptions = [];
   for (let i = 1; i <= totalPages; i++) {
     paginationOptions.push(
@@ -91,33 +87,33 @@ const PlaylistsTable = ({
     );
   }
 
-  // Si chargement en cours
+  // Loading state
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.spinner}></div>
-        <p>Chargement des playlists...</p>
+        <p>Loading playlists...</p>
       </div>
     );
   }
 
-  // Si erreur
+  // Error state
   if (error) {
     return (
       <div className={styles.errorContainer}>
         <i className="fas fa-exclamation-triangle"></i>
         <p>{error}</p>
-        <button onClick={() => window.location.reload()}>Réessayer</button>
+        <button onClick={() => window.location.reload()}>Retry</button>
       </div>
     );
   }
 
-  // Si aucune playlist
+  // Empty state
   if (!playlists || playlists.length === 0) {
     return (
       <div className={styles.emptyContainer}>
         <i className="fas fa-music"></i>
-        <p>Aucune playlist trouvée</p>
+        <p>No playlists found</p>
       </div>
     );
   }
@@ -126,11 +122,11 @@ const PlaylistsTable = ({
     <div className={styles.tableContainer}>
       <div className={styles.tableHeader}>
         <div className={styles.entriesInfo}>
-          Affichage de {((currentPage - 1) * limit) + 1} à {Math.min(currentPage * limit, totalItems)} sur {totalItems} playlists
+          Showing {((currentPage - 1) * limit) + 1} to {Math.min(currentPage * limit, totalItems)} of {totalItems} playlists
         </div>
         <div className={styles.paginationControls}>
           <div className={styles.limitSelector}>
-            <label htmlFor="limit-select">Afficher</label>
+            <label htmlFor="limit-select">Show</label>
             <select 
               id="limit-select"
               value={limit}
@@ -142,7 +138,7 @@ const PlaylistsTable = ({
               <option value={50}>50</option>
               <option value={100}>100</option>
             </select>
-            <span>par page</span>
+            <span>per page</span>
           </div>
         </div>
       </div>
@@ -151,12 +147,12 @@ const PlaylistsTable = ({
         <table className={styles.playlistsTable}>
           <thead>
             <tr>
-              <th>Nom</th>
-              <th>Propriétaire</th>
-              <th>Vidéos</th>
-              <th>Visibilité</th>
+              <th>Name</th>
+              <th>Owner</th>
+              <th>Videos</th>
+              <th>Visibility</th>
               <th>Type</th>
-              <th>Créée le</th>
+              <th>Created on</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -199,7 +195,7 @@ const PlaylistsTable = ({
                         <span>{playlist.proprietaire.prenom} {playlist.proprietaire.nom}</span>
                       </>
                     ) : (
-                      <span className={styles.unknownUser}>Utilisateur inconnu</span>
+                      <span className={styles.unknownUser}>Unknown user</span>
                     )}
                   </div>
                 </td>
@@ -210,15 +206,15 @@ const PlaylistsTable = ({
                 </td>
                 <td>
                   <span className={`${styles.badge} ${getVisibilityBadgeClass(playlist.visibilite)}`}>
-                    {playlist.visibilite}
+                    {playlist.visibilite === 'PUBLIC' ? 'Public' : playlist.visibilite === 'PRIVE' ? 'Private' : playlist.visibilite === 'AMIS' ? 'Friends' : playlist.visibilite}
                   </span>
                 </td>
                 <td>
                   <span className={`${styles.badge} ${getTypeBadgeClass(playlist.type_playlist)}`}>
-                    {playlist.type_playlist === 'MANUELLE' ? 'Manuelle' : 
+                    {playlist.type_playlist === 'MANUELLE' ? 'Manual' : 
                      playlist.type_playlist === 'AUTO_GENRE' ? 'Auto (Genre)' :
-                     playlist.type_playlist === 'AUTO_DECENNIE' ? 'Auto (Décennie)' :
-                     playlist.type_playlist === 'AUTO_ARTISTE' ? 'Auto (Artiste)' : 
+                     playlist.type_playlist === 'AUTO_DECENNIE' ? 'Auto (Decade)' :
+                     playlist.type_playlist === 'AUTO_ARTISTE' ? 'Auto (Artist)' : 
                      playlist.type_playlist}
                   </span>
                 </td>
@@ -230,21 +226,21 @@ const PlaylistsTable = ({
                     <button 
                       className={styles.viewButton} 
                       onClick={() => onView(playlist._id)}
-                      title="Voir la playlist"
+                      title="View playlist"
                     >
                       <i className="fas fa-eye"></i>
                     </button>
                     <button 
                       className={styles.editButton} 
                       onClick={() => onEdit(playlist._id)}
-                      title="Modifier la playlist"
+                      title="Edit playlist"
                     >
                       <i className="fas fa-edit"></i>
                     </button>
                     <button 
                       className={styles.deleteButton} 
                       onClick={() => onDelete(playlist._id)}
-                      title="Supprimer la playlist"
+                      title="Delete playlist"
                     >
                       <i className="fas fa-trash-alt"></i>
                     </button>
@@ -280,7 +276,7 @@ const PlaylistsTable = ({
           >
             {paginationOptions}
           </select>
-          <span>sur {totalPages}</span>
+          <span>of {totalPages}</span>
         </div>
         
         <button 

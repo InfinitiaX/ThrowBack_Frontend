@@ -1,0 +1,188 @@
+.wallContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.wallContent {
+  display: flex;
+  gap: 24px;
+}
+
+.mainContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar {
+  width: 320px;
+  flex-shrink: 0;
+}
+
+.createPostContainer {
+  margin-bottom: 24px;
+}
+
+.filterBar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.filterButton {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+.filterButton:hover {
+  background-color: #f5f5f5;
+}
+
+.filterButton.active {
+  background-color: #b31217;
+  color: white;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+
+.filterCount {
+  background-color: rgba(255,255,255,0.2);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.8em;
+}
+
+/* Ajouter */
+.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loginRequired {
+  font-size: 0.8em;
+  opacity: 0.8;
+  margin-left: 5px;
+}
+
+.errorMessage {
+  background-color: #ffebee;
+  border: 1px solid #ffcdd2;
+  border-radius: 4px;
+  padding: 10px 15px;
+  margin: 10px 0;
+  color: #c62828;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.retryButton {
+  background-color: #c62828;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.errorMessage {
+  background-color: rgba(179, 18, 23, 0.1);
+  color: #b31217;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.retryButton {
+  background-color: #b31217;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.retryButton:hover {
+  background-color: #9c1015;
+}
+
+.errorState {
+  padding: 40px;
+  text-align: center;
+  background-color: #f9f9f9;
+  border-radius: 12px;
+  margin: 40px auto;
+  max-width: 600px;
+  color: #b31217;
+  font-size: 1.2rem;
+}
+
+@media (max-width: 992px) {
+  .wallContent {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 100%;
+    order: -1;
+    margin-bottom: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .wallContainer {
+    padding: 16px;
+  }
+  
+  .filterBar {
+    padding: 10px 12px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+  }
+  
+  .filterButton {
+    padding: 6px 12px;
+    white-space: nowrap;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .wallContainer {
+    padding: 12px;
+  }
+  
+  .filterBar {
+    padding: 8px;
+    gap: 8px;
+  }
+  
+  .filterButton {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+  }
+  
+  .errorMessage {
+    padding: 12px;
+    font-size: 0.9rem;
+  }
+  
+  .retryButton {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+}

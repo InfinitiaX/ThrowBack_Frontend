@@ -80,7 +80,7 @@ const PodcastCard = ({ podcast }) => {
           <div className="podcast-meta">
             {podcast.guestName && (
               <div className="podcast-guest">
-                <span className="meta-label">Invité:</span> {podcast.guestName}
+                <span className="meta-label">Guest:</span> {podcast.guestName}
               </div>
             )}
             

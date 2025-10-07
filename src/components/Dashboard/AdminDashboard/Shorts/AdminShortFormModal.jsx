@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../Videos/Videos.module.css';
 
-// Configuration de l'URL de l'API
+// API base URL configuration
 const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
 const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => {
@@ -20,22 +20,22 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
   const [previewUrl, setPreviewUrl] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   
-  // Fonction pour obtenir les headers d'authentification
+  // Get auth headers
   const getAuthHeaders = (contentType = 'application/json') => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     if (!token) {
-      setError("Authentification requise. Veuillez vous reconnecter.");
+      setError('Authentication required. Please log in again.');
       return null;
     }
     
     if (contentType) {
       return {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': contentType
       };
     }
     
-    return { 'Authorization': `Bearer ${token}` };
+    return { Authorization: `Bearer ${token}` };
   };
 
   useEffect(() => {
@@ -47,9 +47,8 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
         duree: initialData.duree || null
       });
       
-      // Si le short a une URL, essayer de créer une prévisualisation
+      // If the short has a URL, leave preview empty (generated on demand)
       if (initialData.youtubeUrl) {
-        // Pour les fichiers locaux, laisser vide - sera généré à la demande
         setPreviewUrl('');
       }
     } else {
@@ -77,13 +76,13 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
     if (selectedFile) {
       // Validate file type
       if (!selectedFile.type.startsWith('video/')) {
-        setDurationError('Veuillez sélectionner un fichier vidéo valide.');
+        setDurationError('Please select a valid video file.');
         return;
       }
       
       // Check file size (50MB max)
       if (selectedFile.size > 50 * 1024 * 1024) {
-        setDurationError('Le fichier est trop volumineux (max 50MB).');
+        setDurationError('File is too large (max 50MB).');
         return;
       }
       
@@ -96,16 +95,16 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
         setVideoDuration(video.duration);
         
         if (video.duration > 30) {
-          setDurationError('La vidéo dépasse 30 secondes.');
+          setDurationError('The video exceeds 30 seconds.');
         } else if (video.duration < 10) {
-          setDurationError('La vidéo doit durer au moins 10 secondes.');
+          setDurationError('The video must be at least 10 seconds long.');
         } else {
           setDurationError('');
         }
       };
       video.onerror = () => {
         window.URL.revokeObjectURL(url);
-        setDurationError('Impossible de lire ce fichier vidéo.');
+        setDurationError('Unable to read this video file.');
       };
       video.src = url;
       
@@ -134,17 +133,17 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
 
   const validateForm = () => {
     if (!form.titre.trim()) {
-      setError('Le titre est requis');
+      setError('Title is required');
       return false;
     }
     
     if (!form.artiste.trim()) {
-      setError('L\'artiste est requis');
+      setError('Artist is required');
       return false;
     }
     
     if (!isEdit && !file) {
-      setError('Veuillez sélectionner un fichier vidéo');
+      setError('Please select a video file');
       return false;
     }
     
@@ -199,22 +198,22 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
         if (file) formData.append('videoFile', file);
         if (videoDuration) formData.append('duree', Math.round(videoDuration));
         
-        const headers = getAuthHeaders(null); // Pas de Content-Type pour FormData
+        const headers = getAuthHeaders(null); // No Content-Type for FormData
         if (!headers) {
           setLoading(false);
           return;
         }
         
-        console.log("Creating short with file upload");
+        console.log('Creating short with file upload');
         
-        // Utiliser XMLHttpRequest pour suivre la progression
+        // Use XMLHttpRequest to track progress
         const xhr = new XMLHttpRequest();
         xhr.open('POST', `${API_BASE_URL}/api/admin/shorts`, true);
         
-        // Ajouter les headers d'authentification
+        // Add auth header
         xhr.setRequestHeader('Authorization', headers.Authorization);
         
-        // Suivre la progression
+        // Track progress
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
             const percentComplete = Math.round((event.loaded / event.total) * 100);
@@ -222,14 +221,14 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
           }
         };
         
-        // Gérer la réponse
+        // Handle response
         xhr.onload = function() {
           if (xhr.status >= 200 && xhr.status < 300) {
             const response = JSON.parse(xhr.responseText);
             onShortSaved(response.data || response.video || response);
             onClose();
           } else {
-            let errorMsg = "Une erreur est survenue lors de l'upload";
+            let errorMsg = 'An error occurred during upload';
             try {
               const errorData = JSON.parse(xhr.responseText);
               errorMsg = errorData.message || errorMsg;
@@ -239,35 +238,35 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
           }
         };
         
-        // Gérer les erreurs
+        // Handle network errors
         xhr.onerror = function() {
-          setError("Erreur réseau lors de l'upload");
+          setError('Network error during upload');
           setLoading(false);
         };
         
-        // Envoyer la requête
+        // Send request
         xhr.send(formData);
-        return; // Sortir de la fonction ici car XMLHttpRequest gère déjà la réponse
+        return; // Exit here; XHR already handles the response
       }
       
-      console.log("Response status:", res.status);
+      console.log('Response status:', res.status);
       
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || `Erreur ${res.status}: ${res.statusText}`);
+        throw new Error(errorData.message || `Error ${res.status}: ${res.statusText}`);
       }
       
       data = await res.json();
-      console.log("Form submission response:", data);
+      console.log('Form submission response:', data);
       
-      // Notify parent of success
+      // Notify parent
       onShortSaved(data.data || data.video || data);
       
-      // Close modal and reset
+      // Close modal
       onClose();
     } catch (err) {
-      console.error("Form submission error:", err);
-      setError(err.message || "Une erreur s'est produite lors de l'enregistrement");
+      console.error('Form submission error:', err);
+      setError(err.message || 'An error occurred while saving');
     } finally {
       setLoading(false);
     }
@@ -283,7 +282,7 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
-          <h2>{isEdit ? 'Modifier un Short' : 'Ajouter un Short'}</h2>
+          <h2>{isEdit ? 'Edit Short' : 'Add Short'}</h2>
           <button className={styles.closeButton} onClick={handleClose} disabled={loading}>
             <i className="fas fa-times"></i>
           </button>
@@ -299,7 +298,7 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
 
           <div className={styles.formGroup}>
             <label htmlFor="titre">
-              Titre <span className={styles.required}>*</span>
+              Title <span className={styles.required}>*</span>
             </label>
             <input
               type="text"
@@ -307,7 +306,7 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
               name="titre"
               value={form.titre}
               onChange={handleChange}
-              placeholder="Entrez le titre du short"
+              placeholder="Enter the short title"
               disabled={loading}
               required
             />
@@ -315,7 +314,7 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
 
           <div className={styles.formGroup}>
             <label htmlFor="artiste">
-              Artiste <span className={styles.required}>*</span>
+              Artist <span className={styles.required}>*</span>
             </label>
             <input
               type="text"
@@ -323,7 +322,7 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
               name="artiste"
               value={form.artiste}
               onChange={handleChange}
-              placeholder="Nom de l'artiste"
+              placeholder="Artist name"
               disabled={loading}
               required
             />
@@ -331,7 +330,7 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
 
           <div className={styles.formGroup}>
             <label htmlFor="videoFile">
-              Fichier vidéo (10-30 secondes) <span className={styles.required}>*</span>
+              Video file (10–30 seconds) <span className={styles.required}>*</span>
             </label>
             <input
               type="file"
@@ -343,7 +342,7 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
             />
             {videoDuration && (
               <div className={styles.durationInfo}>
-                Durée détectée: {Math.round(videoDuration)} secondes
+                Detected duration: {Math.round(videoDuration)} seconds
               </div>
             )}
             {durationError && (
@@ -356,9 +355,9 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
 
           {previewUrl && (
             <div className={styles.previewContainer}>
-              <label>Aperçu</label>
+              <label>Preview</label>
               <div className={styles.thumbnailPreview}>
-                <img src={previewUrl} alt="Aperçu de la vidéo" />
+                <img src={previewUrl} alt="Video preview" />
               </div>
             </div>
           )}
@@ -370,20 +369,20 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
               name="description"
               value={form.description}
               onChange={handleChange}
-              placeholder="Description optionnelle"
+              placeholder="Optional description"
               disabled={loading}
               rows={3}
             />
           </div>
           
-          {/* Barre de progression pour l'upload */}
+          {/* Upload progress bar */}
           {loading && uploadProgress > 0 && (
             <div className={styles.uploadProgressContainer}>
               <div 
                 className={styles.uploadProgressBar} 
                 style={{ width: `${uploadProgress}%` }}
               ></div>
-              <span className={styles.uploadProgressText}>{uploadProgress}% Téléchargement en cours...</span>
+              <span className={styles.uploadProgressText}>{uploadProgress}% Uploading...</span>
             </div>
           )}
         </div>
@@ -395,7 +394,7 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
             onClick={handleClose}
             disabled={loading}
           >
-            <i className="fas fa-times"></i> Annuler
+            <i className="fas fa-times"></i> Cancel
           </button>
           <button 
             type="button"
@@ -406,12 +405,12 @@ const AdminShortFormModal = ({ isOpen, onClose, onShortSaved, initialData }) => 
             {loading ? (
               <>
                 <i className="fas fa-spinner fa-spin"></i> 
-                {isEdit ? 'Mise à jour...' : 'Création...'}
+                {isEdit ? 'Updating...' : 'Creating...'}
               </>
             ) : (
               <>
                 <i className={`fas fa-${isEdit ? 'save' : 'plus'}`}></i>
-                {isEdit ? 'Mettre à jour' : 'Créer le Short'}
+                {isEdit ? 'Update' : 'Create Short'}
               </>
             )}
           </button>

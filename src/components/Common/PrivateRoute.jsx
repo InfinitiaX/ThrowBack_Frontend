@@ -13,7 +13,7 @@ const PrivateRoute = ({ children, allowedRoles = [] }) => {
   }
 
   if (loading) {
-    return <div className="loading">Chargement...</div>;
+    return <div className="loading">Loading...</div>;
   }
 
   if (!token || !user) {

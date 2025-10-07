@@ -1,15 +1,16 @@
+// Dashboard.jsx (version traduite en anglais)
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PieChart, Pie, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import styles from './Dashboard.module.css';
 
-// Couleurs pour les graphiques
+// Colors for charts
 const COLORS = [
   '#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#00C49F', '#FFBB28', '#FF8042',
   '#a4de6c', '#d0ed57', '#83a6ed', '#8dd1e1', '#82ca9d', '#8884d8', '#ff8042'
 ];
 
-// API URL configuration - utilise l'URL en environnement ou rien en local
+// API URL configuration
 const API_URL = process.env.REACT_APP_API_URL || '';
 
 const Dashboard = () => {
@@ -20,22 +21,16 @@ const Dashboard = () => {
 
   useEffect(() => {
     setLoading(true);
-    
-    // Récupérer le token de manière plus robuste
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     
     if (!token) {
-      console.error("Token d'authentification non trouvé");
-      setError("Authentification requise. Veuillez vous reconnecter.");
+      console.error("Authentication token not found");
+      setError("Authentication required. Please log in again.");
       setLoading(false);
       return;
     }
 
-    console.log("Tentative de récupération du dashboard avec token:", token.substring(0, 15) + "...");
-    
-    // Construire l'URL complète
     const dashboardUrl = `${API_URL}/api/admin/dashboard`;
-    console.log("URL de l'API:", dashboardUrl);
     
     fetch(dashboardUrl, {
       method: 'GET',
@@ -44,10 +39,9 @@ const Dashboard = () => {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      credentials: 'include' // Pour inclure les cookies
+      credentials: 'include'
     })
       .then(res => {
-        console.log("Réponse API:", res.status, res.statusText);
         setDebugInfo({
           status: res.status,
           statusText: res.statusText,
@@ -56,12 +50,10 @@ const Dashboard = () => {
         
         if (!res.ok) {
           return res.json().then(errorData => {
-            console.error("Détails de l'erreur:", errorData);
-            throw new Error(errorData.message || `Erreur ${res.status}: ${res.statusText}`);
+            throw new Error(errorData.message || `Error ${res.status}: ${res.statusText}`);
           }).catch(err => {
-            // Si pas de JSON dans la réponse d'erreur
             if (err.name === 'SyntaxError') {
-              throw new Error(`Erreur ${res.status}: ${res.statusText}`);
+              throw new Error(`Error ${res.status}: ${res.statusText}`);
             }
             throw err;
           });
@@ -69,108 +61,93 @@ const Dashboard = () => {
         return res.json();
       })
       .then(data => {
-        console.log("Données reçues:", data);
         setStats(data);
         setLoading(false);
       })
       .catch(err => {
-        console.error('Erreur complète:', err);
-        setError(err.message || "Une erreur s'est produite lors de la récupération des données");
+        setError(err.message || "An error occurred while fetching data");
         setLoading(false);
         
-        // Si erreur 401/403, suggérer de se reconnecter
         if (err.message && (err.message.includes('401') || err.message.includes('403'))) {
-          setError("Votre session a expiré ou vous n'avez pas les droits nécessaires. Veuillez vous reconnecter.");
+          setError("Your session has expired or you don't have the required permissions. Please log in again.");
         }
       });
   }, []);
 
-  // Fonction pour générer des données de remplacement pour les graphiques
   const generateMockData = (type) => {
     switch(type) {
       case 'contentDistribution':
         return [
-          { name: 'Vidéos Musicales', value: 120 },
+          { name: 'Music Videos', value: 120 },
           { name: 'Shorts', value: 45 },
           { name: 'Podcasts', value: 30 },
           { name: 'Livestreams', value: 15 }
         ];
-        
       case 'userStatusStats':
         return [
-          { name: 'ACTIF', value: 85 },
-          { name: 'INACTIF', value: 10 },
-          { name: 'VERROUILLE', value: 3 },
-          { name: 'SUPPRIME', value: 2 }
+          { name: 'ACTIVE', value: 85 },
+          { name: 'INACTIVE', value: 10 },
+          { name: 'LOCKED', value: 3 },
+          { name: 'DELETED', value: 2 }
         ];
-        
       default:
         return [];
     }
   };
 
-  // Formater les données pour le graphique de répartition du contenu
   const formatContentDistribution = () => {
     if (!stats || !stats.contentDistribution) {
       return generateMockData('contentDistribution');
     }
-    
     return [
-      { name: 'Vidéos Musicales', value: stats.contentDistribution.music || 0 },
+      { name: 'Music Videos', value: stats.contentDistribution.music || 0 },
       { name: 'Shorts', value: stats.contentDistribution.shorts || 0 },
       { name: 'Podcasts', value: stats.contentDistribution.podcasts || 0 },
       { name: 'Livestreams', value: stats.contentDistribution.liveStreams || 0 }
     ];
   };
 
-  // Formater les données pour le graphique de statut utilisateur
   const formatUserStatusStats = () => {
     if (!stats || !stats.userStatusStats || !Array.isArray(stats.userStatusStats) || stats.userStatusStats.length === 0) {
       return generateMockData('userStatusStats');
     }
-    
     return stats.userStatusStats.map(item => ({
       name: item._id,
       value: item.count
     }));
   };
 
-  // Fonction pour récupérer des données en toute sécurité
   const getSafeValue = (obj, path, defaultValue = 0) => {
     try {
       const keys = path.split('.');
       let current = obj;
-      
       for (const key of keys) {
         if (current === undefined || current === null) return defaultValue;
         current = current[key];
       }
-      
       return current !== undefined && current !== null ? current : defaultValue;
     } catch (e) {
       return defaultValue;
     }
   };
 
-  // Afficher l'état de chargement
   if (loading) return (
     <div className={styles.loading_container}>
       <div className={styles.spinner}></div>
-      <p>Chargement des statistiques du tableau de bord...</p>
-      <p className={styles.loading_info}>Connexion à l'API en cours...</p>
+      <p>Loading dashboard statistics...</p>
+      <p className={styles.loading_info}>Connecting to the API...</p>
     </div>
   );
 
-  // Afficher les erreurs avec plus de détails
   if (error) return (
     <div className={styles.error_container}>
-      <h2>Erreur lors du chargement du tableau de bord</h2>
+      <h2>Error while loading dashboard</h2>
       <p className={styles.error_message}>{error}</p>
       
       {debugInfo && (
         <div className={styles.debug_info}>
-          <p>Statut HTTP: {debugInfo.status} {debugInfo.statusText}</p>
-          <p>Vérifiez votre connexion et vos permissions</p>
+          <p>HTTP Status: {debugInfo.status} {debugInfo.statusText}</p>
+          <p>Check your connection and permissions</p>
         </div>
       )}
       
@@ -179,16 +156,15 @@ const Dashboard = () => {
           className={styles.retry_button} 
           onClick={() => window.location.reload()}
         >
-          <i className="fas fa-sync-alt"></i> Réessayer
+          <i className="fas fa-sync-alt"></i> Retry
         </button>
         <Link to="/login" className={styles.login_button}>
-          <i className="fas fa-sign-in-alt"></i> Se reconnecter
+          <i className="fas fa-sign-in-alt"></i> Log in
         </Link>
       </div>
     </div>
   );
 
-  // Si pas de données mais pas d'erreur non plus, générer des données par défaut
   const basicStats = stats?.basicStats || {
     userCount: 0,
     videoCount: 0,
@@ -201,11 +177,10 @@ const Dashboard = () => {
   return (
     <div className={styles.dashboard}>
       <div className={styles.dashboard_header}>
-        <h1 className={styles.page_title}>Tableau de bord administrateur</h1>
-        {/* Filtres temporels supprimés */}
+        <h1 className={styles.page_title}>Admin Dashboard</h1>
       </div>
 
-      {/* Statistiques de base */}
+      {/* Basic statistics */}
       <div className={styles.dashboard_stats}>
         <div className={`${styles.stat_card} ${styles.stat_users}`}>
           <div className={styles.stat_icon}>
@@ -213,7 +188,7 @@ const Dashboard = () => {
           </div>
           <div className={styles.stat_info}>
             <h3>{getSafeValue(stats, 'basicStats.userCount', 0)}</h3>
-            <p>Utilisateurs</p>
+            <p>Users</p>
           </div>
         </div>
 
@@ -223,7 +198,7 @@ const Dashboard = () => {
           </div>
           <div className={styles.stat_info}>
             <h3>{getSafeValue(stats, 'basicStats.videoCount', 0)}</h3>
-            <p>Vidéos</p>
+            <p>Videos</p>
           </div>
         </div>
 
@@ -233,7 +208,7 @@ const Dashboard = () => {
           </div>
           <div className={styles.stat_info}>
             <h3>{getSafeValue(stats, 'basicStats.commentCount', 0)}</h3>
-            <p>Commentaires</p>
+            <p>Comments</p>
           </div>
         </div>
 
@@ -268,12 +243,11 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Graphiques principaux (restants) */}
+      {/* Charts */}
       <div className={styles.charts_grid}>
-        {/* Graphique de répartition du contenu */}
         <div className={styles.chart_card}>
           <div className={styles.card_header}>
-            <h2 className={styles.card_title}>Répartition du contenu</h2>
+            <h2 className={styles.card_title}>Content Distribution</h2>
           </div>
           <div className={styles.chart_container}>
             <ResponsiveContainer width="100%" height={300}>
@@ -300,10 +274,9 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Graphique de statut utilisateur */}
         <div className={styles.chart_card}>
           <div className={styles.card_header}>
-            <h2 className={styles.card_title}>Répartition des utilisateurs</h2>
+            <h2 className={styles.card_title}>User Distribution</h2>
           </div>
           <div className={styles.chart_container}>
             <ResponsiveContainer width="100%" height={300}>
@@ -331,16 +304,15 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Listes et tableaux */}
+      {/* Tables & Lists */}
       <div className={styles.dashboard_grid}>
-        {/* Top 5 des vidéos */}
         <div className={styles.dashboard_card}>
           <div className={styles.card_header}>
-            <h2 className={styles.card_title}>Top 5 des vidéos</h2>
+            <h2 className={styles.card_title}>Top 5 Videos</h2>
             <div className={styles.card_actions}>
               <Link to="/admin/videos" className={styles.btn_secondary}>
                 <i className="fas fa-list"></i>
-                <span>Toutes les vidéos</span>
+                <span>All Videos</span>
               </Link>
             </div>
           </div>
@@ -348,10 +320,10 @@ const Dashboard = () => {
           <table className={styles.data_table}>
             <thead>
               <tr>
-                <th>Titre</th>
-                <th>Artiste</th>
+                <th>Title</th>
+                <th>Artist</th>
                 <th>Type</th>
-                <th>Vues</th>
+                <th>Views</th>
                 <th>Likes</th>
               </tr>
             </thead>
@@ -363,7 +335,7 @@ const Dashboard = () => {
                     <td>{video.artiste || 'N/A'}</td>
                     <td>
                       <span className={`${styles.badge} ${styles[`badge_${video.type}`]}`}>
-                        {video.type === 'music' ? 'Musique' : 
+                        {video.type === 'music' ? 'Music' : 
                          video.type === 'short' ? 'Short' : 
                          video.type === 'podcast' ? 'Podcast' : video.type}
                       </span>
@@ -374,25 +346,24 @@ const Dashboard = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className={styles.no_data}>Aucune donnée disponible</td>
+                  <td colSpan="5" className={styles.no_data}>No data available</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
 
-        {/* Utilisateurs récents */}
         <div className={styles.dashboard_card}>
           <div className={styles.card_header}>
-            <h2 className={styles.card_title}>Utilisateurs récents</h2>
+            <h2 className={styles.card_title}>Recent Users</h2>
             <div className={styles.card_actions}>
               <Link to="/admin/users/create" className={styles.btn_primary}>
                 <i className="fas fa-plus"></i>
-                <span>Nouvel utilisateur</span>
+                <span>New User</span>
               </Link>
               <Link to="/admin/users" className={styles.btn_secondary}>
                 <i className="fas fa-list"></i>
-                <span>Tous les utilisateurs</span>
+                <span>All Users</span>
               </Link>
             </div>
           </div>
@@ -400,9 +371,9 @@ const Dashboard = () => {
           <table className={styles.data_table}>
             <thead>
               <tr>
-                <th>Utilisateur</th>
+                <th>User</th>
                 <th>Email</th>
-                <th>Statut</th>
+                <th>Status</th>
                 <th>Date</th>
                 <th>Actions</th>
               </tr>
@@ -415,16 +386,16 @@ const Dashboard = () => {
                     <td>{user.email}</td>
                     <td>
                       <span className={`${styles.status} ${styles[`status_${(user.statut_compte || '').toLowerCase()}`]}`}>
-                        {user.statut_compte || 'INCONNU'}
+                        {user.statut_compte || 'UNKNOWN'}
                       </span>
                     </td>
                     <td>{user.date_inscription ? new Date(user.date_inscription).toLocaleDateString() : 'N/A'}</td>
                     <td>
                       <div className={styles.action_buttons}>
-                        <Link to={`/admin/users/${user._id}`} className={styles.btn_icon} title="Voir les détails">
+                        <Link to={`/admin/users/${user._id}`} className={styles.btn_icon} title="View Details">
                           <i className="fas fa-eye"></i>
                         </Link>
-                        <Link to={`/admin/users/${user._id}/edit`} className={styles.btn_icon} title="Modifier">
+                        <Link to={`/admin/users/${user._id}/edit`} className={styles.btn_icon} title="Edit">
                           <i className="fas fa-edit"></i>
                         </Link>
                       </div>
@@ -433,21 +404,20 @@ const Dashboard = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className={styles.no_data}>Aucune donnée disponible</td>
+                  <td colSpan="5" className={styles.no_data}>No data available</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
 
-        {/* Activités récentes */}
         <div className={styles.dashboard_card}>
           <div className={styles.card_header}>
-            <h2 className={styles.card_title}>Activités récentes</h2>
+            <h2 className={styles.card_title}>Recent Activities</h2>
             <div className={styles.card_actions}>
               <Link to="/admin/logs" className={styles.btn_secondary}>
                 <i className="fas fa-history"></i>
-                <span>Historique complet</span>
+                <span>Full History</span>
               </Link>
             </div>
           </div>
@@ -463,13 +433,13 @@ const Dashboard = () => {
                     <p className={styles.activity_text}>
                       <strong>
                         {activity.id_user ? 
-                          `${activity.id_user.prenom || ''} ${activity.id_user.nom || ''}`.trim() || 'Utilisateur' 
-                          : 'Système'}
+                          `${activity.id_user.prenom || ''} ${activity.id_user.nom || ''}`.trim() || 'User' 
+                          : 'System'}
                       </strong>
                       {' '}{getActivityDescription(activity.type_action, activity.description_action)}
                     </p>
                     <p className={styles.activity_time}>
-                      {activity.date_action ? new Date(activity.date_action).toLocaleString() : 'Date inconnue'}
+                      {activity.date_action ? new Date(activity.date_action).toLocaleString() : 'Unknown Date'}
                     </p>
                   </div>
                 </li>
@@ -477,46 +447,45 @@ const Dashboard = () => {
             </ul>
           ) : (
             <div className={styles.no_data_container}>
-              <p className={styles.no_data}>Aucune activité récente disponible</p>
+              <p className={styles.no_data}>No recent activities available</p>
             </div>
           )}
         </div>
 
-        {/* Actions rapides */}
         <div className={styles.dashboard_card}>
           <div className={styles.card_header}>
-            <h2 className={styles.card_title}>Actions rapides</h2>
+            <h2 className={styles.card_title}>Quick Actions</h2>
           </div>
 
           <div className={styles.quick_actions}>
             <Link to="/admin/users/create" className={styles.quick_action_btn}>
               <i className="fas fa-user-plus"></i>
-              <span>Nouvel utilisateur</span>
+              <span>New User</span>
             </Link>
             
             <Link to="/admin/videos/create" className={styles.quick_action_btn}>
               <i className="fas fa-video"></i>
-              <span>Nouvelle vidéo</span>
+              <span>New Video</span>
             </Link>
             
             <Link to="/admin/podcasts/create" className={styles.quick_action_btn}>
               <i className="fas fa-podcast"></i>
-              <span>Nouveau podcast</span>
+              <span>New Podcast</span>
             </Link>
             
             <Link to="/admin/livestreams/create" className={styles.quick_action_btn}>
               <i className="fas fa-broadcast-tower"></i>
-              <span>Nouveau livestream</span>
+              <span>New Livestream</span>
             </Link>
             
             <Link to="/admin/reports" className={styles.quick_action_btn}>
               <i className="fas fa-flag"></i>
-              <span>Signalements</span>
+              <span>Reports</span>
             </Link>
             
             <Link to="/admin/settings" className={styles.quick_action_btn}>
               <i className="fas fa-cog"></i>
-              <span>Paramètres</span>
+              <span>Settings</span>
             </Link>
           </div>
         </div>
@@ -525,7 +494,7 @@ const Dashboard = () => {
   );
 };
 
-// Fonction pour obtenir l'icône appropriée selon le type d'action
+// Icons for activities
 function getActivityIcon(actionType) {
   if (!actionType) return 'fas fa-circle';
   
@@ -545,22 +514,22 @@ function getActivityIcon(actionType) {
   }
 }
 
-// Fonction pour formater la description de l'action
+// Activity description in English
 function getActivityDescription(actionType, description) {
-  if (!actionType) return description || 'Action inconnue';
+  if (!actionType) return description || 'Unknown action';
   
   switch(actionType) {
-    case 'INSCRIPTION': return 'a créé un compte';
-    case 'CONNEXION': return 's\'est connecté(e)';
-    case 'DECONNEXION': return 's\'est déconnecté(e)';
-    case 'VIDEO_LIKEE': return 'a aimé une vidéo';
-    case 'VIDEO_UNLIKEE': return 'a retiré son like d\'une vidéo';
-    case 'CREATE_VIDEO': return 'a ajouté une vidéo';
-    case 'UPDATE_VIDEO': return 'a modifié une vidéo';
-    case 'DELETE_VIDEO': return 'a supprimé une vidéo';
-    case 'MODIFICATION_UTILISATEUR': return 'a été modifié(e)';
-    case 'MODIFICATION_STATUT': return description || 'a changé de statut';
-    default: return description || 'Action inconnue';
+    case 'INSCRIPTION': return 'created an account';
+    case 'CONNEXION': return 'logged in';
+    case 'DECONNEXION': return 'logged out';
+    case 'VIDEO_LIKEE': return 'liked a video';
+    case 'VIDEO_UNLIKEE': return 'removed a like from a video';
+    case 'CREATE_VIDEO': return 'added a video';
+    case 'UPDATE_VIDEO': return 'updated a video';
+    case 'DELETE_VIDEO': return 'deleted a video';
+    case 'MODIFICATION_UTILISATEUR': return 'was updated';
+    case 'MODIFICATION_STATUT': return description || 'changed status';
+    default: return description || 'Unknown action';
   }
 }
 

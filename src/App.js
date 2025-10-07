@@ -30,6 +30,7 @@ import LiveThrowback from './components/Dashboard/UserDashboard/LiveThrowback/Li
 import UserPlaylists from './components/Dashboard/UserDashboard/Playlists';
 import UserPlaylistDetail from './components/Dashboard/UserDashboard/Playlists/UserPlaylistDetail';
 import PlaylistForm from './components/Dashboard/UserDashboard/Playlists/PlaylistForm';
+import ThrowbackWall from './components/Dashboard/UserDashboard/Wall/ThrowbackWall';
 import PlaylistPlayer from './components/Dashboard/UserDashboard/Playlists/PlaylistPlayer';
 import Search from './components/Dashboard/UserDashboard/Search/Search';
 import HelpAndSupport from './components/Profile/HelpAndSupport';
@@ -47,6 +48,10 @@ import AdminLivethrowback from './components/Dashboard/AdminDashboard/LiveStream
 import Playlists from './components/Dashboard/AdminDashboard/Playlists';
 import PlaylistDetail from './components/Dashboard/AdminDashboard/Playlists/PlaylistDetail';
 import PlaylistEdit from './components/Dashboard/AdminDashboard/Playlists/PlaylistEdit';
+import { AdminPosts, PostDetails, PostModeration } from './components/Dashboard/AdminDashboard/Posts';
+import Comments from './components/Dashboard/AdminDashboard/Comments/Comments';
+import { AdminLikes } from './components/Dashboard/AdminDashboard/Likes';
+import MyProfile from './components/Dashboard/AdminDashboard/Profile/MyProfile';
 
 // Composant temporaire pour les pages admin
 const TempPage = ({ title }) => (
@@ -123,12 +128,14 @@ function App() {
             <Route path="playlists/new" element={<PlaylistForm />} />
             <Route path="playlists/:id/edit" element={<PlaylistForm />} />
             <Route path="playlists/:id/play" element={<PlaylistPlayer />} />
+          
+            <Route path="wall" element={<ThrowbackWall />} />
             <Route path="search" element={<Search />} />
             <Route path="help-support" element={<HelpAndSupport />} />
 
             {/* pages en dev */}
             <Route path="live" element={<LiveThrowback />} />
-            <Route path="wall" element={<UserTempPage title="ThrowBack Wall" />} />
+            {/* <Route path="wall" element={<UserTempPage title="ThrowBack Wall" />} /> */}
             <Route path="chat" element={<UserTempPage title="ThrowBack Chat" />} />
             <Route path="discover" element={<UserTempPage title="Discover" />} />
             <Route path="favorites" element={<UserTempPage title="Your Favorites" />} />
@@ -163,17 +170,23 @@ function App() {
             <Route path="playlists/:id" element={<PlaylistDetail />} />
             <Route path="playlists/:id/edit" element={<PlaylistEdit />} />
             <Route path="playlists/new" element={<PlaylistEdit />} />
-            <Route path="comments" element={<TempPage title="Modération des Commentaires" />} />
-            <Route path="posts" element={<TempPage title="Modération des Posts" />} />
-            <Route path="likes" element={<TempPage title="Gestion des Likes" />} />
+            <Route path="comments" element={<Comments />} />
+            
+            
+            <Route path="posts" element={<AdminPosts />} />
+            <Route path="posts/:postId" element={<PostDetails />} />
+            <Route path="posts/moderation" element={<PostModeration />} />
+
+            {/* <Route path="likes" element={<TempPage title="Gestion des Likes" />} /> */}
+            <Route path="likes" element={<AdminLikes />} />
             <Route path="messages" element={<TempPage title="Gestion des Messages" />} />
             <Route path="friends" element={<TempPage title="Gestion des Amis" />} />
-            <Route path="security" element={<TempPage title="Sécurité" />} />
+            {/* <Route path="security" element={<TempPage title="Sécurité" />} /> */}
             <Route path="logs" element={<TempPage title="Logs Système" />} />
-            <Route path="profile" element={<TempPage title="My Profile" />} />
-            <Route path="settings" element={<TempPage title="Account Settings" />} />
+            <Route path="profile" element={<MyProfile />} />
+            {/* <Route path="settings" element={<TempPage title="Account Settings" />} />
             <Route path="preferences" element={<TempPage title="Preferences" />} />
-            <Route path="help" element={<TempPage title="Help & Support" />} />
+            <Route path="help" element={<TempPage title="Help & Support" />} /> */}
             <Route path="notifications" element={<TempPage title="Notifications" />} />
           </Route>
 

@@ -1,0 +1,403 @@
+.postItem {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.postHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.userAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background-color: #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #555;
+}
+
+.userDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.userName {
+  font-weight: 600;
+  color: #333;
+}
+
+.postMetadata {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #777;
+  font-size: 0.85rem;
+}
+
+.postDate {
+  white-space: nowrap;
+}
+
+.postVisibility {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.postActions {
+  position: relative;
+}
+
+.actionButton {
+  background: none;
+  border: none;
+  color: #777;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.actionButton:hover {
+  background-color: #f5f5f5;
+}
+
+.actionsDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  width: 180px;
+  overflow: hidden;
+}
+
+.actionsDropdown button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.actionsDropdown button:hover {
+  background-color: #f5f5f5;
+}
+
+.actionsDropdown button svg {
+  width: 16px;
+  color: #555;
+}
+
+.postContent {
+  padding: 16px 20px;
+}
+
+.contentText {
+  color: #333;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  word-break: break-word;
+}
+
+.mediaContainer {
+  margin-top: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #f5f5f5;
+}
+
+.postImage {
+  width: 100%;
+  max-height: 500px;
+  object-fit: contain;
+}
+
+.postVideo {
+  width: 100%;
+  max-height: 500px;
+  object-fit: contain;
+}
+
+.postAudio {
+  width: 100%;
+  padding: 20px;
+}
+
+.postStats {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-top: 1px solid #f5f5f5;
+  color: #777;
+  font-size: 0.9rem;
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.postInteraction {
+  display: flex;
+  justify-content: space-around;
+  padding: 12px 20px;
+  border-top: 1px solid #f5f5f5;
+}
+
+.interactionButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: #555;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  font-weight: 500;
+}
+
+.interactionButton:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.likedButton {
+  color: #b31217;
+}
+
+.liked {
+  color: #b31217;
+}
+
+.errorMessage {
+  color: #b31217;
+  background-color: rgba(179, 18, 23, 0.1);
+  padding: 12px 16px;
+  margin: 12px 20px;
+  border-radius: 8px;
+}
+
+.editForm {
+  margin-bottom: 16px;
+}
+
+.editControls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.visibilityButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #f5f5f5;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.visibilityButton:hover {
+  background-color: #eee;
+}
+
+.editTextarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: inherit;
+  margin-bottom: 12px;
+}
+
+.editTextarea:focus {
+  outline: none;
+  border-color: #b31217;
+  box-shadow: 0 0 0 2px rgba(179, 18, 23, 0.1);
+}
+
+.editActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.cancelButton, .saveButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.cancelButton {
+  background: none;
+  border: 1px solid #ddd;
+  color: #555;
+}
+
+.cancelButton:hover {
+  background-color: #f5f5f5;
+}
+
+.saveButton {
+  background-color: #b31217;
+  border: 1px solid #b31217;
+  color: white;
+}
+
+.saveButton:hover {
+  background-color: #9c1015;
+}
+
+.saveButton:disabled {
+  background-color: #d3d3d3;
+  border-color: #d3d3d3;
+  cursor: not-allowed;
+}
+
+.hashtag {
+  color: #1e88e5;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.hashtag:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .postHeader {
+    padding: 12px 16px;
+  }
+  
+  .userAvatar {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .postContent {
+    padding: 12px 16px;
+  }
+  
+  .postStats, .postInteraction {
+    padding: 10px 16px;
+  }
+  
+  .postImage, .postVideo {
+    max-height: 400px;
+  }
+  
+  .interactionButton {
+    padding: 6px 10px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .postHeader {
+    padding: 10px 12px;
+  }
+  
+  .userAvatar {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .userName {
+    font-size: 0.9rem;
+  }
+  
+  .postMetadata {
+    font-size: 0.75rem;
+  }
+  
+  .postContent {
+    padding: 10px 12px;
+  }
+  
+  .contentText {
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+  }
+  
+  .postStats {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+  
+  .postInteraction {
+    padding: 8px 12px;
+  }
+  
+  .interactionButton {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+  }
+  
+  .errorMessage {
+    padding: 10px 12px;
+    margin: 10px 12px;
+    font-size: 0.85rem;
+  }
+  
+  .editTextarea {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+  
+  .editActions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .cancelButton, .saveButton {
+    width: 100%;
+    justify-content: center;
+    padding: 10px;
+  }
+}

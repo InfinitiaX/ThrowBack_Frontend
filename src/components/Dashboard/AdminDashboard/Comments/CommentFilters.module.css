@@ -1,0 +1,365 @@
+/* components/Dashboard/AdminDashboard/Comments/CommentFilters.module.css */
+.filtersContainer {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.mainFilters {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.searchContainer {
+  flex: 1;
+  min-width: 300px;
+}
+
+.searchInput {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchInput i {
+  position: absolute;
+  left: 1rem;
+  color: #6c757d;
+  z-index: 2;
+}
+
+.searchInput input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.searchInput input:focus {
+  outline: none;
+  border-color: #b31217;
+  box-shadow: 0 0 0 3px rgba(179, 18, 23, 0.1);
+}
+
+.clearSearch {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  z-index: 2;
+}
+
+.clearSearch:hover {
+  background-color: #f8f9fa;
+  color: #495057;
+}
+
+.quickFilters {
+  display: flex;
+  gap: 1rem;
+}
+
+.filterSelect {
+  padding: 0.75rem 1rem;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 140px;
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: #b31217;
+  box-shadow: 0 0 0 3px rgba(179, 18, 23, 0.1);
+}
+
+.filterActions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.advancedBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.advancedBtn:hover {
+  background-color: #e9ecef;
+}
+
+.advancedBtn.active {
+  background-color: #b31217;
+  color: white;
+  border-color: #b31217;
+}
+
+.filterBadge {
+  background-color: #dc3545;
+  color: white;
+  border-radius: 12px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  position: absolute;
+  top: -0.5rem;
+  right: -0.5rem;
+  min-width: 18px;
+  text-align: center;
+}
+
+.resetBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.resetBtn:hover {
+  background-color: #c82333;
+  transform: translateY(-1px);
+}
+
+.advancedFilters {
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 200px;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+}
+
+.advancedRow {
+  display: flex;
+  gap: 2rem;
+}
+
+.filterGroup {
+  flex: 1;
+}
+
+.filterGroup label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filtersInfo {
+  padding: 1rem 1.5rem;
+  background-color: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.resultsCount {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #495057;
+  font-weight: 500;
+}
+
+.resultsCount i {
+  color: #b31217;
+}
+
+.filtered {
+  color: #6c757d;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.activeFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.activeFilter {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: #e7f3ff;
+  color: #0066cc;
+  padding: 0.4rem 0.6rem;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.activeFilter i {
+  font-size: 0.7rem;
+}
+
+.activeFilter button {
+  background: none;
+  border: none;
+  color: #0066cc;
+  cursor: pointer;
+  padding: 0.1rem;
+  border-radius: 2px;
+  font-size: 0.7rem;
+  margin-left: 0.2rem;
+}
+
+.activeFilter button:hover {
+  background-color: rgba(0, 102, 204, 0.1);
+}
+
+.quickSuggestions {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.suggestionsLabel {
+  color: #6c757d;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.suggestionBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #6c757d;
+  transition: all 0.2s ease;
+}
+
+.suggestionBtn:hover {
+  background-color: #b31217;
+  color: white;
+  border-color: #b31217;
+  transform: translateY(-1px);
+}
+
+.suggestionBtn i {
+  font-size: 0.75rem;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .mainFilters {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .quickFilters {
+    flex-wrap: wrap;
+  }
+
+  .searchContainer {
+    min-width: 250px;
+  }
+}
+
+@media (max-width: 768px) {
+  .filtersContainer {
+    margin-bottom: 1rem;
+  }
+
+  .mainFilters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .searchContainer {
+    min-width: auto;
+  }
+
+  .quickFilters {
+    justify-content: stretch;
+  }
+
+  .filterSelect {
+    min-width: auto;
+    flex: 1;
+  }
+
+  .filterActions {
+    justify-content: center;
+  }
+
+  .advancedRow {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .filtersInfo {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .quickSuggestions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .suggestionBtn {
+    justify-content: center;
+  }
+}
+

@@ -1,6 +1,6 @@
 // src/components/admin/Videos/DeleteConfirmModal.jsx
 import React, { useState } from 'react';
-import api from '../../../../utils/api'; // ✅ utilise l'instance Axios (baseURL, token, etc.)
+import api from '../../../../utils/api'; 
 import styles from './Videos.module.css';
 
 const DeleteConfirmModal = ({ isOpen, onClose, videoId, videoTitle, onVideoDeleted }) => {

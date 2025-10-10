@@ -46,57 +46,6 @@ const CommentItem = ({ comment, postId, onUpdateComment, onDeleteComment }) => {
     locale: fr
   });
 
-  // ✅ FONCTION CRITIQUE : Vérification de l'auteur du commentaire
-  const isCommentAuthor = () => {
-    if (!user || !comment.auteur) {
-      console.log('❌ Pas d\'utilisateur connecté ou pas d\'auteur sur le commentaire');
-      return false;
-    }
-
-    // Extraction sécurisée de l'ID utilisateur connecté
-    const currentUserId = user.id || user._id || user.userId;
-    
-    // Extraction sécurisée de l'ID de l'auteur du commentaire
-    const commentAuthorId = comment.auteur._id || comment.auteur.id || comment.auteur;
-    
-    // Conversion en string pour comparaison
-    const currentUserIdStr = String(currentUserId);
-    const commentAuthorIdStr = String(commentAuthorId);
-    
-    const isAuthor = currentUserIdStr === commentAuthorIdStr;
-    
-    console.log('🔍 Vérification d\'auteur:', {
-      currentUserId: currentUserIdStr,
-      commentAuthorId: commentAuthorIdStr,
-      isAuthor
-    });
-    
-    return isAuthor;
-  };
-
-  // ✅ FONCTION : Vérification si l'utilisateur est admin
-  const isUserAdmin = () => {
-    if (!user) return false;
-    
-    // Vérifier si l'utilisateur a le rôle admin ou superadmin
-    const hasAdminRole = (
-      (user.roles && user.roles.some(r => ['admin', 'superadmin'].includes(r.libelle_role))) ||
-      ['admin', 'superadmin'].includes(user.role)
-    );
-    
-    console.log('🔐 Vérification admin:', {
-      userRoles: user.roles,
-      userRole: user.role,
-      hasAdminRole
-    });
-    
-    return hasAdminRole;
-  };
-
-  // Calculer les permissions une seule fois
-  const canModify = isCommentAuthor();
-  const canDelete = isCommentAuthor() || isUserAdmin();
-
   // Like handler
   const handleLikeClick = async () => {
     try {
@@ -281,7 +230,7 @@ const CommentItem = ({ comment, postId, onUpdateComment, onDeleteComment }) => {
       setShowDeleteConfirm(false);
     } catch (err) {
       console.error('Error deleting comment:', err);
-      setError("Unable to delete this comment. Please try again.");
+      setError("Unable to delete this comment. Please try again. Or you are not the author of this comment.");
       setLoading(false);
       setShowDeleteConfirm(false);
     }
@@ -316,7 +265,7 @@ const CommentItem = ({ comment, postId, onUpdateComment, onDeleteComment }) => {
       }
     } catch (err) {
       console.error('Error updating comment:', err);
-      setError("Unable to edit this comment. Please try again.");
+      setError("Unable to edit this comment. Please try again. Or you are not the author of this comment.");
     } finally {
       setLoading(false);
     }
@@ -341,6 +290,16 @@ const CommentItem = ({ comment, postId, onUpdateComment, onDeleteComment }) => {
       setLoading(false);
     }
   };
+  
+  const isAuthor = user && comment.auteur && 
+                  (comment.auteur._id === user.id || comment.auteur.id === user.id);
+  const isAdmin = user && (
+    (user.roles && user.roles.some(r => ['admin', 'superadmin'].includes(r.libelle_role))) ||
+    ['admin', 'superadmin'].includes(user.role)
+  );
+
+  const canModify = isAuthor;
+  const canDelete = isAuthor || isAdmin;
 
   return (
     <div className={styles.commentItem}>
@@ -471,7 +430,6 @@ const CommentItem = ({ comment, postId, onUpdateComment, onDeleteComment }) => {
             
             {showDropdown && (
               <div className={styles.dropdown}>
-                {/* ✅ CORRECTION : N'afficher "Edit" QUE pour l'auteur */}
                 {canModify && (
                   <button onClick={() => {
                     setIsEditing(true);
@@ -482,7 +440,6 @@ const CommentItem = ({ comment, postId, onUpdateComment, onDeleteComment }) => {
                   </button>
                 )}
                 
-                {/* ✅ CORRECTION : "Delete" pour l'auteur OU les admins */}
                 {canDelete && (
                   <button onClick={handleDeleteClick}>
                     <FontAwesomeIcon icon={faTrash} />
@@ -490,8 +447,7 @@ const CommentItem = ({ comment, postId, onUpdateComment, onDeleteComment }) => {
                   </button>
                 )}
                 
-                {/* ✅ "Report" disponible pour tous SAUF l'auteur */}
-                {!canModify && (
+                {!isAuthor && (
                   <button onClick={handleReportClick}>
                     <FontAwesomeIcon icon={faFlag} />
                     <span>Report</span>

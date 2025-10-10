@@ -26,13 +26,17 @@ const CreatePostForm = ({ onPostCreated }) => {
   const fileInputRef = useRef(null);
   const { user } = useAuth();
 
+  // ✅ CONSTANTES : Limites de taille
+  const MAX_CONTENT_LENGTH = 5000; // Augmenté pour correspondre au modèle backend
+  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
   // Gestion de l'upload de média
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     
     // Taille max 50MB
-    if (file.size > 50 * 1024 * 1024) {
+    if (file.size > MAX_FILE_SIZE) {
       setError('The file is too large. Max size: 50MB');
       return;
     }
@@ -51,11 +55,30 @@ const CreatePostForm = ({ onPostCreated }) => {
     }
   };
 
+  // ✅ Gestion du changement de contenu avec validation de longueur
+  const handleContentChange = (e) => {
+    const newContent = e.target.value;
+    
+    // Limiter le contenu à MAX_CONTENT_LENGTH caractères
+    if (newContent.length <= MAX_CONTENT_LENGTH) {
+      setContent(newContent);
+      setError(null); // Effacer l'erreur si elle existe
+    } else {
+      setError(`Le contenu ne peut pas dépasser ${MAX_CONTENT_LENGTH} caractères`);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!content.trim() && !mediaFile) {
       setError('Please add text or media to your post');
+      return;
+    }
+
+    // Vérification finale de la longueur
+    if (content.length > MAX_CONTENT_LENGTH) {
+      setError(`Content is too long. Max: ${MAX_CONTENT_LENGTH} characters`);
       return;
     }
     
@@ -94,7 +117,15 @@ const CreatePostForm = ({ onPostCreated }) => {
       }
     } catch (err) {
       console.error('Erreur lors de la création du post:', err);
-      setError(err.response?.data?.message || 'An error occurred while publishing');
+      
+      // Gestion détaillée des erreurs
+      if (err.response?.status === 400) {
+        setError(err.response?.data?.message || 'Invalid data. Please check your post.');
+      } else if (err.response?.status === 413) {
+        setError('The file or content is too large');
+      } else {
+        setError(err.response?.data?.message || 'An error occurred while publishing');
+      }
     } finally {
       setLoading(false);
     }
@@ -119,6 +150,11 @@ const CreatePostForm = ({ onPostCreated }) => {
     const nextIndex = (currentIndex + 1) % visibilities.length;
     setVisibility(visibilities[nextIndex]);
   };
+
+  // Calculer le pourcentage de caractères utilisés
+  const charPercentage = (content.length / MAX_CONTENT_LENGTH) * 100;
+  const isNearLimit = charPercentage > 80;
+  const isAtLimit = charPercentage >= 100;
 
   return (
     <div className={styles.createPostContainer}>
@@ -156,11 +192,21 @@ const CreatePostForm = ({ onPostCreated }) => {
           <textarea
             placeholder="Share your musical memories, use #hashtags..."
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={handleContentChange}
             disabled={loading}
             rows={mediaPreview ? 2 : 4}
             className={styles.textarea}
+            maxLength={MAX_CONTENT_LENGTH}
           />
+          
+          {/* ✅ NOUVEAU : Compteur de caractères */}
+          <div className={styles.characterCounter}>
+            <span 
+              className={`${styles.charCount} ${isNearLimit ? styles.warning : ''} ${isAtLimit ? styles.danger : ''}`}
+            >
+              {content.length} / {MAX_CONTENT_LENGTH}
+            </span>
+          </div>
         </div>
         
         {mediaPreview && (
@@ -192,6 +238,7 @@ const CreatePostForm = ({ onPostCreated }) => {
               onClick={() => fileInputRef.current?.click()}
               className={styles.mediaButton}
               disabled={loading}
+              title="Add photo"
             >
               <FontAwesomeIcon icon={faImage} />
               <span>Photo</span>
@@ -202,6 +249,7 @@ const CreatePostForm = ({ onPostCreated }) => {
               onClick={() => fileInputRef.current?.click()}
               className={styles.mediaButton}
               disabled={loading}
+              title="Add video"
             >
               <FontAwesomeIcon icon={faVideo} />
               <span>Video</span>
@@ -212,6 +260,7 @@ const CreatePostForm = ({ onPostCreated }) => {
               onClick={() => fileInputRef.current?.click()}
               className={styles.mediaButton}
               disabled={loading}
+              title="Add audio"
             >
               <FontAwesomeIcon icon={faMusic} />
               <span>Audio</span>
@@ -230,7 +279,7 @@ const CreatePostForm = ({ onPostCreated }) => {
           <button 
             type="submit" 
             className={styles.submitButton}
-            disabled={loading || (!content.trim() && !mediaFile)}
+            disabled={loading || (!content.trim() && !mediaFile) || isAtLimit}
           >
             {loading ? 'Posting...' : (
               <>

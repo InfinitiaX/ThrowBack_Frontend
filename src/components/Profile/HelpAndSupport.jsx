@@ -17,7 +17,8 @@ import {
   faUser,
   faHeart,
   faHeadphones,
-  faGlobe
+  faGlobe,
+  faTools
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './HelpAndSupport.module.css';
 import { useAuth } from '../../contexts/AuthContext';
@@ -105,6 +106,9 @@ const HelpAndSupport = () => {
   const [formError, setFormError] = useState(null);
   const contactFormRef = useRef(null);
   const missionRef = useRef(null);
+
+  // Variable pour contrôler l'état de la section Contact
+  const contactFormEnabled = false;
 
   // Toggle FAQ item
   const toggleFaq = (index) => {
@@ -202,7 +206,7 @@ const HelpAndSupport = () => {
                 </a>
               </li>
               <li>
-                <a href="#contact" className={styles.sidebarLink} onClick={(e) => {
+                <a href="#contact" className={`${styles.sidebarLink} ${!contactFormEnabled ? styles.disabled : ''}`} onClick={(e) => {
                   e.preventDefault();
                   scrollToContactForm();
                 }}>
@@ -304,14 +308,20 @@ const HelpAndSupport = () => {
             </div>
           </section>
           
-          <section id="contact" className={styles.section} ref={contactFormRef}>
+          <section id="contact" className={`${styles.section} ${!contactFormEnabled ? styles.disabledSection : ''}`} ref={contactFormRef}>
             <h2 className={styles.sectionTitle}>
               <FontAwesomeIcon icon={faEnvelope} />
               <span>Contact Us</span>
             </h2>
             
             <div className={styles.contactFormContainer}>
-              {formSubmitted ? (
+              {!contactFormEnabled ? (
+                <div className={styles.formDisabledMessage}>
+                  <FontAwesomeIcon icon={faTools} className={styles.maintenanceIcon} />
+                  <h3>Contact Form Coming Soon</h3>
+                  <p>Our contact form is currently under maintenance. Please email us directly at <strong>support@throwback-connect.com</strong> for assistance.</p>
+                </div>
+              ) : formSubmitted ? (
                 <div className={styles.formSuccess}>
                   <h3>Thank you for your message!</h3>
                   <p>We have received your request and will respond as soon as possible.</p>

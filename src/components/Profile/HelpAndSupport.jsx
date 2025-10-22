@@ -118,24 +118,24 @@ const guideItems = [
     icon: faMusic,
     link: "/dashboard/search"
   },
-  {
-    title: "Your History",
-    description: "View your recently played videos and activity",
-    icon: faHistory,
-    link: "/dashboard/history"
-  },
+  // {
+  //   title: "Your History",
+  //   description: "View your recently played videos and activity",
+  //   icon: faHistory,
+  //   link: "/dashboard/history"
+  // },
   {
     title: "Chat with Friends",
     description: "Connect and chat with other ThrowBack users",
     icon: faComments,
     link: "/dashboard/chat"
-  },
-  {
-    title: "Your Favorites",
-    description: "Access all your liked and saved content",
-    icon: faHeart,
-    link: "/dashboard/favorites"
   }
+  // {
+  //   title: "Your Favorites",
+  //   description: "Access all your liked and saved content",
+  //   icon: faHeart,
+  //   link: "/dashboard/favorites"
+  // }
 ];
 
 const HelpAndSupport = () => {

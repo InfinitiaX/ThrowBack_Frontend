@@ -18,7 +18,10 @@ import {
   faHeart,
   faHeadphones,
   faGlobe,
-  faTools
+  faTools,
+  faHistory,
+  faUserFriends,
+  faComments
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './HelpAndSupport.module.css';
 import { useAuth } from '../../contexts/AuthContext';
@@ -59,37 +62,79 @@ const faqItems = [
   }
 ];
 
-// Guide sections
+// Guide sections - Liens réels depuis App.js
 const guideItems = [
   {
     title: "Getting Started with ThrowBack",
+    description: "Learn the basics of using ThrowBack and navigating the platform",
     icon: faUser,
-    link: "/guide/getting-started"
+    link: "/dashboard/profile"
   },
   {
     title: "Managing Your Profile",
+    description: "Customize your profile and manage your account settings",
     icon: faCog,
-    link: "/guide/profile-management"
+    link: "/dashboard/settings"
   },
   {
     title: "Discovering Videos",
+    description: "Explore our vast library of throwback music videos",
     icon: faVideo,
-    link: "/guide/discover-videos"
+    link: "/dashboard/videos"
   },
   {
     title: "Creating and Managing Playlists",
+    description: "Create, edit, and share your favorite playlists",
     icon: faMusic,
-    link: "/guide/playlists"
+    link: "/dashboard/playlists"
   },
   {
-    title: "Sharing Memories",
+    title: "Sharing on ThrowBack Wall",
+    description: "Share your memories and connect with the community",
     icon: faHeart,
-    link: "/guide/sharing-memories"
+    link: "/dashboard/wall"
   },
   {
     title: "Listening to Live ThrowBack",
+    description: "Tune in to our live streaming radio",
     icon: faHeadphones,
-    link: "/guide/live-throwback"
+    link: "/dashboard/live"
+  },
+  {
+    title: "Exploring Shorts",
+    description: "Discover and share short music clips",
+    icon: faVideo,
+    link: "/dashboard/shorts"
+  },
+  {
+    title: "Weekly Podcasts",
+    description: "Listen to our curated weekly podcast episodes",
+    icon: faHeadphones,
+    link: "/dashboard/podcast"
+  },
+  {
+    title: "Search and Discover",
+    description: "Find videos, artists, and playlists",
+    icon: faMusic,
+    link: "/dashboard/search"
+  },
+  {
+    title: "Your History",
+    description: "View your recently played videos and activity",
+    icon: faHistory,
+    link: "/dashboard/history"
+  },
+  {
+    title: "Chat with Friends",
+    description: "Connect and chat with other ThrowBack users",
+    icon: faComments,
+    link: "/dashboard/chat"
+  },
+  {
+    title: "Your Favorites",
+    description: "Access all your liked and saved content",
+    icon: faHeart,
+    link: "/dashboard/favorites"
   }
 ];
 
@@ -106,6 +151,8 @@ const HelpAndSupport = () => {
   const [formError, setFormError] = useState(null);
   const contactFormRef = useRef(null);
   const missionRef = useRef(null);
+  const faqRef = useRef(null);
+  const guideRef = useRef(null);
 
   // Variable pour contrôler l'état de la section Contact
   const contactFormEnabled = false;
@@ -162,14 +209,21 @@ const HelpAndSupport = () => {
     }, 3000);
   };
 
-  // Scroll to contact form
+  // Scroll functions with smooth behavior
   const scrollToContactForm = () => {
-    contactFormRef.current.scrollIntoView({ behavior: 'smooth' });
+    contactFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // Scroll to mission section
   const scrollToMission = () => {
-    missionRef.current.scrollIntoView({ behavior: 'smooth' });
+    missionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const scrollToFaq = () => {
+    faqRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const scrollToGuide = () => {
+    guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   return (
@@ -194,13 +248,19 @@ const HelpAndSupport = () => {
                 </a>
               </li>
               <li>
-                <a href="#faq" className={styles.sidebarLink}>
+                <a href="#faq" className={styles.sidebarLink} onClick={(e) => {
+                  e.preventDefault();
+                  scrollToFaq();
+                }}>
                   <FontAwesomeIcon icon={faQuestionCircle} />
                   <span>FAQ</span>
                 </a>
               </li>
               <li>
-                <a href="#guide" className={styles.sidebarLink}>
+                <a href="#guide" className={styles.sidebarLink} onClick={(e) => {
+                  e.preventDefault();
+                  scrollToGuide();
+                }}>
                   <FontAwesomeIcon icon={faBook} />
                   <span>User Guide</span>
                 </a>
@@ -208,7 +268,9 @@ const HelpAndSupport = () => {
               <li>
                 <a href="#contact" className={`${styles.sidebarLink} ${!contactFormEnabled ? styles.disabled : ''}`} onClick={(e) => {
                   e.preventDefault();
-                  scrollToContactForm();
+                  if (contactFormEnabled) {
+                    scrollToContactForm();
+                  }
                 }}>
                   <FontAwesomeIcon icon={faEnvelope} />
                   <span>Contact Us</span>
@@ -262,7 +324,7 @@ const HelpAndSupport = () => {
             </div>
           </section>
           
-          <section id="faq" className={styles.section}>
+          <section id="faq" className={styles.section} ref={faqRef}>
             <h2 className={styles.sectionTitle}>
               <FontAwesomeIcon icon={faQuestionCircle} />
               <span>Frequently Asked Questions</span>
@@ -289,7 +351,7 @@ const HelpAndSupport = () => {
             </div>
           </section>
           
-          <section id="guide" className={styles.section}>
+          <section id="guide" className={styles.section} ref={guideRef}>
             <h2 className={styles.sectionTitle}>
               <FontAwesomeIcon icon={faBook} />
               <span>User Guide</span>
@@ -300,9 +362,13 @@ const HelpAndSupport = () => {
                 <div key={index} className={styles.guideItem}>
                   <FontAwesomeIcon icon={item.icon} className={styles.guideIcon} />
                   <h3 className={styles.guideTitle}>{item.title}</h3>
-                  <a href={item.link} className={styles.guideLink}>
-                    View Guide
-                  </a>
+                  <p className={styles.guideDescription}>{item.description}</p>
+                  <button 
+                    onClick={() => navigate(item.link)} 
+                    className={styles.guideLink}
+                  >
+                    Go to Section
+                  </button>
                 </div>
               ))}
             </div>

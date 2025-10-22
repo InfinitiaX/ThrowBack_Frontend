@@ -65,7 +65,7 @@ const TempPage = ({ title }) => (
  * NotFoundRedirect
  * - Si la plateforme réécrit en /index.html?token=... OU si la route est inconnue,
  *   on renvoie proprement :
- *   - vers /reset-password?token=... s’il y a un token,
+ *   - vers /reset-password?token=... s'il y a un token,
  *   - sinon vers /login en préservant la query (message, etc.).
  */
 function NotFoundRedirect() {
@@ -115,27 +115,36 @@ function App() {
               </PrivateRoute>
             }
           >
-            <Route index element={<LiveThrowback />} />
+            {/* Page d'accueil du dashboard */}
+            <Route index element={<DashboardHome />} />
+            
+            {/* Routes principales */}
             <Route path="profile" element={<ProfilePage />} />
             <Route path="settings" element={<Settings />} />
-            <Route path="shorts" element={<Shorts />} />
-            <Route path="podcast" element={<WeeklyPodcast />} />
-            <Route path="podcast/:id" element={<PodcastDetail />} />
-            <Route path="videos" element={<ThrowbackVideos />} />
-            <Route path="videos/:id" element={<VideoDetail />} />
-            <Route path="playlists" element={<UserPlaylists />} />
-            <Route path="playlists/:id" element={<UserPlaylistDetail />} />
-            <Route path="playlists/new" element={<PlaylistForm />} />
-            <Route path="playlists/:id/edit" element={<PlaylistForm />} />
-            <Route path="playlists/:id/play" element={<PlaylistPlayer />} />
-          
+            <Route path="live" element={<LiveThrowback />} />
             <Route path="wall" element={<ThrowbackWall />} />
             <Route path="search" element={<Search />} />
             <Route path="help-support" element={<HelpAndSupport />} />
+            
+            {/* Shorts */}
+            <Route path="shorts" element={<Shorts />} />
+            
+            {/* Podcasts */}
+            <Route path="podcast" element={<WeeklyPodcast />} />
+            <Route path="podcast/:id" element={<PodcastDetail />} />
+            
+            {/* Vidéos */}
+            <Route path="videos" element={<ThrowbackVideos />} />
+            <Route path="videos/:id" element={<VideoDetail />} />
+            
+            {/* Playlists */}
+            <Route path="playlists" element={<UserPlaylists />} />
+            <Route path="playlists/new" element={<PlaylistForm />} />
+            <Route path="playlists/:id" element={<UserPlaylistDetail />} />
+            <Route path="playlists/:id/edit" element={<PlaylistForm />} />
+            <Route path="playlists/:id/play" element={<PlaylistPlayer />} />
 
-            {/* pages en dev */}
-            <Route path="live" element={<LiveThrowback />} />
-            {/* <Route path="wall" element={<UserTempPage title="ThrowBack Wall" />} /> */}
+            {/* Pages en développement */}
             <Route path="chat" element={<UserTempPage title="ThrowBack Chat" />} />
             <Route path="discover" element={<UserTempPage title="Discover" />} />
             <Route path="favorites" element={<UserTempPage title="Your Favorites" />} />
@@ -172,21 +181,15 @@ function App() {
             <Route path="playlists/new" element={<PlaylistEdit />} />
             <Route path="comments" element={<Comments />} />
             
-            
             <Route path="posts" element={<AdminPosts />} />
             <Route path="posts/:postId" element={<PostDetails />} />
             <Route path="posts/moderation" element={<PostModeration />} />
 
-            {/* <Route path="likes" element={<TempPage title="Gestion des Likes" />} /> */}
             <Route path="likes" element={<AdminLikes />} />
             <Route path="messages" element={<TempPage title="Gestion des Messages" />} />
             <Route path="friends" element={<TempPage title="Gestion des Amis" />} />
-            {/* <Route path="security" element={<TempPage title="Sécurité" />} /> */}
             <Route path="logs" element={<TempPage title="Logs Système" />} />
             <Route path="profile" element={<MyProfile />} />
-            {/* <Route path="settings" element={<TempPage title="Account Settings" />} />
-            <Route path="preferences" element={<TempPage title="Preferences" />} />
-            <Route path="help" element={<TempPage title="Help & Support" />} /> */}
             <Route path="notifications" element={<TempPage title="Notifications" />} />
           </Route>
 
